@@ -6,7 +6,7 @@ import UserTable, { UserAccount, UserRole } from '@/components/UserTable';
 import AddUserDialog from '@/components/AddUserDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, ShieldCheck, Users } from 'lucide-react';
+import { Search, UserPlus, ShieldCheck, Users, UserX } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
 const INITIAL_USERS: UserAccount[] = [
