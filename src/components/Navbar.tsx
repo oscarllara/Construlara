@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { LayoutGrid, Bell, User, Key, Car } from 'lucide-react';
+import { LayoutGrid, Bell, User, Key, Car, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/', icon: LayoutGrid },
     { name: 'Chaves', path: '/chaves', icon: Key },
     { name: 'Veículos', path: '/veiculos', icon: Car },
+    { name: 'Admin', path: '/admin', icon: Shield },
   ];
 
   return (
