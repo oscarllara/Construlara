@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from '@/utils/toast';
-import { Car, User, MapPin, Gauge, AlertTriangle } from 'lucide-react';
+import { Car, User, MapPin, Gauge, AlertTriangle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 // Mock Data
 const INITIAL_VEHICLES: Vehicle[] = [
