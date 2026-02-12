@@ -32,6 +32,14 @@ const AdminPage = () => {
     }));
   };
 
+  const handleDeleteUser = (id: string) => {
+    const user = users.find(u => u.id === id);
+    if (user && window.confirm(`Tem certeza que deseja excluir definitivamente o usuário ${user.name}?`)) {
+      setUsers(prev => prev.filter(u => u.id !== id));
+      showSuccess(`Usuário ${user.name} removido permanentemente.`);
+    }
+  };
+
   const handleAddUser = (userData: any) => {
     const newUser: UserAccount = {
       id: `u-${Date.now()}`,
@@ -107,7 +115,11 @@ const AdminPage = () => {
             />
           </div>
 
-          <UserTable users={filteredUsers} onToggleStatus={handleToggleStatus} />
+          <UserTable 
+            users={filteredUsers} 
+            onToggleStatus={handleToggleStatus} 
+            onDelete={handleDeleteUser}
+          />
         </div>
       </div>
 

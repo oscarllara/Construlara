@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Shield, UserX, UserCheck, Mail } from 'lucide-react';
+import { Shield, UserX, UserCheck, Mail, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export type UserRole = 'Gestor' | 'Operador de Chaves' | 'Operador de Carros' | 'Visitante';
@@ -29,9 +29,10 @@ export interface UserAccount {
 interface UserTableProps {
   users: UserAccount[];
   onToggleStatus: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-const UserTable = ({ users, onToggleStatus }: UserTableProps) => {
+const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
   const getRoleBadge = (role: UserRole) => {
     const styles = {
       'Gestor': "bg-purple-100 text-purple-700 border-purple-200",
@@ -81,15 +82,25 @@ const UserTable = ({ users, onToggleStatus }: UserTableProps) => {
               </TableCell>
               <TableCell className="text-slate-500 text-sm">{user.lastAccess}</TableCell>
               <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-3">
-                  <span className="text-xs font-medium text-slate-400">
-                    {user.status === 'active' ? 'Ativo' : 'Bloqueado'}
-                  </span>
-                  <Switch 
-                    checked={user.status === 'active'} 
-                    onCheckedChange={() => onToggleStatus(user.id)}
-                    className="data-[state=checked]:bg-emerald-500"
-                  />
+                <div className="flex items-center justify-end gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-400">
+                      {user.status === 'active' ? 'Ativo' : 'Bloqueado'}
+                    </span>
+                    <Switch 
+                      checked={user.status === 'active'} 
+                      onCheckedChange={() => onToggleStatus(user.id)}
+                      className="data-[state=checked]:bg-emerald-500"
+                    />
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => onDelete(user.id)}
+                    className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>
