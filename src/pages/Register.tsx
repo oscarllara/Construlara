@@ -10,6 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Mail, Lock, User, ArrowLeft, Briefcase } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
+// Usuários iniciais para garantir consistência se a lista estiver vazia
+const INITIAL_USERS = [
+  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
+  { id: 'u2', name: 'Porteiro João', email: 'joao.portaria@empresa.com', role: 'Operador de Chaves', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Frota', email: 'ricardo.frota@empresa.com', role: 'Operador de Carros', status: 'active', lastAccess: '24/05/2024' },
+];
+
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -38,18 +45,21 @@ const Register = () => {
       return;
     }
 
-    // Salvar no localStorage para aparecer na aba Usuários
-    const savedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
+    // Recupera a lista atual ou inicializa com os padrões
+    const stored = localStorage.getItem('app_users');
+    const currentUsers = stored ? JSON.parse(stored) : INITIAL_USERS;
+    
     const newUser = {
       id: `u-${Date.now()}`,
       name: formData.name,
       email: formData.email,
       role: formData.role,
       status: 'active',
-      lastAccess: 'Nunca'
+      lastAccess: 'Recém-chegado'
     };
     
-    localStorage.setItem('app_users', JSON.stringify([newUser, ...savedUsers]));
+    // Adiciona o novo usuário ao topo da lista
+    localStorage.setItem('app_users', JSON.stringify([newUser, ...currentUsers]));
 
     showSuccess(`Conta de ${formData.role} criada com sucesso!`);
     navigate('/login');
