@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, UserPlus, Mail, Lock } from 'lucide-react';
+import { Shield, UserPlus, Mail, Lock, KeyRound } from 'lucide-react';
 import { UserRole } from './UserTable';
 
 interface AddUserDialogProps {
@@ -37,53 +37,53 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] rounded-3xl">
+      <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] border-none shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-indigo-600" />
+          <DialogTitle className="flex items-center gap-2 text-2xl font-black text-slate-900">
+            <UserPlus className="h-6 w-6 text-blue-700" />
             Provisionar Usuário
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="font-medium">
             Cadastre um novo funcionário e defina suas permissões de acesso.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-5 py-4">
           <div className="space-y-2">
-            <Label className="text-slate-700 font-medium">Nome Completo</Label>
+            <Label className="text-slate-700 font-bold">Nome Completo</Label>
             <Input 
               placeholder="Ex: João Silva" 
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="rounded-xl border-slate-200"
+              className="rounded-2xl border-slate-200 h-12"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-700 font-medium flex items-center gap-2">
+            <Label className="text-slate-700 font-bold flex items-center gap-2">
               <Mail className="h-4 w-4 text-slate-400" /> Email Corporativo
             </Label>
             <Input 
               type="email"
-              placeholder="joao.silva@empresa.com" 
+              placeholder="joao.silva@construlara.com" 
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="rounded-xl border-slate-200"
+              className="rounded-2xl border-slate-200 h-12"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-700 font-medium flex items-center gap-2">
+            <Label className="text-slate-700 font-bold flex items-center gap-2">
               <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
             </Label>
             <Select 
               value={formData.role} 
               onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
             >
-              <SelectTrigger className="rounded-xl border-slate-200">
+              <SelectTrigger className="rounded-2xl border-slate-200 h-12">
                 <SelectValue placeholder="Selecione o papel..." />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="Gestor">Gestor (Admin)</SelectItem>
                 <SelectItem value="Operador de Chaves">Operador de Chaves</SelectItem>
                 <SelectItem value="Operador de Carros">Operador de Carros</SelectItem>
@@ -92,19 +92,21 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             </Select>
           </div>
 
-          <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
-            <Lock className="h-5 w-5 text-amber-600 shrink-0" />
-            <p className="text-xs text-amber-800 leading-relaxed">
-              Uma <strong>senha temporária</strong> será enviada para o email informado. O usuário deverá alterá-la no primeiro acesso.
+          <div className="bg-blue-50 p-5 rounded-[2rem] border border-blue-100 flex gap-4">
+            <div className="h-10 w-10 bg-blue-100 rounded-2xl flex items-center justify-center shrink-0">
+              <KeyRound className="h-5 w-5 text-blue-700" />
+            </div>
+            <p className="text-xs text-blue-800 leading-relaxed font-medium">
+              Uma <strong>senha temporária</strong> será enviada para o e-mail informado. O usuário será <strong>obrigado</strong> a alterá-la no primeiro acesso para garantir a segurança da conta.
             </p>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl">
+        <DialogFooter className="gap-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">
+          <Button onClick={handleSubmit} className="bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-bold px-8 h-12 shadow-lg shadow-blue-100">
             Criar Conta
           </Button>
         </DialogFooter>

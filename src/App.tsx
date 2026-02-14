@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Equipments from "./pages/Equipments";
 import Rentals from "./pages/Rentals";
 import Admin from "./pages/Admin";
+import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,6 +20,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/trocar-senha" element={<ChangePassword />} />
           <Route path="/" element={<Index />} />
           <Route path="/equipamentos" element={<Equipments />} />
           <Route path="/alugueis" element={<Rentals />} />
