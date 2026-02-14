@@ -37,7 +37,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[390px] rounded-[2.5rem] border-none shadow-2xl">
+      <DialogContent className="sm:max-w-[550px] rounded-[2.5rem] border-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl font-black text-slate-900">
             <UserPlus className="h-6 w-6 text-blue-700" />
@@ -49,14 +49,36 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
         </DialogHeader>
         
         <div className="grid gap-3 py-4">
-          <div className="space-y-1.5">
-            <Label className="text-slate-700 font-bold">Nome Completo</Label>
-            <Input 
-              placeholder="Ex: João Silva" 
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="rounded-2xl border-slate-200 h-12"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold">Nome Completo</Label>
+              <Input 
+                placeholder="Ex: João Silva" 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold flex items-center gap-2">
+                <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+              </Label>
+              <Select 
+                value={formData.role} 
+                onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
+              >
+                <SelectTrigger className="rounded-2xl border-slate-200 h-12">
+                  <SelectValue placeholder="Selecione o nível..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  <SelectItem value="Cliente">Cliente</SelectItem>
+                  <SelectItem value="Entregador">Entregador</SelectItem>
+                  <SelectItem value="Vendas">Vendas</SelectItem>
+                  <SelectItem value="Gestor">Gestor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -72,27 +94,8 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-slate-700 font-bold flex items-center gap-2">
-              <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
-            </Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
-            >
-              <SelectTrigger className="rounded-2xl border-slate-200 h-12">
-                <SelectValue placeholder="Selecione o nível..." />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl">
-                <SelectItem value="Cliente">Cliente</SelectItem>
-                <SelectItem value="Entregador">Entregador</SelectItem>
-                <SelectItem value="Vendas">Vendas</SelectItem>
-                <SelectItem value="Gestor">Gestor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-32">
+          {/* Reduzi o mt-32 para mt-8 para diminuir a altura total */}
+          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-8">
             <div className="h-10 w-10 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
               <Hammer className="h-5 w-5 text-orange-700" />
             </div>
