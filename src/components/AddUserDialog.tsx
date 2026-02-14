@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, UserPlus, Mail, Hammer } from 'lucide-react';
+import { Shield, UserPlus, Mail, Hammer, Phone } from 'lucide-react';
 import { UserRole } from './UserTable';
 
 interface AddUserDialogProps {
@@ -26,13 +26,14 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    whatsapp: "",
     role: "Cliente" as UserRole
   });
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.email) return;
+    if (!formData.name || !formData.email || !formData.whatsapp) return;
     onAdd(formData);
-    setFormData({ name: "", email: "", role: "Cliente" });
+    setFormData({ name: "", email: "", whatsapp: "", role: "Cliente" });
   };
 
   return (
@@ -49,49 +50,61 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-bold text-sm">Nome Completo</Label>
+            <Input 
+              placeholder="Ex: João Silva" 
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="rounded-2xl border-slate-200 h-12 text-base"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm">Nome Completo</Label>
+              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                <Mail className="h-4 w-4 text-slate-400" /> Email
+              </Label>
               <Input 
-                placeholder="Ex: João Silva" 
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                type="email"
+                placeholder="joao.silva@construlara.com" 
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
                 className="rounded-2xl border-slate-200 h-12 text-base"
               />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+                <Phone className="h-4 w-4 text-slate-400" /> WhatsApp
               </Label>
-              <Select 
-                value={formData.role} 
-                onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
-              >
-                <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
-                  <SelectValue placeholder="Selecione o nível..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl">
-                  <SelectItem value="Cliente">Cliente</SelectItem>
-                  <SelectItem value="Entregador">Entregador</SelectItem>
-                  <SelectItem value="Vendas">Vendas</SelectItem>
-                  <SelectItem value="Gestor">Gestor</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input 
+                placeholder="(00) 00000-0000" 
+                value={formData.whatsapp}
+                onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12 text-base"
+              />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-              <Mail className="h-4 w-4 text-slate-400" /> Email Corporativo
+              <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
             </Label>
-            <Input 
-              type="email"
-              placeholder="joao.silva@construlara.com" 
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="rounded-2xl border-slate-200 h-12 text-base"
-            />
+            <Select 
+              value={formData.role} 
+              onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
+            >
+              <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
+                <SelectValue placeholder="Selecione o nível..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="Cliente">Cliente</SelectItem>
+                <SelectItem value="Entregador">Entregador</SelectItem>
+                <SelectItem value="Vendas">Vendas</SelectItem>
+                <SelectItem value="Gestor">Gestor</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="bg-orange-50 p-5 rounded-[2.5rem] border border-orange-100 flex gap-4 mt-4">

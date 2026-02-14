@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { UserX, UserCheck, Mail, Trash2 } from 'lucide-react';
+import { UserX, UserCheck, Mail, Trash2, Phone } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export type UserRole = 'Cliente' | 'Entregador' | 'Vendas' | 'Gestor';
@@ -21,6 +21,7 @@ export interface UserAccount {
   id: string;
   name: string;
   email: string;
+  whatsapp: string;
   role: UserRole;
   status: 'active' | 'inactive';
   lastAccess: string;
@@ -49,6 +50,7 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
         <TableHeader className="bg-slate-50">
           <TableRow>
             <TableHead>Usuário</TableHead>
+            <TableHead>Contato</TableHead>
             <TableHead>Nível de Acesso</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Último Acesso</TableHead>
@@ -59,10 +61,15 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
           {users.map((user) => (
             <TableRow key={user.id} className={cn(user.status === 'inactive' && "opacity-60")}>
               <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-slate-900">{user.name}</span>
+                <span className="font-semibold text-slate-900">{user.name}</span>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1">
                   <span className="text-xs text-slate-500 flex items-center gap-1">
                     <Mail className="h-3 w-3" /> {user.email}
+                  </span>
+                  <span className="text-xs text-slate-500 flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> {user.whatsapp}
                   </span>
                 </div>
               </TableCell>
@@ -84,9 +91,6 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-slate-400">
-                      {user.status === 'active' ? 'Ativo' : 'Bloqueado'}
-                    </span>
                     <Switch 
                       checked={user.status === 'active'} 
                       onCheckedChange={() => onToggleStatus(user.id)}

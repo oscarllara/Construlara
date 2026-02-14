@@ -7,19 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, User, ArrowLeft, Briefcase } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Briefcase, Phone } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const INITIAL_USERS = [
-  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '11999999999', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
+  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '11988888888', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '11977777777', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    whatsapp: '',
     role: '',
     password: '',
     confirmPassword: ''
@@ -39,18 +40,21 @@ const Register = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      showError("A senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
-
     const stored = localStorage.getItem('app_users');
     const currentUsers = stored ? JSON.parse(stored) : INITIAL_USERS;
     
+    // Validação de duplicidade
+    const userExists = currentUsers.some((u: any) => u.email.toLowerCase() === formData.email.toLowerCase());
+    if (userExists) {
+      showError("Este e-mail já está cadastrado no sistema.");
+      return;
+    }
+
     const newUser = {
       id: `u-${Date.now()}`,
       name: formData.name,
       email: formData.email,
+      whatsapp: formData.whatsapp,
       role: formData.role,
       status: 'active',
       lastAccess: 'Recém-chegado'
@@ -81,7 +85,7 @@ const Register = () => {
             </div>
             <CardDescription className="text-sm">Preencha seus dados e escolha seu nível de acesso.</CardDescription>
           </CardHeader>
-          <CardContent className="px-10 pb-8 space-y-6">
+          <CardContent className="px-10 pb-8 space-y-4">
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-bold">Nome Completo</Label>
@@ -98,19 +102,35 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-bold">E-mail</Label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="nome@exemplo.com" 
-                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-bold">E-mail</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="nome@exemplo.com" 
+                      className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp" className="text-sm font-bold">WhatsApp</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input 
+                      id="whatsapp" 
+                      placeholder="(00) 00000-0000" 
+                      className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                      value={formData.whatsapp}
+                      onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 

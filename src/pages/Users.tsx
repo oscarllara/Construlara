@@ -7,12 +7,12 @@ import AddUserDialog from '@/components/AddUserDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX } from 'lucide-react';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 
 const INITIAL_USERS: UserAccount[] = [
-  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '11999999999', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
+  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '11988888888', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '11977777777', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const UsersPage = () => {
@@ -57,6 +57,13 @@ const UsersPage = () => {
   };
 
   const handleAddUser = (userData: any) => {
+    // Validação de duplicidade
+    const userExists = users.some(u => u.email.toLowerCase() === userData.email.toLowerCase());
+    if (userExists) {
+      showError("Este e-mail já está em uso por outro usuário.");
+      return;
+    }
+
     const newUser: UserAccount = {
       id: `u-${Date.now()}`,
       ...userData,
@@ -71,7 +78,8 @@ const UsersPage = () => {
 
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.whatsapp.includes(searchTerm)
   );
 
   return (
@@ -125,7 +133,7 @@ const UsersPage = () => {
           <div className="relative w-full md:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
-              placeholder="Buscar por nome ou email..." 
+              placeholder="Buscar por nome, email ou whatsapp..." 
               className="pl-10 rounded-xl border-slate-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
