@@ -12,10 +12,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Shield, UserX, UserCheck, Mail, Trash2 } from 'lucide-react';
+import { UserX, UserCheck, Mail, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-export type UserRole = 'Gestor' | 'Operador de Chaves' | 'Operador de Carros' | 'Visitante';
+export type UserRole = 'Gestor' | 'Operador de Ferramentas' | 'Atendente' | 'Visitante';
 
 export interface UserAccount {
   id: string;
@@ -36,8 +36,8 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
   const getRoleBadge = (role: UserRole) => {
     const styles = {
       'Gestor': "bg-purple-100 text-purple-700 border-purple-200",
-      'Operador de Chaves': "bg-amber-100 text-amber-700 border-amber-200",
-      'Operador de Carros': "bg-blue-100 text-blue-700 border-blue-200",
+      'Operador de Ferramentas': "bg-orange-100 text-orange-700 border-orange-200",
+      'Atendente': "bg-blue-100 text-blue-700 border-blue-200",
       'Visitante': "bg-slate-100 text-slate-700 border-slate-200"
     };
     return <Badge variant="outline" className={cn("rounded-lg font-medium", styles[role])}>{role}</Badge>;

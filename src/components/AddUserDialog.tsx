@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, UserPlus, Mail, Lock, KeyRound } from 'lucide-react';
+import { Shield, UserPlus, Mail, KeyRound, Hammer } from 'lucide-react';
 import { UserRole } from './UserTable';
 
 interface AddUserDialogProps {
@@ -26,13 +26,13 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "Operador de Chaves" as UserRole
+    role: "Operador de Ferramentas" as UserRole
   });
 
   const handleSubmit = () => {
     if (!formData.name || !formData.email) return;
     onAdd(formData);
-    setFormData({ name: "", email: "", role: "Operador de Chaves" });
+    setFormData({ name: "", email: "", role: "Operador de Ferramentas" });
   };
 
   return (
@@ -85,19 +85,19 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
               </SelectTrigger>
               <SelectContent className="rounded-2xl">
                 <SelectItem value="Gestor">Gestor (Admin)</SelectItem>
-                <SelectItem value="Operador de Chaves">Operador de Chaves</SelectItem>
-                <SelectItem value="Operador de Carros">Operador de Carros</SelectItem>
+                <SelectItem value="Operador de Ferramentas">Operador de Ferramentas</SelectItem>
+                <SelectItem value="Atendente">Atendente</SelectItem>
                 <SelectItem value="Visitante">Visitante (Apenas Leitura)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="bg-blue-50 p-5 rounded-[2rem] border border-blue-100 flex gap-4">
-            <div className="h-10 w-10 bg-blue-100 rounded-2xl flex items-center justify-center shrink-0">
-              <KeyRound className="h-5 w-5 text-blue-700" />
+          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4">
+            <div className="h-10 w-10 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
+              <Hammer className="h-5 w-5 text-orange-700" />
             </div>
-            <p className="text-xs text-blue-800 leading-relaxed font-medium">
-              Uma <strong>senha temporária</strong> será enviada para o e-mail informado. O usuário será <strong>obrigado</strong> a alterá-la no primeiro acesso para garantir a segurança da conta.
+            <p className="text-xs text-orange-800 leading-relaxed font-medium">
+              Uma <strong>senha temporária</strong> será enviada para o e-mail informado. O usuário será <strong>obrigado</strong> a alterá-la no primeiro acesso.
             </p>
           </div>
         </div>

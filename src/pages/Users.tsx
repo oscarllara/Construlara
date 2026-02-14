@@ -11,8 +11,8 @@ import { showSuccess } from '@/utils/toast';
 
 const INITIAL_USERS: UserAccount[] = [
   { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'Porteiro João', email: 'joao.portaria@empresa.com', role: 'Operador de Chaves', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Frota', email: 'ricardo.frota@empresa.com', role: 'Operador de Carros', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u2', name: 'João Ferramentas', email: 'joao.ferramentas@empresa.com', role: 'Operador de Ferramentas', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Atendimento', email: 'ricardo.atendimento@empresa.com', role: 'Atendente', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const UsersPage = () => {
@@ -20,7 +20,6 @@ const UsersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  // Carregar usuários do localStorage ou usar os iniciais
   useEffect(() => {
     const savedUsers = localStorage.getItem('app_users');
     if (savedUsers) {
