@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import UserTable, { UserAccount } from '@/components/UserTable';
 import AddUserDialog from '@/components/AddUserDialog';
+import EditUserDialog from '@/components/EditUserDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX } from 'lucide-react';
@@ -19,6 +20,8 @@ const UsersPage = () => {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<UserAccount | null>(null);
 
   useEffect(() => {
     const savedUsers = localStorage.getItem('app_users');
@@ -57,7 +60,6 @@ const UsersPage = () => {
   };
 
   const handleAddUser = (userData: any) => {
-    // Validação de duplicidade
     const userExists = users.some(u => u.email.toLowerCase() === userData.email.toLowerCase());
     if (userExists) {
       showError("Este e-mail já está em uso por outro usuário.");
@@ -74,6 +76,26 @@ const UsersPage = () => {
     saveUsers(newUsers);
     setIsAddDialogOpen(false);
     showSuccess(`Usuário ${userData.name} provisionado com sucesso.`);
+  };
+
+  const handleEditClick = (user: UserAccount) => {
+    setUserToEdit(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = (updatedUser: UserAccount) => {
+    // Validação de e-mail duplicado (exceto para o próprio usuário)
+    const emailExists = users.some(u => u.id !== updatedUser.id && u.email.toLowerCase() === updatedUser.email.toLowerCase());
+    if (emailExists) {
+      showError("Este e-mail já está sendo usado por outro usuário.");
+      return;
+    }
+
+    const newUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    saveUsers(newUsers);
+    setIsEditDialogOpen(false);
+    setUserToEdit(null);
+    showSuccess(`Dados de ${updatedUser.name} atualizados.`);
   };
 
   const filteredUsers = users.filter(user => 
@@ -144,6 +166,7 @@ const UsersPage = () => {
             users={filteredUsers} 
             onToggleStatus={handleToggleStatus} 
             onDelete={handleDeleteUser}
+            onEdit={handleEditClick}
           />
         </div>
       </div>
@@ -152,6 +175,13 @@ const UsersPage = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen} 
         onAdd={handleAddUser} 
+      />
+
+      <EditUserDialog 
+        user={userToEdit}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={handleSaveEdit}
       />
     </AppLayout>
   );

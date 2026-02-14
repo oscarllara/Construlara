@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { UserX, UserCheck, Mail, Trash2, Phone } from 'lucide-react';
+import { UserX, UserCheck, Mail, Trash2, Phone, Pencil } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export type UserRole = 'Cliente' | 'Entregador' | 'Vendas' | 'Gestor';
@@ -31,9 +31,10 @@ interface UserTableProps {
   users: UserAccount[];
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (user: UserAccount) => void;
 }
 
-const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
+const UserTable = ({ users, onToggleStatus, onDelete, onEdit }: UserTableProps) => {
   const getRoleBadge = (role: UserRole) => {
     const styles = {
       'Gestor': "bg-purple-100 text-purple-700 border-purple-200",
@@ -89,14 +90,22 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
               </TableCell>
               <TableCell className="text-slate-500 text-sm">{user.lastAccess}</TableCell>
               <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center gap-2 mr-2">
                     <Switch 
                       checked={user.status === 'active'} 
                       onCheckedChange={() => onToggleStatus(user.id)}
                       className="data-[state=checked]:bg-emerald-500"
                     />
                   </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => onEdit(user)}
+                    className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
