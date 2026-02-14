@@ -11,8 +11,8 @@ import { showSuccess } from '@/utils/toast';
 
 const INITIAL_USERS: UserAccount[] = [
   { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'João Ferramentas', email: 'joao.ferramentas@empresa.com', role: 'Operador de Ferramentas', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Atendimento', email: 'ricardo.atendimento@empresa.com', role: 'Atendente', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const UsersPage = () => {

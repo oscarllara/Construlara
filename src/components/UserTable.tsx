@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { UserX, UserCheck, Mail, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-export type UserRole = 'Gestor' | 'Operador de Ferramentas' | 'Atendente' | 'Visitante';
+export type UserRole = 'Cliente' | 'Entregador' | 'Vendas' | 'Gestor';
 
 export interface UserAccount {
   id: string;
@@ -36,9 +36,9 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
   const getRoleBadge = (role: UserRole) => {
     const styles = {
       'Gestor': "bg-purple-100 text-purple-700 border-purple-200",
-      'Operador de Ferramentas': "bg-orange-100 text-orange-700 border-orange-200",
-      'Atendente': "bg-blue-100 text-blue-700 border-blue-200",
-      'Visitante': "bg-slate-100 text-slate-700 border-slate-200"
+      'Vendas': "bg-blue-100 text-blue-700 border-blue-200",
+      'Entregador': "bg-orange-100 text-orange-700 border-orange-200",
+      'Cliente': "bg-slate-100 text-slate-700 border-slate-200"
     };
     return <Badge variant="outline" className={cn("rounded-lg font-medium", styles[role])}>{role}</Badge>;
   };
@@ -49,7 +49,7 @@ const UserTable = ({ users, onToggleStatus, onDelete }: UserTableProps) => {
         <TableHeader className="bg-slate-50">
           <TableRow>
             <TableHead>Usuário</TableHead>
-            <TableHead>Permissão</TableHead>
+            <TableHead>Nível de Acesso</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Último Acesso</TableHead>
             <TableHead className="text-right">Ações</TableHead>

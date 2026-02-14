@@ -13,8 +13,8 @@ import { showSuccess, showError } from '@/utils/toast';
 // Usuários iniciais para garantir consistência se a lista estiver vazia
 const INITIAL_USERS = [
   { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'Porteiro João', email: 'joao.portaria@empresa.com', role: 'Operador de Chaves', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Frota', email: 'ricardo.frota@empresa.com', role: 'Operador de Carros', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const Register = () => {
@@ -31,7 +31,7 @@ const Register = () => {
     e.preventDefault();
     
     if (!formData.role) {
-      showError("Por favor, selecione seu perfil de acesso.");
+      showError("Por favor, selecione seu nível de acesso.");
       return;
     }
 
@@ -82,7 +82,7 @@ const Register = () => {
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Link>
             </div>
-            <CardDescription>Preencha seus dados e escolha seu perfil.</CardDescription>
+            <CardDescription>Preencha seus dados e escolha seu nível de acesso.</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-6">
             <form onSubmit={handleRegister} className="space-y-4">
@@ -148,17 +148,17 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Perfil de Acesso</Label>
+                <Label htmlFor="role">Nível de Acesso</Label>
                 <Select onValueChange={(value) => setFormData({...formData, role: value})}>
                   <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-10 relative">
                     <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <SelectValue placeholder="Selecione seu cargo..." />
+                    <SelectValue placeholder="Selecione seu nível..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     <SelectItem value="Cliente">Cliente</SelectItem>
-                    <SelectItem value="Gestor">Gestor</SelectItem>
                     <SelectItem value="Entregador">Entregador</SelectItem>
-                    <SelectItem value="Vendedor">Vendedor</SelectItem>
+                    <SelectItem value="Vendas">Vendas</SelectItem>
+                    <SelectItem value="Gestor">Gestor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

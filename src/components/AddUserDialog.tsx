@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, UserPlus, Mail, KeyRound, Hammer } from 'lucide-react';
+import { Shield, UserPlus, Mail, Hammer } from 'lucide-react';
 import { UserRole } from './UserTable';
 
 interface AddUserDialogProps {
@@ -26,13 +26,13 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "Operador de Ferramentas" as UserRole
+    role: "Cliente" as UserRole
   });
 
   const handleSubmit = () => {
     if (!formData.name || !formData.email) return;
     onAdd(formData);
-    setFormData({ name: "", email: "", role: "Operador de Ferramentas" });
+    setFormData({ name: "", email: "", role: "Cliente" });
   };
 
   return (
@@ -44,7 +44,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             Provisionar Usuário
           </DialogTitle>
           <DialogDescription className="font-medium">
-            Cadastre um novo funcionário e defina suas permissões de acesso.
+            Cadastre um novo usuário e defina seu nível de acesso.
           </DialogDescription>
         </DialogHeader>
         
@@ -81,13 +81,13 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
               onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
             >
               <SelectTrigger className="rounded-2xl border-slate-200 h-12">
-                <SelectValue placeholder="Selecione o papel..." />
+                <SelectValue placeholder="Selecione o nível..." />
               </SelectTrigger>
               <SelectContent className="rounded-2xl">
-                <SelectItem value="Gestor">Gestor (Admin)</SelectItem>
-                <SelectItem value="Operador de Ferramentas">Operador de Ferramentas</SelectItem>
-                <SelectItem value="Atendente">Atendente</SelectItem>
-                <SelectItem value="Visitante">Visitante (Apenas Leitura)</SelectItem>
+                <SelectItem value="Cliente">Cliente</SelectItem>
+                <SelectItem value="Entregador">Entregador</SelectItem>
+                <SelectItem value="Vendas">Vendas</SelectItem>
+                <SelectItem value="Gestor">Gestor</SelectItem>
               </SelectContent>
             </Select>
           </div>
