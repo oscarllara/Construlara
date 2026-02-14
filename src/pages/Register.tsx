@@ -64,33 +64,33 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-[520px] space-y-10">
-        <div className="text-center space-y-4">
-          <img src="/logosolo.png" alt="Construlara" className="h-20 w-20 mx-auto mb-2" />
-          <h1 className="text-4xl font-black text-blue-700 tracking-tighter">CONSTRULARA</h1>
-          <p className="text-slate-500 text-lg font-medium">Crie sua conta de acesso</p>
+      <div className="w-full max-w-[520px] space-y-6">
+        <div className="text-center space-y-2">
+          <img src="/logosolo.png" alt="Construlara" className="h-16 w-16 mx-auto mb-1" />
+          <h1 className="text-3xl font-black text-blue-700 tracking-tighter">CONSTRULARA</h1>
+          <p className="text-slate-500 text-base font-medium">Crie sua conta de acesso</p>
         </div>
 
         <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden">
-          <CardHeader className="space-y-2 pb-10 pt-12 px-12">
+          <CardHeader className="space-y-1 pb-6 pt-8 px-10">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-3xl font-black text-slate-900">Cadastro</CardTitle>
-              <Link to="/login" className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-base font-bold">
-                <ArrowLeft className="h-5 w-5" /> Voltar
+              <CardTitle className="text-2xl font-black text-slate-900">Cadastro</CardTitle>
+              <Link to="/login" className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-sm font-bold">
+                <ArrowLeft className="h-4 w-4" /> Voltar
               </Link>
             </div>
-            <CardDescription className="text-base">Preencha seus dados e escolha seu nível de acesso.</CardDescription>
+            <CardDescription className="text-sm">Preencha seus dados e escolha seu nível de acesso.</CardDescription>
           </CardHeader>
-          <CardContent className="px-12 pb-12 space-y-8">
-            <form onSubmit={handleRegister} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="name" className="text-base font-bold">Nome Completo</Label>
+          <CardContent className="px-10 pb-8 space-y-6">
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-bold">Nome Completo</Label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <Input 
                     id="name" 
                     placeholder="Seu nome" 
-                    className="pl-12 rounded-2xl h-14 border-slate-200 text-base"
+                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     required
@@ -98,15 +98,15 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="email" className="text-base font-bold">E-mail</Label>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-bold">E-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <Input 
                     id="email" 
                     type="email" 
                     placeholder="nome@exemplo.com" 
-                    className="pl-12 rounded-2xl h-14 border-slate-200 text-base"
+                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     required
@@ -115,14 +115,14 @@ const Register = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <Label htmlFor="password" className="text-base font-bold">Senha</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-bold">Senha</Label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <Input 
                       id="password" 
                       type="password" 
-                      className="pl-12 rounded-2xl h-14 border-slate-200 text-base"
+                      className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                       required
@@ -130,14 +130,14 @@ const Register = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="confirmPassword" className="text-base font-bold">Confirmar</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm font-bold">Confirmar</Label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <Input 
                       id="confirmPassword" 
                       type="password" 
-                      className="pl-12 rounded-2xl h-14 border-slate-200 text-base"
+                      className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                       required
@@ -146,10 +146,10 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="role" className="text-base font-bold">Nível de Acesso</Label>
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-sm font-bold">Nível de Acesso</Label>
                 <Select onValueChange={(value) => setFormData({...formData, role: value})}>
-                  <SelectTrigger className="rounded-2xl h-14 border-slate-200 pl-12 relative text-base">
+                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-12 relative text-base">
                     <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <SelectValue placeholder="Selecione seu nível..." />
                   </SelectTrigger>
@@ -162,7 +162,7 @@ const Register = () => {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-bold text-lg shadow-xl shadow-blue-100 mt-4">
+              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-12 rounded-2xl font-bold text-base shadow-xl shadow-blue-100 mt-2">
                 Criar Minha Conta
               </Button>
             </form>
