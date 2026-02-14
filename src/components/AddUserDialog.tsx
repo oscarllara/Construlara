@@ -37,38 +37,38 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] rounded-[2.5rem] border-none shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl font-black text-slate-900">
-            <UserPlus className="h-6 w-6 text-blue-700" />
+      <DialogContent className="sm:max-w-[600px] rounded-[3rem] border-none shadow-2xl p-8">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="flex items-center gap-3 text-3xl font-black text-slate-900">
+            <UserPlus className="h-8 w-8 text-blue-700" />
             Provisionar Usuário
           </DialogTitle>
-          <DialogDescription className="font-medium">
+          <DialogDescription className="text-lg font-medium">
             Cadastre um novo usuário e defina seu nível de acesso.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-3 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold">Nome Completo</Label>
+        <div className="grid gap-6 py-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-bold text-base">Nome Completo</Label>
               <Input 
                 placeholder="Ex: João Silva" 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12"
+                className="rounded-2xl border-slate-200 h-14 text-base"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold flex items-center gap-2">
-                <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-bold text-base flex items-center gap-2">
+                <Shield className="h-5 w-5 text-slate-400" /> Nível de Acesso
               </Label>
               <Select 
                 value={formData.role} 
                 onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
               >
-                <SelectTrigger className="rounded-2xl border-slate-200 h-12">
+                <SelectTrigger className="rounded-2xl border-slate-200 h-14 text-base">
                   <SelectValue placeholder="Selecione o nível..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
@@ -81,35 +81,34 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-slate-700 font-bold flex items-center gap-2">
-              <Mail className="h-4 w-4 text-slate-400" /> Email Corporativo
+          <div className="space-y-2">
+            <Label className="text-slate-700 font-bold text-base flex items-center gap-2">
+              <Mail className="h-5 w-5 text-slate-400" /> Email Corporativo
             </Label>
             <Input 
               type="email"
               placeholder="joao.silva@construlara.com" 
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="rounded-2xl border-slate-200 h-12"
+              className="rounded-2xl border-slate-200 h-14 text-base"
             />
           </div>
 
-          {/* Reduzi o mt-32 para mt-8 para diminuir a altura total */}
-          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-8">
-            <div className="h-10 w-10 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
-              <Hammer className="h-5 w-5 text-orange-700" />
+          <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-5 mt-12">
+            <div className="h-12 w-12 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
+              <Hammer className="h-6 w-6 text-orange-700" />
             </div>
-            <p className="text-xs text-orange-800 leading-relaxed font-medium">
-              Uma <strong>senha temporária</strong> será enviada para o e-mail informado. O usuário será <strong>obrigado</strong> a alterá-la no primeiro acesso.
+            <p className="text-sm text-orange-800 leading-relaxed font-medium">
+              Uma <strong>senha temporária</strong> será enviada para o e-mail informado. O usuário será <strong>obrigado</strong> a alterá-la no primeiro acesso para garantir a segurança da conta.
             </p>
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold">
+        <DialogFooter className="gap-3 pt-4">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold h-14 px-8 text-base">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-bold px-8 h-12 shadow-lg shadow-blue-100">
+          <Button onClick={handleSubmit} className="bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-bold px-10 h-14 text-base shadow-xl shadow-blue-100">
             Criar Conta
           </Button>
         </DialogFooter>
