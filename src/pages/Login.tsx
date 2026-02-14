@@ -6,17 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mail, Lock, UserPlus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Mail, Lock, UserPlus, Briefcase } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!role) {
+      showError("Por favor, selecione seu perfil de acesso.");
+      return;
+    }
+
     // Simulação de lógica de primeiro acesso
     if (email === 'novo@construlara.com' && password === '123456') {
       showSuccess("Primeiro acesso detectado. Por favor, altere sua senha.");
@@ -26,7 +33,8 @@ const Login = () => {
 
     if (email && password) {
       localStorage.setItem('isLoggedIn', 'true');
-      showSuccess("Bem-vindo de volta!");
+      localStorage.setItem('userRole', role);
+      showSuccess(`Bem-vindo de volta, ${role}!`);
       navigate('/');
     } else {
       showError("Credenciais inválidas.");
@@ -45,10 +53,26 @@ const Login = () => {
         <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden">
           <CardHeader className="space-y-1 pb-8 pt-10 px-10">
             <CardTitle className="text-2xl font-black text-slate-900">Entrar no Sistema</CardTitle>
-            <CardDescription>Use seu e-mail institucional ou pessoal cadastrado.</CardDescription>
+            <CardDescription>Informe suas credenciais e seu perfil de acesso.</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-6">
             <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Perfil de Acesso</Label>
+                <Select onValueChange={(value) => setRole(value)}>
+                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-10 relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <SelectValue placeholder="Selecione sua função..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="Cliente">Cliente</SelectItem>
+                    <SelectItem value="Gestor">Gestor</SelectItem>
+                    <SelectItem value="Entregador">Entregador</SelectItem>
+                    <SelectItem value="Vendedor">Vendedor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
