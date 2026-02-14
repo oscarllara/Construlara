@@ -1,13 +1,15 @@
 "use client";
 
 import React from 'react';
-import { LayoutGrid, Bell, User, Hammer, Receipt, Shield } from 'lucide-react';
+import { LayoutGrid, Bell, User, Hammer, Receipt, Shield, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { showSuccess } from '@/utils/toast';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutGrid },
@@ -15,6 +17,12 @@ const Navbar = () => {
     { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
     { name: 'Admin', path: '/admin', icon: Shield },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    showSuccess("Sessão encerrada com sucesso.");
+    navigate('/login');
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -51,8 +59,19 @@ const Navbar = () => {
           <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-50">
             <Bell className="h-5 w-5 text-slate-600" />
           </Button>
-          <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white shadow-md">
-            <User className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
+            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white shadow-md">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout}
+              className="rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50"
+              title="Sair do sistema"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </div>

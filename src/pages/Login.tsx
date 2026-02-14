@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
@@ -25,6 +25,7 @@ const Login = () => {
     }
 
     if (email && password) {
+      localStorage.setItem('isLoggedIn', 'true');
       showSuccess("Bem-vindo de volta!");
       navigate('/');
     } else {

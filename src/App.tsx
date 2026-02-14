@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Equipments from "./pages/Equipments";
 import Rentals from "./pages/Rentals";
@@ -13,6 +13,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Componente simples para proteger rotas
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -22,10 +31,13 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/trocar-senha" element={<ChangePassword />} />
-          <Route path="/" element={<Index />} />
-          <Route path="/equipamentos" element={<Equipments />} />
-          <Route path="/alugueis" element={<Rentals />} />
-          <Route path="/admin" element={<Admin />} />
+          
+          {/* Rotas Protegidas */}
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/equipamentos" element={<ProtectedRoute><Equipments /></ProtectedRoute>} />
+          <Route path="/alugueis" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
