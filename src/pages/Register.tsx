@@ -38,6 +38,19 @@ const Register = () => {
       return;
     }
 
+    // Salvar no localStorage para aparecer na aba Usuários
+    const savedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
+    const newUser = {
+      id: `u-${Date.now()}`,
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+      status: 'active',
+      lastAccess: 'Nunca'
+    };
+    
+    localStorage.setItem('app_users', JSON.stringify([newUser, ...savedUsers]));
+
     showSuccess(`Conta de ${formData.role} criada com sucesso!`);
     navigate('/login');
   };

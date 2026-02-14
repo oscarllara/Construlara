@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { LayoutGrid, Bell, User, Hammer, Receipt, Shield, LogOut } from 'lucide-react';
+import { LayoutGrid, Bell, User, Hammer, Receipt, Users, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,7 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/', icon: LayoutGrid },
     { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
     { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
-    { name: 'Admin', path: '/admin', icon: Shield },
+    { name: 'Usuários', path: '/usuarios', icon: Users },
   ];
 
   const handleLogout = () => {

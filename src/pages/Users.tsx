@@ -1,41 +1,58 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
-import UserTable, { UserAccount, UserRole } from '@/components/UserTable';
+import UserTable, { UserAccount } from '@/components/UserTable';
 import AddUserDialog from '@/components/AddUserDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, ShieldCheck, Users, UserX } from 'lucide-react';
+import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
 const INITIAL_USERS: UserAccount[] = [
   { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
   { id: 'u2', name: 'Porteiro João', email: 'joao.portaria@empresa.com', role: 'Operador de Chaves', status: 'active', lastAccess: 'Ontem, 18:20' },
   { id: 'u3', name: 'Ricardo Frota', email: 'ricardo.frota@empresa.com', role: 'Operador de Carros', status: 'active', lastAccess: '24/05/2024' },
-  { id: 'u4', name: 'Ex-Funcionário', email: 'antigo@empresa.com', role: 'Visitante', status: 'inactive', lastAccess: '15/03/2024' },
 ];
 
-const AdminPage = () => {
-  const [users, setUsers] = useState(INITIAL_USERS);
+const UsersPage = () => {
+  const [users, setUsers] = useState<UserAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
+  // Carregar usuários do localStorage ou usar os iniciais
+  useEffect(() => {
+    const savedUsers = localStorage.getItem('app_users');
+    if (savedUsers) {
+      setUsers(JSON.parse(savedUsers));
+    } else {
+      setUsers(INITIAL_USERS);
+      localStorage.setItem('app_users', JSON.stringify(INITIAL_USERS));
+    }
+  }, []);
+
+  const saveUsers = (newUsers: UserAccount[]) => {
+    setUsers(newUsers);
+    localStorage.setItem('app_users', JSON.stringify(newUsers));
+  };
+
   const handleToggleStatus = (id: string) => {
-    setUsers(prev => prev.map(user => {
+    const newUsers = users.map(user => {
       if (user.id === id) {
         const newStatus = user.status === 'active' ? 'inactive' : 'active';
         showSuccess(`Usuário ${user.name} ${newStatus === 'active' ? 'ativado' : 'bloqueado'} com sucesso.`);
-        return { ...user, status: newStatus };
+        return { ...user, status: newStatus as 'active' | 'inactive' };
       }
       return user;
-    }));
+    });
+    saveUsers(newUsers);
   };
 
   const handleDeleteUser = (id: string) => {
     const user = users.find(u => u.id === id);
     if (user && window.confirm(`Tem certeza que deseja excluir definitivamente o usuário ${user.name}?`)) {
-      setUsers(prev => prev.filter(u => u.id !== id));
+      const newUsers = users.filter(u => u.id !== id);
+      saveUsers(newUsers);
       showSuccess(`Usuário ${user.name} removido permanentemente.`);
     }
   };
@@ -47,7 +64,8 @@ const AdminPage = () => {
       status: 'active',
       lastAccess: 'Nunca'
     };
-    setUsers(prev => [newUser, ...prev]);
+    const newUsers = [newUser, ...users];
+    saveUsers(newUsers);
     setIsAddDialogOpen(false);
     showSuccess(`Usuário ${userData.name} provisionado com sucesso.`);
   };
@@ -62,8 +80,8 @@ const AdminPage = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900">Gestão de Acesso</h2>
-            <p className="text-slate-500">Controle de usuários, permissões e auditoria de segurança</p>
+            <h2 className="text-3xl font-bold text-slate-900">Gestão de Usuários</h2>
+            <p className="text-slate-500">Controle de acessos e permissões do sistema</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
@@ -77,7 +95,7 @@ const AdminPage = () => {
         <div className="grid gap-6 md:grid-cols-3">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
             <div className="h-12 w-12 bg-indigo-100 rounded-2xl flex items-center justify-center">
-              <Users className="h-6 w-6 text-indigo-600" />
+              <UsersIcon className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
               <p className="text-sm text-slate-500">Total de Usuários</p>
@@ -89,7 +107,7 @@ const AdminPage = () => {
               <ShieldCheck className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Ativos no Sistema</p>
+              <p className="text-sm text-slate-500">Ativos</p>
               <p className="text-2xl font-bold text-slate-900">{users.filter(u => u.status === 'active').length}</p>
             </div>
           </div>
@@ -98,7 +116,7 @@ const AdminPage = () => {
               <UserX className="h-6 w-6 text-rose-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Acessos Bloqueados</p>
+              <p className="text-sm text-slate-500">Bloqueados</p>
               <p className="text-2xl font-bold text-slate-900">{users.filter(u => u.status === 'inactive').length}</p>
             </div>
           </div>
@@ -132,4 +150,4 @@ const AdminPage = () => {
   );
 };
 
-export default AdminPage;
+export default UsersPage;

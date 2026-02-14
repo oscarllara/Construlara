@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Equipments from "./pages/Equipments";
 import Rentals from "./pages/Rentals";
-import Admin from "./pages/Admin";
+import Users from "./pages/Users";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ChangePassword from "./pages/ChangePassword";
@@ -38,7 +38,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/equipamentos" element={<ProtectedRoute><Equipments /></ProtectedRoute>} />
           <Route path="/alugueis" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          <Route path="/usuarios" element={<ProtectedRoute><Users /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
