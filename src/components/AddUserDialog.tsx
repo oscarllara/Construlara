@@ -92,8 +92,8 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             </Select>
           </div>
 
-          {/* Espaçamento aumentado para mt-12 conforme solicitado */}
-          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-12">
+          {/* Espaçamento aumentado significativamente para mt-20 */}
+          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-20">
             <div className="h-10 w-10 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
               <Hammer className="h-5 w-5 text-orange-700" />
             </div>
