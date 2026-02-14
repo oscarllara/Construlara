@@ -48,8 +48,9 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-5 py-4">
-          <div className="space-y-2">
+        {/* Reduzi o gap de 5 para 3 para aproximar as informações acima */}
+        <div className="grid gap-3 py-4">
+          <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold">Nome Completo</Label>
             <Input 
               placeholder="Ex: João Silva" 
@@ -59,7 +60,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold flex items-center gap-2">
               <Mail className="h-4 w-4 text-slate-400" /> Email Corporativo
             </Label>
@@ -72,7 +73,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold flex items-center gap-2">
               <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
             </Label>
@@ -92,8 +93,8 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             </Select>
           </div>
 
-          {/* Espaçamento aumentado significativamente para mt-20 */}
-          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-20">
+          {/* Espaçamento aumentado para mt-32 para criar um grande vazio visual antes do aviso */}
+          <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-32">
             <div className="h-10 w-10 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
               <Hammer className="h-5 w-5 text-orange-700" />
             </div>
