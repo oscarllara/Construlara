@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Mail, Lock, User, ArrowLeft, Briefcase } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    role: '',
     password: '',
     confirmPassword: ''
   });
@@ -21,6 +23,11 @@ const Register = () => {
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.role) {
+      showError("Por favor, selecione seu perfil de acesso.");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       showError("As senhas não coincidem.");
       return;
@@ -31,7 +38,7 @@ const Register = () => {
       return;
     }
 
-    showSuccess("Conta criada com sucesso! Você já pode acessar o sistema.");
+    showSuccess(`Conta de ${formData.role} criada com sucesso!`);
     navigate('/login');
   };
 
@@ -52,7 +59,7 @@ const Register = () => {
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Link>
             </div>
-            <CardDescription>Preencha os dados abaixo para se registrar.</CardDescription>
+            <CardDescription>Escolha seu perfil e preencha os dados.</CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10 space-y-6">
             <form onSubmit={handleRegister} className="space-y-4">
@@ -70,6 +77,23 @@ const Register = () => {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Perfil de Acesso</Label>
+                <Select onValueChange={(value) => setFormData({...formData, role: value})}>
+                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-10 relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <SelectValue placeholder="Selecione seu cargo..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="Cliente">Cliente</SelectItem>
+                    <SelectItem value="Gestor">Gestor</SelectItem>
+                    <SelectItem value="Entregador">Entregador</SelectItem>
+                    <SelectItem value="Vendedor">Vendedor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
@@ -85,6 +109,7 @@ const Register = () => {
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
                 <div className="relative">
@@ -99,6 +124,7 @@ const Register = () => {
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                 <div className="relative">
@@ -113,6 +139,7 @@ const Register = () => {
                   />
                 </div>
               </div>
+
               <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-12 rounded-2xl font-bold shadow-lg shadow-blue-100">
                 Criar Minha Conta
               </Button>
