@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, UserPlus } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
@@ -98,6 +98,12 @@ const Login = () => {
               </svg>
               Microsoft / Azure
             </Button>
+
+            <div className="pt-4 text-center">
+              <p className="text-sm text-slate-500">
+                Não tem uma conta? <Link to="/cadastro" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1">Cadastre-se agora <UserPlus className="h-3 w-3" /></Link>
+              </p>
+            </div>
           </CardContent>
         </Card>
 

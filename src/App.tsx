@@ -8,6 +8,7 @@ import Equipments from "./pages/Equipments";
 import Rentals from "./pages/Rentals";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Register />} />
           <Route path="/trocar-senha" element={<ChangePassword />} />
           
           {/* Rotas Protegidas */}
