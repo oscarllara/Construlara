@@ -37,7 +37,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] border-none shadow-2xl">
+      <DialogContent className="sm:max-w-[390px] rounded-[2.5rem] border-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl font-black text-slate-900">
             <UserPlus className="h-6 w-6 text-blue-700" />
@@ -48,7 +48,6 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         
-        {/* Reduzi o gap de 5 para 3 para aproximar as informações acima */}
         <div className="grid gap-3 py-4">
           <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold">Nome Completo</Label>
@@ -93,7 +92,6 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
             </Select>
           </div>
 
-          {/* Espaçamento aumentado para mt-32 para criar um grande vazio visual antes do aviso */}
           <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 flex gap-4 mt-32">
             <div className="h-10 w-10 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
               <Hammer className="h-5 w-5 text-orange-700" />
