@@ -58,22 +58,6 @@ const Login = () => {
           <CardContent className="px-10 pb-10 space-y-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="role">Perfil de Acesso</Label>
-                <Select onValueChange={(value) => setRole(value)}>
-                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-10 relative">
-                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <SelectValue placeholder="Selecione sua função..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    <SelectItem value="Cliente">Cliente</SelectItem>
-                    <SelectItem value="Gestor">Gestor</SelectItem>
-                    <SelectItem value="Entregador">Entregador</SelectItem>
-                    <SelectItem value="Vendedor">Vendedor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -102,6 +86,23 @@ const Login = () => {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Perfil de Acesso</Label>
+                <Select onValueChange={(value) => setRole(value)}>
+                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-10 relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <SelectValue placeholder="Selecione sua função..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="Cliente">Cliente</SelectItem>
+                    <SelectItem value="Gestor">Gestor</SelectItem>
+                    <SelectItem value="Entregador">Entregador</SelectItem>
+                    <SelectItem value="Vendedor">Vendedor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-12 rounded-2xl font-bold shadow-lg shadow-blue-100">
                 Acessar Conta
               </Button>
