@@ -50,8 +50,8 @@ const Login = () => {
 
       <div className="w-full max-w-[520px] space-y-8 relative z-10">
         <div className="text-center space-y-4">
-          <div className="h-24 w-24 flex items-center justify-center mx-auto">
-            <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-full object-contain drop-shadow-xl" />
+          <div className="h-32 w-full flex items-center justify-center mx-auto">
+            <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-auto object-contain drop-shadow-xl" />
           </div>
           <div className="space-y-1">
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter">CONSTRULARA</h1>

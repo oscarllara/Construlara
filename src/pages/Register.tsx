@@ -70,7 +70,9 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
       <div className="w-full max-w-[520px] space-y-6">
         <div className="text-center space-y-2">
-          <img src="/logoconstrulara.png" alt="Construlara" className="h-20 w-20 mx-auto mb-1 object-contain" />
+          <div className="h-24 w-full flex items-center justify-center mx-auto mb-2">
+            <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-auto object-contain" />
+          </div>
           <h1 className="text-3xl font-black text-blue-700 tracking-tighter">CONSTRULARA</h1>
           <p className="text-slate-500 text-base font-medium">Crie sua conta de acesso</p>
         </div>
