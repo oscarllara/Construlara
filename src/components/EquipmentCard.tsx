@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2 } from 'lucide-react';
+import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,9 +23,10 @@ interface EquipmentCardProps {
   onMaintenance: (id: string) => void;
   onFinishRepair: (id: string) => void;
   onViewContract: (id: string) => void;
+  onReturn: (equipment: Equipment) => void;
 }
 
-const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onViewContract }: EquipmentCardProps) => {
+const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onViewContract, onReturn }: EquipmentCardProps) => {
   const isRented = equipment.status === 'rented';
   const isMaintenance = equipment.status === 'maintenance';
 
@@ -91,13 +92,23 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
           </>
         )}
         {isRented && (
-          <Button 
-            onClick={() => onViewContract(equipment.id)}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Ver Contrato
-          </Button>
+          <div className="flex flex-col w-full gap-2">
+            <Button 
+              onClick={() => onReturn(equipment)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-blue-100"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Devolver
+            </Button>
+            <Button 
+              variant="ghost"
+              onClick={() => onViewContract(equipment.id)}
+              className="w-full text-slate-500 hover:text-slate-900 font-bold text-xs"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              Ver Contrato
+            </Button>
+          </div>
         )}
         {isMaintenance && (
           <Button 

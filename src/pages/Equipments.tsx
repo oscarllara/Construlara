@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import EquipmentCard, { Equipment } from '@/components/EquipmentCard';
 import AddEquipmentDialog from '@/components/AddEquipmentDialog';
+import ReturnEquipmentDialog from '@/components/ReturnEquipmentDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Filter, Hammer } from 'lucide-react';
@@ -21,6 +22,8 @@ const EquipmentsPage = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,8 +76,32 @@ const EquipmentsPage = () => {
     showSuccess("Manutenção finalizada. Item disponível.");
   };
 
+  const handleReturnClick = (equipment: Equipment) => {
+    setSelectedEquipment(equipment);
+    setIsReturnDialogOpen(true);
+  };
+
+  const handleConfirmReturn = (id: string, nextStatus: 'available' | 'maintenance', notes: string) => {
+    const newEquipments = equipments.map(e => 
+      e.id === id ? { ...e, status: nextStatus, lastClient: undefined } : e
+    );
+    
+    // Atualizar também o contrato na aba de aluguéis se necessário
+    const savedRentals = localStorage.getItem('app_rentals');
+    if (savedRentals) {
+      const rentals = JSON.parse(savedRentals);
+      const updatedRentals = rentals.map((r: any) => 
+        (r.equipmentId === id && r.status === 'active') ? { ...r, status: 'completed', notes: notes } : r
+      );
+      localStorage.setItem('app_rentals', JSON.stringify(updatedRentals));
+    }
+
+    saveEquipments(newEquipments);
+    setIsReturnDialogOpen(false);
+    showSuccess(nextStatus === 'available' ? "Equipamento devolvido e disponível." : "Equipamento recebido e enviado para manutenção.");
+  };
+
   const handleViewContract = (id: string) => {
-    showSuccess("Abrindo detalhes do contrato...");
     navigate('/alugueis');
   };
 
@@ -125,6 +152,7 @@ const EquipmentsPage = () => {
               onMaintenance={handleMaintenance}
               onFinishRepair={handleFinishRepair}
               onViewContract={handleViewContract}
+              onReturn={handleReturnClick}
             />
           ))}
         </div>
@@ -141,6 +169,13 @@ const EquipmentsPage = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen} 
         onAdd={handleAddEquipment} 
+      />
+
+      <ReturnEquipmentDialog 
+        equipment={selectedEquipment}
+        open={isReturnDialogOpen}
+        onOpenChange={setIsReturnDialogOpen}
+        onConfirm={handleConfirmReturn}
       />
     </AppLayout>
   );
