@@ -30,7 +30,7 @@ const Navbar = () => {
       <div className="container flex h-24 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center group">
-            <div className="h-20 w-64 flex items-center justify-start transition-transform group-hover:scale-105">
+            <div className="h-24 w-80 flex items-center justify-start transition-transform group-hover:scale-105">
               <img 
                 src="/logoconstrulara.png" 
                 alt="Construlara Logo" 
