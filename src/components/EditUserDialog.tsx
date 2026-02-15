@@ -24,18 +24,33 @@ interface EditUserDialogProps {
 }
 
 const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProps) => {
-  const [formData, setFormData] = useState<Partial<UserAccount>>({});
+  const [formData, setFormData] = useState<UserAccount | null>(null);
 
   useEffect(() => {
     if (user) {
-      setFormData(user);
+      setFormData({ ...user });
     }
-  }, [user]);
+  }, [user, open]);
+
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
+
+  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!formData) return;
+    const formatted = formatWhatsApp(e.target.value);
+    setFormData({ ...formData, whatsapp: formatted });
+  };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.email || !formData.whatsapp || !formData.role) return;
-    onSave(formData as UserAccount);
+    if (!formData || !formData.name || !formData.email || !formData.whatsapp || !formData.role) return;
+    onSave(formData);
   };
+
+  if (!formData) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,7 +70,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
             <Label className="text-slate-700 font-bold text-sm">Nome Completo</Label>
             <Input 
               placeholder="Ex: João Silva" 
-              value={formData.name || ""}
+              value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
               className="rounded-2xl border-slate-200 h-12 text-base"
             />
@@ -64,25 +79,33 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+              </Label>
+              <Select 
+                value={formData.role} 
+                onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
+              >
+                <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
+                  <SelectValue placeholder="Selecione o nível..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  <SelectItem value="Cliente">Cliente</SelectItem>
+                  <SelectItem value="Entregador">Entregador</SelectItem>
+                  <SelectItem value="Vendas">Vendas</SelectItem>
+                  <SelectItem value="Gestor">Gestor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                 <Mail className="h-4 w-4 text-slate-400" /> Email
               </Label>
               <Input 
                 type="email"
                 placeholder="joao.silva@construlara.com" 
-                value={formData.email || ""}
+                value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12 text-base"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <Phone className="h-4 w-4 text-slate-400" /> WhatsApp
-              </Label>
-              <Input 
-                placeholder="(00) 00000-0000" 
-                value={formData.whatsapp || ""}
-                onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
                 className="rounded-2xl border-slate-200 h-12 text-base"
               />
             </div>
@@ -90,22 +113,15 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
 
           <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-              <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+              <Phone className="h-4 w-4 text-slate-400" /> WhatsApp
             </Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
-            >
-              <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
-                <SelectValue placeholder="Selecione o nível..." />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl">
-                <SelectItem value="Cliente">Cliente</SelectItem>
-                <SelectItem value="Entregador">Entregador</SelectItem>
-                <SelectItem value="Vendas">Vendas</SelectItem>
-                <SelectItem value="Gestor">Gestor</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input 
+              placeholder="(00) 00000-0000" 
+              value={formData.whatsapp}
+              onChange={handleWhatsAppChange}
+              maxLength={15}
+              className="rounded-2xl border-slate-200 h-12 text-base"
+            />
           </div>
         </div>
 

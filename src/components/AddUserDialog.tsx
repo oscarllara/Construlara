@@ -30,8 +30,20 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
     role: "Cliente" as UserRole
   });
 
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
+
+  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatWhatsApp(e.target.value);
+    setFormData({ ...formData, whatsapp: formatted });
+  };
+
   const handleSubmit = () => {
-    if (!formData.name || !formData.email || !formData.whatsapp) return;
+    if (!formData.name || !formData.email || !formData.whatsapp || !formData.role) return;
     onAdd(formData);
     setFormData({ name: "", email: "", whatsapp: "", role: "Cliente" });
   };
@@ -63,6 +75,26 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+              </Label>
+              <Select 
+                value={formData.role} 
+                onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
+              >
+                <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
+                  <SelectValue placeholder="Selecione o nível..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  <SelectItem value="Cliente">Cliente</SelectItem>
+                  <SelectItem value="Entregador">Entregador</SelectItem>
+                  <SelectItem value="Vendas">Vendas</SelectItem>
+                  <SelectItem value="Gestor">Gestor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                 <Mail className="h-4 w-4 text-slate-400" /> Email
               </Label>
               <Input 
@@ -73,38 +105,19 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
                 className="rounded-2xl border-slate-200 h-12 text-base"
               />
             </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <Phone className="h-4 w-4 text-slate-400" /> WhatsApp
-              </Label>
-              <Input 
-                placeholder="(00) 00000-0000" 
-                value={formData.whatsapp}
-                onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12 text-base"
-              />
-            </div>
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-              <Shield className="h-4 w-4 text-slate-400" /> Nível de Acesso
+              <Phone className="h-4 w-4 text-slate-400" /> WhatsApp
             </Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
-            >
-              <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
-                <SelectValue placeholder="Selecione o nível..." />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl">
-                <SelectItem value="Cliente">Cliente</SelectItem>
-                <SelectItem value="Entregador">Entregador</SelectItem>
-                <SelectItem value="Vendas">Vendas</SelectItem>
-                <SelectItem value="Gestor">Gestor</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input 
+              placeholder="(00) 00000-0000" 
+              value={formData.whatsapp}
+              onChange={handleWhatsAppChange}
+              maxLength={15}
+              className="rounded-2xl border-slate-200 h-12 text-base"
+            />
           </div>
 
           <div className="bg-orange-50 p-5 rounded-[2.5rem] border border-orange-100 flex gap-4 mt-4">

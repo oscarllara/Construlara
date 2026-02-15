@@ -42,54 +42,55 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit }: UserTableProps) 
       'Entregador': "bg-orange-100 text-orange-700 border-orange-200",
       'Cliente': "bg-slate-100 text-slate-700 border-slate-200"
     };
-    return <Badge variant="outline" className={cn("rounded-lg font-medium", styles[role])}>{role}</Badge>;
+    return <Badge variant="outline" className={cn("rounded-lg font-bold text-[10px] uppercase px-2 py-0.5", styles[role])}>{role}</Badge>;
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
       <Table>
-        <TableHeader className="bg-slate-50">
-          <TableRow>
-            <TableHead>Usuário</TableHead>
-            <TableHead>Contato</TableHead>
-            <TableHead>Nível de Acesso</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Último Acesso</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+        <TableHeader className="bg-slate-50/50">
+          <TableRow className="hover:bg-transparent border-slate-100">
+            <TableHead className="font-bold text-slate-900 py-6 pl-8">Usuário</TableHead>
+            <TableHead className="font-bold text-slate-900">Acesso & Contato</TableHead>
+            <TableHead className="font-bold text-slate-900">Status</TableHead>
+            <TableHead className="font-bold text-slate-900">Último Acesso</TableHead>
+            <TableHead className="text-right pr-8 font-bold text-slate-900">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.id} className={cn(user.status === 'inactive' && "opacity-60")}>
-              <TableCell>
-                <span className="font-semibold text-slate-900">{user.name}</span>
+            <TableRow key={user.id} className={cn("hover:bg-slate-50/50 border-slate-50 transition-colors", user.status === 'inactive' && "opacity-60")}>
+              <TableCell className="py-5 pl-8">
+                <span className="font-black text-slate-900">{user.name}</span>
               </TableCell>
               <TableCell>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-500 flex items-center gap-1">
-                    <Mail className="h-3 w-3" /> {user.email}
-                  </span>
-                  <span className="text-xs text-slate-500 flex items-center gap-1">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    {getRoleBadge(user.role)}
+                    <span className="text-sm font-bold text-slate-600 flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-slate-400" /> {user.email}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5 pl-1">
                     <Phone className="h-3 w-3" /> {user.whatsapp}
                   </span>
                 </div>
               </TableCell>
-              <TableCell>{getRoleBadge(user.role)}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   {user.status === 'active' ? (
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none gap-1">
+                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none gap-1 rounded-xl font-bold px-3 py-1">
                       <UserCheck className="h-3 w-3" /> Ativo
                     </Badge>
                   ) : (
-                    <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-none gap-1">
+                    <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-none gap-1 rounded-xl font-bold px-3 py-1">
                       <UserX className="h-3 w-3" /> Bloqueado
                     </Badge>
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-slate-500 text-sm">{user.lastAccess}</TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-slate-500 font-bold text-sm">{user.lastAccess}</TableCell>
+              <TableCell className="text-right pr-8">
                 <div className="flex items-center justify-end gap-2">
                   <div className="flex items-center gap-2 mr-2">
                     <Switch 
@@ -102,17 +103,17 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit }: UserTableProps) 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => onEdit(user)}
-                    className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="h-10 w-10 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-5 w-5" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => onDelete(user.id)}
-                    className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    className="h-10 w-10 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               </TableCell>
