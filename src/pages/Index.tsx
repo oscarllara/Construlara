@@ -5,13 +5,16 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Hammer, Receipt, Users, AlertCircle, TrendingUp, Clock, ArrowRight } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
+
   const stats = [
-    { title: "Equipamentos", value: "124", icon: Hammer, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Aluguéis Ativos", value: "18", icon: Receipt, color: "text-red-600", bg: "bg-red-50" },
-    { title: "Clientes", value: "85", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Atrasados", value: "3", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" },
+    { title: "Equipamentos", value: "124", icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos" },
+    { title: "Aluguéis Ativos", value: "18", icon: Receipt, color: "text-red-600", bg: "bg-red-50", path: "/alugueis" },
+    { title: "Clientes", value: "85", icon: Users, color: "text-blue-600", bg: "bg-blue-50", path: "/usuarios" },
+    { title: "Atrasados", value: "3", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50", path: "/alugueis" },
   ];
 
   return (
@@ -28,10 +31,16 @@ const Index = () => {
                 Pronto para gerenciar as locações da Construlara hoje? Tudo está sob controle por aqui!
               </p>
               <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
-                <button className="bg-white text-blue-700 px-6 py-3 rounded-2xl font-bold hover:bg-blue-50 transition-colors flex items-center gap-2 shadow-lg">
+                <button 
+                  onClick={() => navigate('/alugueis')}
+                  className="bg-white text-blue-700 px-6 py-3 rounded-2xl font-bold hover:bg-blue-50 transition-colors flex items-center gap-2 shadow-lg"
+                >
                   Novo Aluguel <ArrowRight className="h-4 w-4" />
                 </button>
-                <button className="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-red-700 transition-colors shadow-lg">
+                <button 
+                  onClick={() => navigate('/equipamentos')}
+                  className="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-red-700 transition-colors shadow-lg"
+                >
                   Ver Inventário
                 </button>
               </div>
@@ -47,9 +56,13 @@ const Index = () => {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, i) => (
-            <Card key={i} className="border-none shadow-sm rounded-[2rem] hover:scale-105 transition-transform">
+            <Card 
+              key={i} 
+              onClick={() => navigate(stat.path)}
+              className="border-none shadow-sm rounded-[2rem] hover:scale-105 transition-transform cursor-pointer group"
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">{stat.title}</CardTitle>
+                <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">{stat.title}</CardTitle>
                 <div className={`${stat.bg} p-3 rounded-2xl`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
@@ -93,12 +106,18 @@ const Index = () => {
             <div className="relative z-10">
               <h2 className="text-2xl font-black text-slate-900 mb-6">Ações Rápidas</h2>
               <div className="grid grid-cols-2 gap-4">
-                <button className="bg-blue-600 hover:bg-blue-700 p-6 rounded-[2rem] text-left transition-all group shadow-lg shadow-blue-200">
+                <button 
+                  onClick={() => navigate('/equipamentos')}
+                  className="bg-blue-600 hover:bg-blue-700 p-6 rounded-[2rem] text-left transition-all group shadow-lg shadow-blue-200"
+                >
                   <Hammer className="h-8 w-8 mb-3 text-white group-hover:scale-110 transition-transform" />
                   <p className="font-black text-white">Novo Item</p>
                   <p className="text-xs text-blue-100">Cadastrar ferramenta</p>
                 </button>
-                <button className="bg-red-600 hover:bg-red-700 p-6 rounded-[2rem] text-left transition-all group shadow-lg shadow-red-200">
+                <button 
+                  onClick={() => navigate('/alugueis')}
+                  className="bg-red-600 hover:bg-red-700 p-6 rounded-[2rem] text-left transition-all group shadow-lg shadow-red-200"
+                >
                   <Receipt className="h-8 w-8 mb-3 text-white group-hover:scale-110 transition-transform" />
                   <p className="font-black text-white">Novo Aluguel</p>
                   <p className="text-xs text-red-100">Iniciar contrato</p>
