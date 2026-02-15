@@ -11,9 +11,9 @@ import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX } from 'lucide
 import { showSuccess, showError } from '@/utils/toast';
 
 const INITIAL_USERS: UserAccount[] = [
-  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '11999999999', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '11988888888', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '11977777777', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '(11) 99999-9999', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
+  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '(11) 98888-8888', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '(11) 97777-7777', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const UsersPage = () => {
@@ -84,7 +84,6 @@ const UsersPage = () => {
   };
 
   const handleSaveEdit = (updatedUser: UserAccount) => {
-    // Validação de e-mail duplicado (exceto para o próprio usuário)
     const emailExists = users.some(u => u.id !== updatedUser.id && u.email.toLowerCase() === updatedUser.email.toLowerCase());
     if (emailExists) {
       showError("Este e-mail já está sendo usado por outro usuário.");
@@ -98,11 +97,22 @@ const UsersPage = () => {
     showSuccess(`Dados de ${updatedUser.name} atualizados.`);
   };
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.whatsapp.includes(searchTerm)
-  );
+  // Lógica de busca aprimorada
+  const filteredUsers = users.filter(user => {
+    const search = searchTerm.toLowerCase().trim();
+    if (!search) return true;
+
+    // Remove caracteres não numéricos para busca de telefone
+    const cleanSearch = search.replace(/\D/g, "");
+    const cleanPhone = user.whatsapp.replace(/\D/g, "");
+
+    return (
+      user.name.toLowerCase().includes(search) ||
+      user.email.toLowerCase().includes(search) ||
+      (cleanSearch !== "" && cleanPhone.includes(cleanSearch)) ||
+      user.whatsapp.includes(search)
+    );
+  });
 
   return (
     <AppLayout>
@@ -156,7 +166,7 @@ const UsersPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
               placeholder="Buscar por nome, email ou whatsapp..." 
-              className="pl-10 rounded-xl border-slate-200"
+              className="pl-10 rounded-xl border-slate-200 h-12"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
