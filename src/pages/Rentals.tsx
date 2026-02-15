@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { 
   Table, 
@@ -15,16 +15,92 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Calendar, User, Hammer, Receipt, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AddRentalDialog from '@/components/AddRentalDialog';
+import RentalDetailsDialog from '@/components/RentalDetailsDialog';
+import { showSuccess } from '@/utils/toast';
 
 const INITIAL_RENTALS = [
-  { id: 'r1', client: 'Construtora Silva', item: 'Betoneira 400L', start: '20/05/2024', end: '25/05/2024', status: 'active', total: 425.00, modality: 'Diária' },
-  { id: 'r2', client: 'Carlos Santos', item: 'Martelete Rompedor', start: '22/05/2024', end: '23/05/2024', status: 'overdue', total: 120.00, modality: 'Diária' },
-  { id: 'r3', client: 'Ana Oliveira', item: 'Andaime Tubular (x4)', start: '15/05/2024', end: '15/06/2024', status: 'completed', total: 180.00, modality: 'Mês' },
-  { id: 'r4', client: 'Engenharia Norte', item: 'Gerador 5500W', start: '10/05/2024', end: '24/05/2024', status: 'active', total: 1200.00, modality: 'Quinzena' },
+  { id: 'r1', client: 'Construtora Silva', item: 'Betoneira 400L', start: '20/05/2024', end: '25/05/2024', status: 'active', total: 425.00, modality: 'Diária', notes: '' },
+  { id: 'r2', client: 'Carlos Santos', item: 'Martelete Rompedor', start: '22/05/2024', end: '23/05/2024', status: 'overdue', total: 120.00, modality: 'Diária', notes: '' },
+  { id: 'r3', client: 'Ana Oliveira', item: 'Andaime Tubular (x4)', start: '15/05/2024', end: '15/06/2024', status: 'completed', total: 180.00, modality: 'Mês', notes: 'Devolvido sem avarias.' },
 ];
 
 const RentalsPage = () => {
-  const [rentals] = useState(INITIAL_RENTALS);
+  const [rentals, setRentals] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedRental, setSelectedRental] = useState<any>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('app_rentals');
+    if (saved) {
+      setRentals(JSON.parse(saved));
+    } else {
+      setRentals(INITIAL_RENTALS);
+      localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
+    }
+  }, []);
+
+  const saveRentals = (newRentals: any[]) => {
+    setRentals(newRentals);
+    localStorage.setItem('app_rentals', JSON.stringify(newRentals));
+  };
+
+  const handleAddRental = (data: any) => {
+    const newRental = {
+      id: `r-${Date.now()}`,
+      client: data.clientName,
+      clientId: data.clientId,
+      item: data.itemName,
+      equipmentId: data.equipmentId,
+      start: data.startDate,
+      end: data.endDate,
+      status: 'active',
+      total: data.totalValue,
+      modality: data.modality,
+      notes: ''
+    };
+
+    // Atualizar status do equipamento para 'rented'
+    const savedEquip = localStorage.getItem('app_equipments');
+    if (savedEquip) {
+      const allEquip = JSON.parse(savedEquip);
+      const updatedEquip = allEquip.map((e: any) => 
+        e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
+      );
+      localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+    }
+
+    saveRentals([newRental, ...rentals]);
+    setIsAddOpen(false);
+    showSuccess("Contrato gerado com sucesso!");
+  };
+
+  const handleUpdateRental = (updated: any) => {
+    const newRentals = rentals.map(r => r.id === updated.id ? updated : r);
+    
+    // Se o status mudou para 'completed', liberar o equipamento
+    if (updated.status === 'completed') {
+      const savedEquip = localStorage.getItem('app_equipments');
+      if (savedEquip) {
+        const allEquip = JSON.parse(savedEquip);
+        const updatedEquip = allEquip.map((e: any) => 
+          e.id === updated.equipmentId ? { ...e, status: 'available' } : e
+        );
+        localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+      }
+    }
+
+    saveRentals(newRentals);
+    setIsDetailsOpen(false);
+    showSuccess("Contrato atualizado.");
+  };
+
+  const openDetails = (rental: any) => {
+    setSelectedRental(rental);
+    setIsDetailsOpen(true);
+  };
 
   const getModalityBadge = (modality: string) => {
     const styles: Record<string, string> = {
@@ -40,6 +116,11 @@ const RentalsPage = () => {
     );
   };
 
+  const filtered = rentals.filter(r => 
+    r.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.item.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <AppLayout>
       <div className="space-y-8">
@@ -48,7 +129,10 @@ const RentalsPage = () => {
             <h2 className="text-3xl font-black text-slate-900">Contratos de Aluguel</h2>
             <p className="text-slate-500 font-medium">Controle de locações e prazos de devolução</p>
           </div>
-          <Button className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-red-100 h-12 px-6">
+          <Button 
+            onClick={() => setIsAddOpen(true)}
+            className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-red-100 h-12 px-6"
+          >
             <Receipt className="h-5 w-5" />
             Novo Contrato
           </Button>
@@ -59,6 +143,8 @@ const RentalsPage = () => {
           <Input 
             placeholder="Buscar por cliente ou item..." 
             className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-blue-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
@@ -76,7 +162,7 @@ const RentalsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rentals.map((rental) => (
+              {filtered.map((rental) => (
                 <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
                   <TableCell className="py-5 pl-8">
                     <div className="flex items-center gap-3">
@@ -106,21 +192,28 @@ const RentalsPage = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-lg font-black text-blue-700">R$ {rental.total.toFixed(2)}</span>
+                    <span className="text-lg font-black text-blue-700">R$ {rental.total?.toFixed(2)}</span>
                   </TableCell>
                   <TableCell>
                     <Badge className={cn(
                       "rounded-xl border-none font-bold px-3 py-1",
                       rental.status === 'active' ? "bg-blue-100 text-blue-700" :
                       rental.status === 'overdue' ? "bg-red-100 text-red-700" :
-                      "bg-slate-100 text-slate-600"
+                      rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
+                      "bg-orange-100 text-orange-700"
                     )}>
                       {rental.status === 'active' ? 'Ativo' : 
-                       rental.status === 'overdue' ? 'Atrasado' : 'Finalizado'}
+                       rental.status === 'overdue' ? 'Atrasado' : 
+                       rental.status === 'completed' ? 'Devolvido' : 'Em Reparo'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right pr-8">
-                    <Button variant="ghost" size="sm" className="rounded-xl font-bold text-blue-600 hover:bg-blue-50">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="rounded-xl font-bold text-blue-600 hover:bg-blue-50"
+                      onClick={() => openDetails(rental)}
+                    >
                       Detalhes
                     </Button>
                   </TableCell>
@@ -130,6 +223,19 @@ const RentalsPage = () => {
           </Table>
         </div>
       </div>
+
+      <AddRentalDialog 
+        open={isAddOpen} 
+        onOpenChange={setIsAddOpen} 
+        onAdd={handleAddRental} 
+      />
+
+      <RentalDetailsDialog 
+        rental={selectedRental}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        onUpdate={handleUpdateRental}
+      />
     </AppLayout>
   );
 };
