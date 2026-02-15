@@ -50,14 +50,15 @@ const Index = () => {
             </div>
             <div className="w-64 md:w-80 shrink-0 relative">
               <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full"></div>
-              <div className="relative animate-bounce-slow">
+              {/* Container com fundo branco para integrar imagens que possuem fundo */}
+              <div className="relative bg-white p-6 rounded-[3.5rem] shadow-2xl animate-bounce-slow border-4 border-blue-500/20">
                 <img 
                   src="/beto.png" 
                   alt="Mascote Beto" 
-                  className="w-full h-auto drop-shadow-[0_20px_50px_rgba(59,130,246,0.5)]" 
+                  className="w-full h-auto rounded-[2.5rem]" 
                 />
-                <div className="mt-4 text-center">
-                  <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full border border-emerald-500/20">BETO OFICIAL</span>
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                  <span className="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white uppercase tracking-widest">BETO OFICIAL</span>
                 </div>
               </div>
             </div>
