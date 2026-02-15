@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Equipments from "./pages/Equipments";
 import Rentals from "./pages/Rentals";
 import Users from "./pages/Users";
+import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ChangePassword from "./pages/ChangePassword";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/equipamentos" element={<ProtectedRoute><Equipments /></ProtectedRoute>} />
           <Route path="/alugueis" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+          <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
