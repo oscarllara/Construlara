@@ -72,43 +72,53 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     allClients.find(c => c.id === selectedClientId), 
   [selectedClientId, allClients]);
 
-  // Lógica de reconhecimento automático de modalidade e cálculo de valor
+  // Lógica de cálculo misto (Mix de prazos)
   useEffect(() => {
     if (!equipment || !startDate || !endDate) return;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const days = differenceInDays(end, start);
+    const totalDays = Math.max(1, differenceInDays(end, start));
     
-    if (days < 0) return;
+    if (differenceInDays(end, start) < 0) return;
 
-    // Reconhecimento automático da modalidade
-    let autoModality = "Diária";
-    if (days >= 30) autoModality = "Mês";
-    else if (days >= 15) autoModality = "Quinzena";
-    else if (days >= 7) autoModality = "Semanal";
+    let remainingDays = totalDays;
+    let calculatedTotal = 0;
 
-    setModality(autoModality);
-
-    // Cálculo do valor baseado na modalidade reconhecida
-    let newValue = 0;
-    const actualDays = Math.max(1, days);
-    
-    switch (autoModality) {
-      case 'Diária':
-        newValue = actualDays * (equipment.dailyRate || 0);
-        break;
-      case 'Semanal':
-        newValue = Math.ceil(actualDays / 7) * (equipment.weeklyRate || equipment.dailyRate * 7);
-        break;
-      case 'Quinzena':
-        newValue = Math.ceil(actualDays / 15) * (equipment.biweeklyRate || equipment.dailyRate * 15);
-        break;
-      case 'Mês':
-        newValue = Math.ceil(actualDays / 30) * (equipment.monthlyRate || equipment.dailyRate * 30);
-        break;
+    // 1. Meses (30 dias)
+    const months = Math.floor(remainingDays / 30);
+    if (months > 0) {
+      calculatedTotal += months * (equipment.monthlyRate || (equipment.dailyRate * 30));
+      remainingDays %= 30;
     }
-    setTotalValue(newValue);
+
+    // 2. Quinzenas (15 dias)
+    const biweeks = Math.floor(remainingDays / 15);
+    if (biweeks > 0) {
+      calculatedTotal += biweeks * (equipment.biweeklyRate || (equipment.dailyRate * 15));
+      remainingDays %= 15;
+    }
+
+    // 3. Semanas (7 dias)
+    const weeks = Math.floor(remainingDays / 7);
+    if (weeks > 0) {
+      calculatedTotal += weeks * (equipment.weeklyRate || (equipment.dailyRate * 7));
+      remainingDays %= 7;
+    }
+
+    // 4. Diárias restantes
+    if (remainingDays > 0) {
+      calculatedTotal += remainingDays * equipment.dailyRate;
+    }
+
+    // Determinar modalidade principal para exibição
+    let displayModality = "Diária";
+    if (totalDays >= 30) displayModality = "Mês";
+    else if (totalDays >= 15) displayModality = "Quinzena";
+    else if (totalDays >= 7) displayModality = "Semanal";
+
+    setModality(displayModality);
+    setTotalValue(calculatedTotal);
   }, [startDate, endDate, equipment]);
 
   const handleSave = () => {
@@ -267,23 +277,15 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </div>
                 
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade (Reconhecida)</Label>
-                  <Select value={modality} onValueChange={setModality}>
-                    <SelectTrigger className="rounded-xl border-slate-200 h-11 font-bold bg-slate-50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="Diária">Diária</SelectItem>
-                      <SelectItem value="Semanal">Semanal</SelectItem>
-                      <SelectItem value="Quinzena">Quinzena</SelectItem>
-                      <SelectItem value="Mês">Mês</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade Base (Mix Ativo)</Label>
+                  <div className="h-11 flex items-center px-4 bg-slate-50 rounded-xl border border-slate-200 font-bold text-slate-600">
+                    {modality}
+                  </div>
                 </div>
 
                 <div className="bg-emerald-600 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-lg shadow-emerald-100">
                   <div>
-                    <p className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total Recalculado</p>
+                    <p className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total (Mix de Prazos)</p>
                     <p className="text-3xl font-black">R$ {totalValue.toFixed(2)}</p>
                   </div>
                   <DollarSign className="h-8 w-8 text-emerald-400 opacity-50" />
