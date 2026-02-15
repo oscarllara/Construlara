@@ -38,7 +38,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [modality, setModality] = useState("");
-  const [totalValue, setTotalValue] = useState(0);
+  const [totalValue, setTotalValue] = useState<string>("0");
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -48,7 +48,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setStartDate(rental.start.includes('/') ? rental.start.split('/').reverse().join('-') : rental.start);
       setEndDate(rental.end.includes('/') ? rental.end.split('/').reverse().join('-') : rental.end);
       setModality(rental.modality || "Diária");
-      setTotalValue(rental.total || 0);
+      setTotalValue(rental.total?.toString() || "0");
       
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
@@ -72,7 +72,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     allClients.find(c => c.id === selectedClientId), 
   [selectedClientId, allClients]);
 
-  // Lógica de cálculo misto (Mix de prazos)
+  // Lógica de cálculo misto (Mix de prazos) - Dispara apenas quando datas ou equipamento mudam
   useEffect(() => {
     if (!equipment || !startDate || !endDate) return;
 
@@ -85,40 +85,35 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     let remainingDays = totalDays;
     let calculatedTotal = 0;
 
-    // 1. Meses (30 dias)
     const months = Math.floor(remainingDays / 30);
     if (months > 0) {
       calculatedTotal += months * (equipment.monthlyRate || (equipment.dailyRate * 30));
       remainingDays %= 30;
     }
 
-    // 2. Quinzenas (15 dias)
     const biweeks = Math.floor(remainingDays / 15);
     if (biweeks > 0) {
       calculatedTotal += biweeks * (equipment.biweeklyRate || (equipment.dailyRate * 15));
       remainingDays %= 15;
     }
 
-    // 3. Semanas (7 dias)
     const weeks = Math.floor(remainingDays / 7);
     if (weeks > 0) {
       calculatedTotal += weeks * (equipment.weeklyRate || (equipment.dailyRate * 7));
       remainingDays %= 7;
     }
 
-    // 4. Diárias restantes
     if (remainingDays > 0) {
       calculatedTotal += remainingDays * equipment.dailyRate;
     }
 
-    // Determinar modalidade principal para exibição
     let displayModality = "Diária";
     if (totalDays >= 30) displayModality = "Mês";
     else if (totalDays >= 15) displayModality = "Quinzena";
     else if (totalDays >= 7) displayModality = "Semanal";
 
     setModality(displayModality);
-    setTotalValue(calculatedTotal);
+    setTotalValue(calculatedTotal.toFixed(2));
   }, [startDate, endDate, equipment]);
 
   const handleSave = () => {
@@ -131,7 +126,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       start: startDate,
       end: endDate,
       modality,
-      total: totalValue
+      total: parseFloat(totalValue)
     });
   };
 
@@ -140,7 +135,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden">
-        {/* Header do Contrato */}
         <div className="bg-slate-900 p-8 text-white">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
@@ -170,7 +164,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
         </div>
 
         <div className="p-8 grid md:grid-cols-2 gap-10 max-h-[70vh] overflow-y-auto bg-white">
-          {/* Coluna Esquerda: Locatário e Equipamento */}
           <div className="space-y-8">
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -248,7 +241,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             </section>
           </div>
 
-          {/* Coluna Direita: Prazos e Valores */}
           <div className="space-y-8">
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -283,12 +275,17 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   </div>
                 </div>
 
-                <div className="bg-emerald-600 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-lg shadow-emerald-100">
-                  <div>
-                    <p className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total (Mix de Prazos)</p>
-                    <p className="text-3xl font-black">R$ {totalValue.toFixed(2)}</p>
+                <div className="bg-emerald-600 p-6 rounded-[2rem] text-white space-y-2 shadow-lg shadow-emerald-100">
+                  <Label className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total (Editável para Descontos)</Label>
+                  <div className="relative">
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-emerald-200">R$</span>
+                    <Input 
+                      type="number"
+                      value={totalValue}
+                      onChange={(e) => setTotalValue(e.target.value)}
+                      className="bg-transparent border-none text-3xl font-black p-0 pl-10 h-auto focus-visible:ring-0 text-white placeholder:text-emerald-300"
+                    />
                   </div>
-                  <DollarSign className="h-8 w-8 text-emerald-400 opacity-50" />
                 </div>
               </div>
             </section>
@@ -307,7 +304,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </div>
         </div>
 
-        {/* Footer com Status à Esquerda */}
         <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex flex-row items-center justify-between sm:justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             <Label className="font-bold text-slate-500 text-xs uppercase whitespace-nowrap">Status:</Label>
