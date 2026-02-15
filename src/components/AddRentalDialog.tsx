@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Receipt, User, Hammer, Calendar, DollarSign } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
+import { differenceInDays } from 'date-fns';
 
 interface AddRentalDialogProps {
   open: boolean;
@@ -49,6 +50,49 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
       setEquipments(allEquip.filter((e: Equipment) => e.status === 'available'));
     }
   }, [open]);
+
+  // Lógica de reconhecimento automático de modalidade e cálculo de valor
+  useEffect(() => {
+    if (!formData.startDate || !formData.endDate || !formData.equipmentId) return;
+
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const days = differenceInDays(end, start);
+    
+    if (days < 0) return;
+
+    let autoModality = "Diária";
+    if (days >= 30) autoModality = "Mês";
+    else if (days >= 15) autoModality = "Quinzena";
+    else if (days >= 7) autoModality = "Semanal";
+
+    const equipment = equipments.find(e => e.id === formData.equipmentId);
+    if (equipment) {
+      let newValue = 0;
+      const actualDays = Math.max(1, days);
+      
+      switch (autoModality) {
+        case 'Diária':
+          newValue = actualDays * (equipment.dailyRate || 0);
+          break;
+        case 'Semanal':
+          newValue = Math.ceil(actualDays / 7) * (equipment.weeklyRate || equipment.dailyRate * 7);
+          break;
+        case 'Quinzena':
+          newValue = Math.ceil(actualDays / 15) * (equipment.biweeklyRate || equipment.dailyRate * 15);
+          break;
+        case 'Mês':
+          newValue = Math.ceil(actualDays / 30) * (equipment.monthlyRate || equipment.dailyRate * 30);
+          break;
+      }
+
+      setFormData(prev => ({ 
+        ...prev, 
+        modality: autoModality, 
+        totalValue: newValue.toFixed(2) 
+      }));
+    }
+  }, [formData.startDate, formData.endDate, formData.equipmentId, equipments]);
 
   const handleSubmit = () => {
     if (!formData.clientId || !formData.equipmentId || !formData.totalValue) return;
@@ -123,9 +167,9 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm">Modalidade</Label>
+              <Label className="text-slate-700 font-bold text-sm">Modalidade (Auto)</Label>
               <Select value={formData.modality} onValueChange={(v) => setFormData({...formData, modality: v})}>
-                <SelectTrigger className="rounded-2xl border-slate-200 h-12">
+                <SelectTrigger className="rounded-2xl border-slate-200 h-12 bg-slate-50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
@@ -145,7 +189,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
                 placeholder="0.00" 
                 value={formData.totalValue}
                 onChange={(e) => setFormData({...formData, totalValue: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12"
+                className="rounded-2xl border-slate-200 h-12 font-bold text-blue-700"
               />
             </div>
           </div>

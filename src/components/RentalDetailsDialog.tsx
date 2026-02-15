@@ -72,33 +72,44 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     allClients.find(c => c.id === selectedClientId), 
   [selectedClientId, allClients]);
 
-  // Lógica de recálculo de valor
+  // Lógica de reconhecimento automático de modalidade e cálculo de valor
   useEffect(() => {
     if (!equipment || !startDate || !endDate) return;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const days = Math.max(1, differenceInDays(end, start));
+    const days = differenceInDays(end, start);
+    
+    if (days < 0) return;
 
+    // Reconhecimento automático da modalidade
+    let autoModality = "Diária";
+    if (days >= 30) autoModality = "Mês";
+    else if (days >= 15) autoModality = "Quinzena";
+    else if (days >= 7) autoModality = "Semanal";
+
+    setModality(autoModality);
+
+    // Cálculo do valor baseado na modalidade reconhecida
     let newValue = 0;
-    switch (modality) {
+    const actualDays = Math.max(1, days);
+    
+    switch (autoModality) {
       case 'Diária':
-        newValue = days * (equipment.dailyRate || 0);
+        newValue = actualDays * (equipment.dailyRate || 0);
         break;
       case 'Semanal':
-        newValue = Math.ceil(days / 7) * (equipment.weeklyRate || equipment.dailyRate * 7);
+        newValue = Math.ceil(actualDays / 7) * (equipment.weeklyRate || equipment.dailyRate * 7);
         break;
       case 'Quinzena':
-        newValue = Math.ceil(days / 15) * (equipment.biweeklyRate || equipment.dailyRate * 15);
+        newValue = Math.ceil(actualDays / 15) * (equipment.biweeklyRate || equipment.dailyRate * 15);
         break;
       case 'Mês':
-        newValue = Math.ceil(days / 30) * (equipment.monthlyRate || equipment.dailyRate * 30);
+        newValue = Math.ceil(actualDays / 30) * (equipment.monthlyRate || equipment.dailyRate * 30);
         break;
-      default:
-        newValue = days * (equipment.dailyRate || 0);
     }
     setTotalValue(newValue);
-  }, [startDate, endDate, modality, equipment]);
+  }, [startDate, endDate, equipment]);
 
   const handleSave = () => {
     onUpdate({ 
@@ -256,9 +267,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </div>
                 
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade de Cobrança</Label>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade (Reconhecida)</Label>
                   <Select value={modality} onValueChange={setModality}>
-                    <SelectTrigger className="rounded-xl border-slate-200 h-11 font-bold">
+                    <SelectTrigger className="rounded-xl border-slate-200 h-11 font-bold bg-slate-50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
