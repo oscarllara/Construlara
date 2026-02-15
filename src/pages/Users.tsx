@@ -26,7 +26,11 @@ const UsersPage = () => {
   useEffect(() => {
     const savedUsers = localStorage.getItem('app_users');
     if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
+      try {
+        setUsers(JSON.parse(savedUsers));
+      } catch (e) {
+        setUsers(INITIAL_USERS);
+      }
     } else {
       setUsers(INITIAL_USERS);
       localStorage.setItem('app_users', JSON.stringify(INITIAL_USERS));
@@ -60,7 +64,7 @@ const UsersPage = () => {
   };
 
   const handleAddUser = (userData: any) => {
-    const userExists = users.some(u => u.email.toLowerCase() === userData.email.toLowerCase());
+    const userExists = users.some(u => u.email?.toLowerCase() === userData.email?.toLowerCase());
     if (userExists) {
       showError("Este e-mail já está em uso por outro usuário.");
       return;
@@ -84,7 +88,7 @@ const UsersPage = () => {
   };
 
   const handleSaveEdit = (updatedUser: UserAccount) => {
-    const emailExists = users.some(u => u.id !== updatedUser.id && u.email.toLowerCase() === updatedUser.email.toLowerCase());
+    const emailExists = users.some(u => u.id !== updatedUser.id && u.email?.toLowerCase() === updatedUser.email?.toLowerCase());
     if (emailExists) {
       showError("Este e-mail já está sendo usado por outro usuário.");
       return;
@@ -97,20 +101,26 @@ const UsersPage = () => {
     showSuccess(`Dados de ${updatedUser.name} atualizados.`);
   };
 
-  // Lógica de busca aprimorada
-  const filteredUsers = users.filter(user => {
-    const search = searchTerm.toLowerCase().trim();
+  // Lógica de busca ultra-segura contra valores nulos
+  const filteredUsers = (users || []).filter(user => {
+    if (!user) return false;
+    
+    const search = (searchTerm || "").toLowerCase().trim();
     if (!search) return true;
 
-    // Remove caracteres não numéricos para busca de telefone
+    const name = (user.name || "").toLowerCase();
+    const email = (user.email || "").toLowerCase();
+    const whatsapp = (user.whatsapp || "");
+    
+    // Busca por números (limpa formatação)
     const cleanSearch = search.replace(/\D/g, "");
-    const cleanPhone = user.whatsapp.replace(/\D/g, "");
+    const cleanPhone = whatsapp.replace(/\D/g, "");
 
     return (
-      user.name.toLowerCase().includes(search) ||
-      user.email.toLowerCase().includes(search) ||
+      name.includes(search) ||
+      email.includes(search) ||
       (cleanSearch !== "" && cleanPhone.includes(cleanSearch)) ||
-      user.whatsapp.includes(search)
+      whatsapp.toLowerCase().includes(search)
     );
   });
 
