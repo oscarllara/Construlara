@@ -28,13 +28,13 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
       <div className="container flex h-20 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="h-14 w-14 flex items-center justify-center transition-transform group-hover:scale-105">
-              <img src="/logoconstrulara.png" alt="Construlara Logo" className="h-full w-full object-contain" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-xl font-black tracking-tighter text-slate-900">CONSTRULARA</span>
-              <span className="text-[10px] font-bold text-red-600 tracking-widest uppercase">Locações Profissionais</span>
+          <Link to="/" className="flex items-center group">
+            <div className="h-16 w-48 flex items-center justify-start transition-transform group-hover:scale-105">
+              <img 
+                src="/logoconstrulara.png" 
+                alt="Construlara Logo" 
+                className="h-full w-full object-contain object-left" 
+              />
             </div>
           </Link>
 
