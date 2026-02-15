@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -12,12 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Hammer, MapPin, Phone, Mail, FileText, AlertCircle, CheckCircle2, Wrench, Hash, Tag } from 'lucide-react';
+import { User, Hammer, MapPin, Phone, Mail, FileText, AlertCircle, CheckCircle2, Wrench, Hash, Tag, Calendar, DollarSign } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
+import { differenceInDays } from 'date-fns';
 
 interface RentalDetailsDialogProps {
   rental: any;
@@ -27,41 +29,97 @@ interface RentalDetailsDialogProps {
 }
 
 const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDetailsDialogProps) => {
-  const [client, setClient] = useState<UserAccount | null>(null);
+  const [allClients, setAllClients] = useState<UserAccount[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState("");
   const [equipment, setEquipment] = useState<Equipment | null>(null);
+  
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [modality, setModality] = useState("");
+  const [totalValue, setTotalValue] = useState(0);
 
+  // Carregar dados iniciais
   useEffect(() => {
-    if (rental) {
+    if (rental && open) {
       setStatus(rental.status);
       setNotes(rental.notes || "");
+      setStartDate(rental.start.includes('/') ? rental.start.split('/').reverse().join('-') : rental.start);
+      setEndDate(rental.end.includes('/') ? rental.end.split('/').reverse().join('-') : rental.end);
+      setModality(rental.modality || "Diária");
+      setTotalValue(rental.total || 0);
       
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
-        const allUsers = JSON.parse(savedUsers);
-        const found = allUsers.find((u: any) => u.name === rental.client || u.id === rental.clientId);
-        setClient(found || null);
+        const users: UserAccount[] = JSON.parse(savedUsers);
+        const clients = users.filter(u => u.role === 'Cliente');
+        setAllClients(clients);
+        const currentClient = clients.find(u => u.name === rental.client || u.id === rental.clientId);
+        setSelectedClientId(currentClient?.id || "");
       }
 
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
-        const allEquip = JSON.parse(savedEquip);
-        const found = allEquip.find((e: any) => e.name === rental.item || e.id === rental.equipmentId);
+        const allEquip: Equipment[] = JSON.parse(savedEquip);
+        const found = allEquip.find(e => e.name === rental.item || e.id === rental.equipmentId);
         setEquipment(found || null);
       }
     }
   }, [rental, open]);
 
+  const currentClient = useMemo(() => 
+    allClients.find(c => c.id === selectedClientId), 
+  [selectedClientId, allClients]);
+
+  // Lógica de recálculo de valor
+  useEffect(() => {
+    if (!equipment || !startDate || !endDate) return;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.max(1, differenceInDays(end, start));
+
+    let newValue = 0;
+    switch (modality) {
+      case 'Diária':
+        newValue = days * (equipment.dailyRate || 0);
+        break;
+      case 'Semanal':
+        newValue = Math.ceil(days / 7) * (equipment.weeklyRate || equipment.dailyRate * 7);
+        break;
+      case 'Quinzena':
+        newValue = Math.ceil(days / 15) * (equipment.biweeklyRate || equipment.dailyRate * 15);
+        break;
+      case 'Mês':
+        newValue = Math.ceil(days / 30) * (equipment.monthlyRate || equipment.dailyRate * 30);
+        break;
+      default:
+        newValue = days * (equipment.dailyRate || 0);
+    }
+    setTotalValue(newValue);
+  }, [startDate, endDate, modality, equipment]);
+
   const handleSave = () => {
-    onUpdate({ ...rental, status, notes });
+    onUpdate({ 
+      ...rental, 
+      status, 
+      notes,
+      client: currentClient?.name || rental.client,
+      clientId: selectedClientId,
+      start: startDate,
+      end: endDate,
+      modality,
+      total: totalValue
+    });
   };
 
   if (!rental) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[900px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden">
+        {/* Header do Contrato */}
         <div className="bg-slate-900 p-8 text-white">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
@@ -73,64 +131,73 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 <p className="text-blue-400 font-bold text-xs uppercase tracking-widest">Nº {rental.id.toUpperCase()}</p>
               </div>
             </div>
-            <Badge className={cn(
-              "rounded-xl border-none font-bold px-4 py-2 text-sm",
-              status === 'active' ? "bg-blue-500 text-white" :
-              status === 'overdue' ? "bg-red-500 text-white" :
-              status === 'completed' ? "bg-emerald-500 text-white" :
-              "bg-orange-500 text-white"
-            )}>
-              {status === 'active' ? 'Em Aberto' : 
-               status === 'overdue' ? 'Atrasado' : 
-               status === 'completed' ? 'Devolvido' : 'Em Reparo'}
-            </Badge>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Status Atual</p>
+              <Badge className={cn(
+                "rounded-xl border-none font-bold px-4 py-2 text-sm",
+                status === 'active' ? "bg-blue-500 text-white" :
+                status === 'overdue' ? "bg-red-500 text-white" :
+                status === 'completed' ? "bg-emerald-500 text-white" :
+                "bg-orange-500 text-white"
+              )}>
+                {status === 'active' ? 'Em Aberto' : 
+                 status === 'overdue' ? 'Atrasado' : 
+                 status === 'completed' ? 'Devolvido' : 'Em Reparo'}
+              </Badge>
+            </div>
           </div>
         </div>
 
-        <div className="p-8 grid md:grid-cols-2 gap-8 max-h-[65vh] overflow-y-auto bg-white">
+        <div className="p-8 grid md:grid-cols-2 gap-10 max-h-[70vh] overflow-y-auto bg-white">
+          {/* Coluna Esquerda: Locatário e Equipamento */}
           <div className="space-y-8">
-            {/* Dados do Cliente */}
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <User className="h-4 w-4" /> Locatário (Cliente)
               </h3>
-              {client ? (
-                <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Nome Completo</p>
-                    <p className="font-black text-slate-900 text-lg">{client.name}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Selecionar Cliente</Label>
+                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                    <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-white font-bold">
+                      <SelectValue placeholder="Escolha o cliente..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {allClients.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {currentClient && (
+                  <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">WhatsApp</p>
                       <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5 text-blue-500" /> {client.whatsapp}
+                        <Phone className="h-3.5 w-3.5 text-blue-500" /> {currentClient.whatsapp}
                       </p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Email</p>
                       <p className="text-sm font-bold text-slate-700 flex items-center gap-2 truncate">
-                        <Mail className="h-3.5 w-3.5 text-blue-500" /> {client.email}
+                        <Mail className="h-3.5 w-3.5 text-blue-500" /> {currentClient.email}
                       </p>
                     </div>
                   </div>
-                  {client.worksiteAddress && (
-                    <div className="pt-4 border-t border-slate-200">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Endereço da Obra (Entrega)</p>
-                      <p className="text-sm text-slate-700 leading-tight flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" /> {client.worksiteAddress}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-red-700 text-sm font-bold">
-                  Dados do cliente não vinculados.
-                </div>
-              )}
+                )}
+                
+                {currentClient?.worksiteAddress && (
+                  <div className="pt-4 border-t border-slate-200">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Endereço da Obra</p>
+                    <p className="text-sm text-slate-700 leading-tight flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" /> {currentClient.worksiteAddress}
+                    </p>
+                  </div>
+                )}
+              </div>
             </section>
 
-            {/* Dados do Equipamento */}
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Hammer className="h-4 w-4" /> Objeto da Locação
@@ -160,76 +227,106 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             </section>
           </div>
 
+          {/* Coluna Direita: Prazos e Valores */}
           <div className="space-y-8">
-            {/* Detalhes Financeiros e Prazos */}
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" /> Condições e Prazos
+                <Calendar className="h-4 w-4" /> Prazos e Modalidade
               </h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Data Início</p>
-                  <p className="font-black text-slate-900">{rental.start}</p>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Data Início</Label>
+                    <Input 
+                      type="date" 
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="rounded-xl border-slate-200 h-11 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Previsão Devolução</Label>
+                    <Input 
+                      type="date" 
+                      value={endDate} 
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="rounded-xl border-slate-200 h-11 font-bold"
+                    />
+                  </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Previsão Devolução</p>
-                  <p className="font-black text-slate-900">{rental.end}</p>
+                
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade de Cobrança</Label>
+                  <Select value={modality} onValueChange={setModality}>
+                    <SelectTrigger className="rounded-xl border-slate-200 h-11 font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="Diária">Diária</SelectItem>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Quinzena">Quinzena</SelectItem>
+                      <SelectItem value="Mês">Mês</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-              <div className="bg-emerald-600 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-lg shadow-emerald-100">
-                <div>
-                  <p className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total do Contrato</p>
-                  <p className="text-2xl font-black">R$ {rental.total?.toFixed(2)}</p>
+
+                <div className="bg-emerald-600 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-lg shadow-emerald-100">
+                  <div>
+                    <p className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total Recalculado</p>
+                    <p className="text-3xl font-black">R$ {totalValue.toFixed(2)}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-emerald-400 opacity-50" />
                 </div>
-                <Badge className="bg-emerald-500 text-white border-none font-bold uppercase text-[10px]">{rental.modality}</Badge>
               </div>
             </section>
 
-            {/* Gestão do Contrato */}
             <section className="space-y-4">
-              <div className="space-y-2">
-                <Label className="font-bold text-slate-700 text-sm">Alterar Status do Contrato</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    <SelectItem value="active">
-                      <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-blue-500" /> Em Aberto</div>
-                    </SelectItem>
-                    <SelectItem value="completed">
-                      <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Devolvido</div>
-                    </SelectItem>
-                    <SelectItem value="maintenance">
-                      <div className="flex items-center gap-2"><Wrench className="h-4 w-4 text-orange-500" /> Enviado para Reparo</div>
-                    </SelectItem>
-                    <SelectItem value="overdue">
-                      <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-red-500" /> Atrasado</div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-bold text-slate-700 text-sm">Observações e Ocorrências</Label>
-                <Textarea 
-                  placeholder="Registre aqui avarias, atrasos ou detalhes importantes da locação..." 
-                  className="rounded-2xl min-h-[120px] border-slate-200 bg-white"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" /> Observações do Contrato
+              </h3>
+              <Textarea 
+                placeholder="Registre aqui avarias, atrasos ou detalhes importantes da locação..." 
+                className="rounded-2xl min-h-[120px] border-slate-200 bg-white text-sm"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </section>
           </div>
         </div>
 
-        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 gap-3">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold h-12 px-6">
-            Fechar
-          </Button>
-          <Button onClick={handleSave} className="bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-bold px-8 h-12 shadow-xl shadow-blue-100">
-            Atualizar Contrato
-          </Button>
+        {/* Footer com Status à Esquerda */}
+        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex flex-row items-center justify-between sm:justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <Label className="font-bold text-slate-500 text-xs uppercase whitespace-nowrap">Status:</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="rounded-xl h-10 border-slate-200 bg-white w-48 font-bold text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="active">
+                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-blue-500" /> Em Aberto</div>
+                </SelectItem>
+                <SelectItem value="completed">
+                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Devolvido</div>
+                </SelectItem>
+                <SelectItem value="maintenance">
+                  <div className="flex items-center gap-2"><Wrench className="h-3.5 w-3.5 text-orange-500" /> Em Reparo</div>
+                </SelectItem>
+                <SelectItem value="overdue">
+                  <div className="flex items-center gap-2"><AlertCircle className="h-3.5 w-3.5 text-red-500" /> Atrasado</div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl font-bold h-10 px-6 text-xs">
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold px-8 h-10 text-xs shadow-lg shadow-blue-100">
+              Salvar Alterações
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
