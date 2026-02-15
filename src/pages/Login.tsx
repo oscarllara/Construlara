@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, UserPlus, Briefcase } from 'lucide-react';
+import { Mail, Lock, UserPlus, Briefcase, HardHat, ShieldCheck } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
@@ -41,30 +41,40 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-[520px] space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/logosolo.png" alt="Construlara" className="h-16 w-16 mx-auto mb-1" />
-          <h1 className="text-3xl font-black text-blue-700 tracking-tighter">CONSTRULARA</h1>
-          <p className="text-slate-500 text-base font-medium">Gestão Inteligente de Locações</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 relative overflow-hidden">
+      {/* Background decorativo */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-red-600/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="w-full max-w-[520px] space-y-8 relative z-10">
+        <div className="text-center space-y-4">
+          <div className="h-20 w-20 bg-blue-700 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-blue-200">
+            <HardHat className="h-10 w-10 text-white" />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">CONSTRULARA</h1>
+            <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Gestão Inteligente de Locações</p>
+          </div>
         </div>
 
-        <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden">
-          <CardHeader className="space-y-1 pb-6 pt-8 px-10">
-            <CardTitle className="text-2xl font-black text-slate-900">Entrar no Sistema</CardTitle>
-            <CardDescription className="text-sm">Informe suas credenciais e seu nível de acesso.</CardDescription>
+        <Card className="border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] rounded-[3.5rem] overflow-hidden bg-white/80 backdrop-blur-sm border border-white">
+          <CardHeader className="space-y-2 pb-6 pt-10 px-12">
+            <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Entrar</CardTitle>
+            <CardDescription className="text-base font-medium text-slate-500">Acesse sua conta para gerenciar o sistema.</CardDescription>
           </CardHeader>
-          <CardContent className="px-10 pb-8 space-y-6">
-            <form onSubmit={handleLogin} className="space-y-4">
+          <CardContent className="px-12 pb-12 space-y-8">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-bold">E-mail</Label>
+                <Label htmlFor="email" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="nome@exemplo.com" 
-                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                    placeholder="nome@construlara.com" 
+                    className="pl-14 rounded-2xl h-14 border-slate-200 bg-white text-base focus:ring-2 focus:ring-blue-500/20 transition-all"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -72,13 +82,14 @@ const Login = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-bold">Senha</Label>
+                <Label htmlFor="password" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Senha de Acesso</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <Input 
                     id="password" 
                     type="password" 
-                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                    placeholder="••••••••"
+                    className="pl-14 rounded-2xl h-14 border-slate-200 bg-white text-base focus:ring-2 focus:ring-blue-500/20 transition-all"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -87,53 +98,41 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-sm font-bold">Nível de Acesso</Label>
+                <Label htmlFor="role" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Nível de Acesso</Label>
                 <Select onValueChange={(value) => setRole(value)}>
-                  <SelectTrigger className="rounded-2xl h-12 border-slate-200 pl-12 relative text-base">
-                    <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <SelectValue placeholder="Selecione seu nível..." />
+                  <SelectTrigger className="rounded-2xl h-14 border-slate-200 bg-white pl-14 relative text-base focus:ring-2 focus:ring-blue-500/20 transition-all">
+                    <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <SelectValue placeholder="Selecione seu cargo..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    <SelectItem value="Cliente">Cliente</SelectItem>
-                    <SelectItem value="Entregador">Entregador</SelectItem>
-                    <SelectItem value="Vendas">Vendas</SelectItem>
-                    <SelectItem value="Gestor">Gestor</SelectItem>
+                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl">
+                    <SelectItem value="Cliente" className="rounded-xl py-3">Cliente</SelectItem>
+                    <SelectItem value="Entregador" className="rounded-xl py-3">Entregador</SelectItem>
+                    <SelectItem value="Vendas" className="rounded-xl py-3">Vendas</SelectItem>
+                    <SelectItem value="Gestor" className="rounded-xl py-3 font-bold text-blue-700">Gestor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-12 rounded-2xl font-bold text-base shadow-xl shadow-blue-100 mt-2">
-                Acessar Conta
+              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg shadow-2xl shadow-blue-200 mt-4 transition-all hover:-translate-y-1 active:scale-95">
+                Acessar Sistema
               </Button>
             </form>
 
-            <div className="relative py-1">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-100" />
-              </div>
-              <div className="relative flex justify-center text-[10px] uppercase">
-                <span className="bg-white px-4 text-slate-400 font-bold tracking-widest">Ou continue com</span>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full h-12 rounded-2xl border-slate-200 font-bold text-sm flex items-center justify-center gap-3 hover:bg-slate-50">
-              <svg className="h-5 w-5" viewBox="0 0 23 23">
-                <path fill="#f3f3f3" d="M0 0h23v23H0z"/><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/>
-              </svg>
-              Microsoft / Azure
-            </Button>
-
             <div className="pt-4 text-center">
-              <p className="text-sm text-slate-500">
-                Não tem uma conta? <Link to="/cadastro" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1">Cadastre-se agora <UserPlus className="h-4 w-4" /></Link>
+              <p className="text-sm text-slate-500 font-medium">
+                Novo por aqui? <Link to="/cadastro" className="text-blue-600 font-black hover:underline inline-flex items-center gap-1">Criar conta de acesso <UserPlus className="h-4 w-4" /></Link>
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-slate-500">
-          Esqueceu sua senha? <a href="#" className="text-blue-600 font-bold hover:underline">Recuperar acesso</a>
-        </p>
+        <div className="flex items-center justify-center gap-6 text-slate-400">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+            <ShieldCheck className="h-4 w-4" /> Conexão Segura
+          </div>
+          <div className="h-1 w-1 bg-slate-300 rounded-full"></div>
+          <a href="#" className="text-[10px] font-black uppercase tracking-widest hover:text-blue-600 transition-colors">Esqueci minha senha</a>
+        </div>
       </div>
     </div>
   );
