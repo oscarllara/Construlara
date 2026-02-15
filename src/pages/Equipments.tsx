@@ -6,7 +6,7 @@ import EquipmentCard, { Equipment } from '@/components/EquipmentCard';
 import AddEquipmentDialog from '@/components/AddEquipmentDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter } from 'lucide-react';
+import { Search, Plus, Filter, Hammer } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 
