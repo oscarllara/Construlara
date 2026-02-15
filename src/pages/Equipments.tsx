@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import EquipmentCard, { Equipment } from '@/components/EquipmentCard';
+import AddEquipmentDialog from '@/components/AddEquipmentDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Filter } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
+import { useNavigate } from 'react-router-dom';
 
 const INITIAL_EQUIPMENTS: Equipment[] = [
   { id: 'e1', name: 'Betoneira 400L', category: 'Construção', serialNumber: 'BT-992', dailyRate: 85.00, status: 'available' },
@@ -16,16 +18,64 @@ const INITIAL_EQUIPMENTS: Equipment[] = [
 ];
 
 const EquipmentsPage = () => {
-  const [equipments, setEquipments] = useState(INITIAL_EQUIPMENTS);
+  const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('app_equipments');
+    if (saved) {
+      setEquipments(JSON.parse(saved));
+    } else {
+      setEquipments(INITIAL_EQUIPMENTS);
+      localStorage.setItem('app_equipments', JSON.stringify(INITIAL_EQUIPMENTS));
+    }
+  }, []);
+
+  const saveEquipments = (newEquipments: Equipment[]) => {
+    setEquipments(newEquipments);
+    localStorage.setItem('app_equipments', JSON.stringify(newEquipments));
+  };
+
+  const handleAddEquipment = (data: Omit<Equipment, 'id' | 'status'>) => {
+    const newItem: Equipment = {
+      id: `e-${Date.now()}`,
+      ...data,
+      status: 'available'
+    };
+    saveEquipments([newItem, ...equipments]);
+    setIsAddDialogOpen(false);
+    showSuccess(`${data.name} cadastrado com sucesso!`);
+  };
 
   const handleRent = (id: string) => {
-    showSuccess("Iniciando processo de aluguel...");
+    const newEquipments = equipments.map(e => 
+      e.id === id ? { ...e, status: 'rented' as const, lastClient: 'Cliente Balcão' } : e
+    );
+    saveEquipments(newEquipments);
+    showSuccess("Equipamento alugado com sucesso!");
   };
 
   const handleMaintenance = (id: string) => {
-    setEquipments(prev => prev.map(e => e.id === id ? { ...e, status: 'maintenance' } : e));
+    const newEquipments = equipments.map(e => 
+      e.id === id ? { ...e, status: 'maintenance' as const } : e
+    );
+    saveEquipments(newEquipments);
     showSuccess("Equipamento enviado para manutenção.");
+  };
+
+  const handleFinishRepair = (id: string) => {
+    const newEquipments = equipments.map(e => 
+      e.id === id ? { ...e, status: 'available' as const } : e
+    );
+    saveEquipments(newEquipments);
+    showSuccess("Manutenção finalizada. Item disponível.");
+  };
+
+  const handleViewContract = (id: string) => {
+    showSuccess("Abrindo detalhes do contrato...");
+    navigate('/alugueis');
   };
 
   const filtered = equipments.filter(e => 
@@ -38,26 +88,29 @@ const EquipmentsPage = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900">Inventário</h2>
-            <p className="text-slate-500">Gerencie suas ferramentas e equipamentos</p>
+            <h2 className="text-3xl font-black text-slate-900">Inventário</h2>
+            <p className="text-slate-500 font-medium">Gerencie suas ferramentas e equipamentos</p>
           </div>
-          <Button className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-2">
-            <Plus className="h-4 w-4" />
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-orange-100 h-12 px-6"
+          >
+            <Plus className="h-5 w-5" />
             Novo Equipamento
           </Button>
         </div>
 
         <div className="flex gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
               placeholder="Buscar por nome ou patrimônio..." 
-              className="pl-10 rounded-xl border-slate-200"
+              className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="rounded-xl border-slate-200 gap-2">
+          <Button variant="outline" className="rounded-2xl border-slate-200 h-12 px-6 font-bold gap-2 bg-white">
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
@@ -70,10 +123,25 @@ const EquipmentsPage = () => {
               equipment={item} 
               onRent={handleRent}
               onMaintenance={handleMaintenance}
+              onFinishRepair={handleFinishRepair}
+              onViewContract={handleViewContract}
             />
           ))}
         </div>
+
+        {filtered.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
+            <Hammer className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+            <p className="text-slate-500 font-bold">Nenhum equipamento encontrado.</p>
+          </div>
+        )}
       </div>
+
+      <AddEquipmentDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen} 
+        onAdd={handleAddEquipment} 
+      />
     </AppLayout>
   );
 };

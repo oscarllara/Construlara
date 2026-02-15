@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Hammer, Tag, ArrowUpRight, Wrench } from 'lucide-react';
+import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,11 @@ interface EquipmentCardProps {
   equipment: Equipment;
   onRent: (id: string) => void;
   onMaintenance: (id: string) => void;
+  onFinishRepair: (id: string) => void;
+  onViewContract: (id: string) => void;
 }
 
-const EquipmentCard = ({ equipment, onRent, onMaintenance }: EquipmentCardProps) => {
+const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onViewContract }: EquipmentCardProps) => {
   const isRented = equipment.status === 'rented';
   const isMaintenance = equipment.status === 'maintenance';
 
@@ -63,7 +65,7 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance }: EquipmentCardProps)
         {isRented && (
           <div className="pt-2 border-t border-red-100">
             <p className="text-[10px] font-bold text-slate-400 uppercase">Cliente atual</p>
-            <p className="text-sm font-black text-red-600">{equipment.lastClient}</p>
+            <p className="text-sm font-black text-red-600">{equipment.lastClient || "Não informado"}</p>
           </div>
         )}
       </CardContent>
@@ -82,18 +84,27 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance }: EquipmentCardProps)
               variant="outline"
               onClick={() => onMaintenance(equipment.id)}
               className="rounded-2xl border-slate-200 hover:bg-slate-50"
+              title="Enviar para manutenção"
             >
               <Wrench className="h-4 w-4 text-slate-400" />
             </Button>
           </>
         )}
         {isRented && (
-          <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold">
+          <Button 
+            onClick={() => onViewContract(equipment.id)}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold gap-2"
+          >
+            <FileText className="h-4 w-4" />
             Ver Contrato
           </Button>
         )}
         {isMaintenance && (
-          <Button className="w-full bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold">
+          <Button 
+            onClick={() => onFinishRepair(equipment.id)}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold gap-2"
+          >
+            <CheckCircle2 className="h-4 w-4" />
             Finalizar Reparo
           </Button>
         )}
