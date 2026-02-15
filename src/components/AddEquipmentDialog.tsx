@@ -27,7 +27,10 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
     name: "",
     category: "Construção",
     serialNumber: "",
-    dailyRate: ""
+    dailyRate: "",
+    weeklyRate: "",
+    biweeklyRate: "",
+    monthlyRate: ""
   });
 
   const handleSubmit = () => {
@@ -37,15 +40,26 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
       name: formData.name,
       category: formData.category,
       serialNumber: formData.serialNumber,
-      dailyRate: parseFloat(formData.dailyRate)
+      dailyRate: parseFloat(formData.dailyRate),
+      weeklyRate: formData.weeklyRate ? parseFloat(formData.weeklyRate) : undefined,
+      biweeklyRate: formData.biweeklyRate ? parseFloat(formData.biweeklyRate) : undefined,
+      monthlyRate: formData.monthlyRate ? parseFloat(formData.monthlyRate) : undefined,
     });
     
-    setFormData({ name: "", category: "Construção", serialNumber: "", dailyRate: "" });
+    setFormData({ 
+      name: "", 
+      category: "Construção", 
+      serialNumber: "", 
+      dailyRate: "",
+      weeklyRate: "",
+      biweeklyRate: "",
+      monthlyRate: ""
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] rounded-[3rem] border-none shadow-2xl p-8">
+      <DialogContent className="sm:max-w-[600px] rounded-[3rem] border-none shadow-2xl p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-900">
             <PlusCircle className="h-7 w-7 text-orange-600" />
@@ -104,17 +118,61 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-slate-700 font-bold text-sm">Valor da Diária (R$)</Label>
-            <div className="relative">
-              <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <Input 
-                type="number"
-                placeholder="0.00" 
-                value={formData.dailyRate}
-                onChange={(e) => setFormData({...formData, dailyRate: e.target.value})}
-                className="pl-12 rounded-2xl border-slate-200 h-12 text-base"
-              />
+          <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Tabela de Preços (R$)</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase">Diária</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    type="number"
+                    placeholder="0.00" 
+                    value={formData.dailyRate}
+                    onChange={(e) => setFormData({...formData, dailyRate: e.target.value})}
+                    className="pl-9 rounded-xl border-slate-200 h-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase">Semanal</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    type="number"
+                    placeholder="0.00" 
+                    value={formData.weeklyRate}
+                    onChange={(e) => setFormData({...formData, weeklyRate: e.target.value})}
+                    className="pl-9 rounded-xl border-slate-200 h-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase">Quinzenal</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    type="number"
+                    placeholder="0.00" 
+                    value={formData.biweeklyRate}
+                    onChange={(e) => setFormData({...formData, biweeklyRate: e.target.value})}
+                    className="pl-9 rounded-xl border-slate-200 h-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase">Mensal</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input 
+                    type="number"
+                    placeholder="0.00" 
+                    value={formData.monthlyRate}
+                    onChange={(e) => setFormData({...formData, monthlyRate: e.target.value})}
+                    className="pl-9 rounded-xl border-slate-200 h-10"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

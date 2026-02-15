@@ -13,6 +13,9 @@ export interface Equipment {
   category: string;
   serialNumber: string;
   dailyRate: number;
+  weeklyRate?: number;
+  biweeklyRate?: number;
+  monthlyRate?: number;
   status: 'available' | 'rented' | 'maintenance';
   lastClient?: string;
 }
@@ -58,9 +61,15 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
       </CardHeader>
       
       <CardContent className="pb-4 space-y-3">
-        <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl">
-          <span className="text-xs font-bold text-slate-500 uppercase">Diária</span>
-          <span className="text-xl font-black text-blue-700">R$ {equipment.dailyRate.toFixed(2)}</span>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-slate-50 p-2 rounded-xl text-center">
+            <p className="text-[8px] font-bold text-slate-400 uppercase">Diária</p>
+            <p className="text-sm font-black text-blue-700">R$ {equipment.dailyRate.toFixed(2)}</p>
+          </div>
+          <div className="bg-slate-50 p-2 rounded-xl text-center">
+            <p className="text-[8px] font-bold text-slate-400 uppercase">Mensal</p>
+            <p className="text-sm font-black text-blue-700">R$ {equipment.monthlyRate?.toFixed(2) || '---'}</p>
+          </div>
         </div>
 
         {isRented && (
