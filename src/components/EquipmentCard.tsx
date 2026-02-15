@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw, Pencil } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,17 +27,28 @@ interface EquipmentCardProps {
   onFinishRepair: (id: string) => void;
   onViewContract: (id: string) => void;
   onReturn: (equipment: Equipment) => void;
+  onEdit: (equipment: Equipment) => void;
 }
 
-const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onViewContract, onReturn }: EquipmentCardProps) => {
+const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onViewContract, onReturn, onEdit }: EquipmentCardProps) => {
   const isRented = equipment.status === 'rented';
   const isMaintenance = equipment.status === 'maintenance';
 
   return (
     <Card className={cn(
-      "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2rem]",
+      "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2rem] relative group",
       isRented ? "bg-red-50/30" : isMaintenance ? "bg-slate-50" : "bg-white"
     )}>
+      {/* Botão de Edição Flutuante */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => onEdit(equipment)}
+        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-blue-50 hover:text-blue-600 z-10"
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className={cn(

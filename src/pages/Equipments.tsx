@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import EquipmentCard, { Equipment } from '@/components/EquipmentCard';
 import AddEquipmentDialog from '@/components/AddEquipmentDialog';
+import EditEquipmentDialog from '@/components/EditEquipmentDialog';
 import ReturnEquipmentDialog from '@/components/ReturnEquipmentDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ const EquipmentsPage = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const navigate = useNavigate();
@@ -50,6 +52,14 @@ const EquipmentsPage = () => {
     saveEquipments([newItem, ...equipments]);
     setIsAddDialogOpen(false);
     showSuccess(`${data.name} cadastrado com sucesso!`);
+  };
+
+  const handleEditEquipment = (updated: Equipment) => {
+    const newEquipments = equipments.map(e => e.id === updated.id ? updated : e);
+    saveEquipments(newEquipments);
+    setIsEditDialogOpen(false);
+    setSelectedEquipment(null);
+    showSuccess(`Dados de ${updated.name} atualizados.`);
   };
 
   const handleRent = (id: string) => {
@@ -81,12 +91,16 @@ const EquipmentsPage = () => {
     setIsReturnDialogOpen(true);
   };
 
+  const handleEditClick = (equipment: Equipment) => {
+    setSelectedEquipment(equipment);
+    setIsEditDialogOpen(true);
+  };
+
   const handleConfirmReturn = (id: string, nextStatus: 'available' | 'maintenance', notes: string) => {
     const newEquipments = equipments.map(e => 
       e.id === id ? { ...e, status: nextStatus, lastClient: undefined } : e
     );
     
-    // Atualizar também o contrato na aba de aluguéis se necessário
     const savedRentals = localStorage.getItem('app_rentals');
     if (savedRentals) {
       const rentals = JSON.parse(savedRentals);
@@ -153,6 +167,7 @@ const EquipmentsPage = () => {
               onFinishRepair={handleFinishRepair}
               onViewContract={handleViewContract}
               onReturn={handleReturnClick}
+              onEdit={handleEditClick}
             />
           ))}
         </div>
@@ -169,6 +184,13 @@ const EquipmentsPage = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen} 
         onAdd={handleAddEquipment} 
+      />
+
+      <EditEquipmentDialog 
+        equipment={selectedEquipment}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSave={handleEditEquipment}
       />
 
       <ReturnEquipmentDialog 
