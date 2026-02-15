@@ -3,7 +3,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Hammer, Receipt, Users, AlertCircle, TrendingUp, Clock, ArrowRight, HardHat, Sparkles } from 'lucide-react';
+import { Hammer, Receipt, Users, AlertCircle, TrendingUp, ArrowRight, Sparkles } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useNavigate } from 'react-router-dom';
 
@@ -20,7 +20,7 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
-        {/* Hero Section - Boas-vindas */}
+        {/* Hero Section - Boas-vindas com o Beto Oficial */}
         <section className="relative bg-slate-900 rounded-[3rem] p-8 md:p-16 overflow-hidden shadow-2xl border border-slate-800">
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 text-center md:text-left space-y-6">
@@ -31,7 +31,7 @@ const Index = () => {
                 Olá! Eu sou o <span className="text-blue-500">Beto</span>.
               </h1>
               <p className="text-slate-400 text-lg max-w-md font-medium leading-relaxed">
-                Seu assistente inteligente para gestão de locações. Tudo pronto para começarmos?
+                Seu assistente inteligente para gestão de locações na Construlara. Tudo pronto para começarmos?
               </p>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
                 <button 
@@ -48,12 +48,16 @@ const Index = () => {
                 </button>
               </div>
             </div>
-            <div className="w-56 md:w-72 shrink-0 relative">
+            <div className="w-64 md:w-80 shrink-0 relative">
               <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full"></div>
-              <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-8 rounded-[3rem] border border-slate-700 shadow-2xl animate-bounce-slow">
-                <HardHat className="w-full h-auto text-blue-500 drop-shadow-2xl" size={120} strokeWidth={1.5} />
-                <div className="mt-6 text-center">
-                  <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full border border-emerald-500/20">BETO v2.0</span>
+              <div className="relative animate-bounce-slow">
+                <img 
+                  src="/beto.png" 
+                  alt="Mascote Beto" 
+                  className="w-full h-auto drop-shadow-[0_20px_50px_rgba(59,130,246,0.5)]" 
+                />
+                <div className="mt-4 text-center">
+                  <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full border border-emerald-500/20">BETO OFICIAL</span>
                 </div>
               </div>
             </div>
@@ -144,7 +148,7 @@ const Index = () => {
               </div>
             </div>
             {/* Logo de fundo sutil */}
-            <HardHat className="absolute -bottom-10 -right-10 w-64 h-64 text-slate-200/40 -rotate-12 pointer-events-none" />
+            <img src="/logoconstrulara.png" className="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 -rotate-12 pointer-events-none grayscale" />
           </div>
         </div>
       </div>

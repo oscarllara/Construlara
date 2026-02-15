@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, UserPlus, Briefcase, HardHat, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, UserPlus, Briefcase, ShieldCheck } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
@@ -50,8 +50,8 @@ const Login = () => {
 
       <div className="w-full max-w-[520px] space-y-8 relative z-10">
         <div className="text-center space-y-4">
-          <div className="h-20 w-20 bg-blue-700 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-blue-200">
-            <HardHat className="h-10 w-10 text-white" />
+          <div className="h-24 w-24 flex items-center justify-center mx-auto">
+            <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-full object-contain drop-shadow-xl" />
           </div>
           <div className="space-y-1">
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter">CONSTRULARA</h1>

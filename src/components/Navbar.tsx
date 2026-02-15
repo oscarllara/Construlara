@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { LayoutGrid, Bell, User, Hammer, Receipt, Users, LogOut, HardHat } from 'lucide-react';
+import { LayoutGrid, Bell, User, Hammer, Receipt, Users, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -29,8 +29,8 @@ const Navbar = () => {
       <div className="container flex h-20 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="h-11 w-11 bg-blue-700 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
-              <HardHat className="h-6 w-6 text-white" />
+            <div className="h-14 w-14 flex items-center justify-center transition-transform group-hover:scale-105">
+              <img src="/logoconstrulara.png" alt="Construlara Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-xl font-black tracking-tighter text-slate-900">CONSTRULARA</span>
