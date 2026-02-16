@@ -4,14 +4,16 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import ProductCard, { Product } from '@/components/ProductCard';
 import Calculators from '@/components/Calculators';
+import AddProductDialog from '@/components/AddProductDialog';
+import AddCategoryDialog from '@/components/AddCategoryDialog';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, ShoppingCart, Calculator as CalcIcon } from 'lucide-react';
+import { Search, ShoppingCart, Calculator as CalcIcon, Plus, PackagePlus } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   "Pisos e revestimentos", "Louças e acabamentos", "Gabinetes, pias e tanques", 
   "Caixas d’água", "Mangueiras", "Material hidráulico", "Material elétrico", 
   "Parafusos e Pregos", "Ferramentas elétricas", "Ferramentas manuais", 
@@ -28,20 +30,77 @@ const INITIAL_PRODUCTS: Product[] = [
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [showCalculators, setShowCalculators] = useState(false);
+  
+  // Dialog States
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const saved = localStorage.getItem('app_products');
-    if (saved) {
-      setProducts(JSON.parse(saved));
+    const savedProducts = localStorage.getItem('app_products');
+    if (savedProducts) {
+      setProducts(JSON.parse(savedProducts));
     } else {
       setProducts(INITIAL_PRODUCTS);
       localStorage.setItem('app_products', JSON.stringify(INITIAL_PRODUCTS));
     }
+
+    const savedCategories = localStorage.getItem('app_categories');
+    if (savedCategories) {
+      setCategories(JSON.parse(savedCategories));
+    } else {
+      setCategories(DEFAULT_CATEGORIES);
+      localStorage.setItem('app_categories', JSON.stringify(DEFAULT_CATEGORIES));
+    }
   }, []);
+
+  const saveProducts = (newProducts: Product[]) => {
+    setProducts(newProducts);
+    localStorage.setItem('app_products', JSON.stringify(newProducts));
+  };
+
+  const saveCategories = (newCategories: string[]) => {
+    setCategories(newCategories);
+    localStorage.setItem('app_categories', JSON.stringify(newCategories));
+  };
+
+  const handleSaveProduct = (data: any) => {
+    if (data.id) {
+      // Edit
+      const newProducts = products.map(p => p.id === data.id ? data : p);
+      saveProducts(newProducts);
+      showSuccess("Produto atualizado!");
+    } else {
+      // Add
+      const newProduct = { ...data, id: `p-${Date.now()}` };
+      saveProducts([newProduct, ...products]);
+      showSuccess("Produto cadastrado!");
+    }
+    setIsAddProductOpen(false);
+    setProductToEdit(null);
+  };
+
+  const handleAddCategory = (name: string) => {
+    if (categories.includes(name)) {
+      showSuccess("Esta categoria já existe.");
+      return;
+    }
+    const newCategories = [...categories, name];
+    saveCategories(newCategories);
+    setIsAddCategoryOpen(false);
+    showSuccess("Categoria adicionada!");
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setProductToEdit(product);
+    setIsAddProductOpen(true);
+  };
 
   const handleAddToCart = (product: Product) => {
     const cart = JSON.parse(localStorage.getItem('app_cart') || '[]');
@@ -97,25 +156,48 @@ const ProductsPage = () => {
         )}
 
         <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-64 space-y-6">
+          <div className="w-full md:w-72 space-y-6">
             <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Categorias</h3>
-              <div className="space-y-1">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Categorias</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsAddCategoryOpen(true)}
+                  className="h-8 w-8 rounded-xl hover:bg-blue-50 text-blue-600"
+                  title="Nova Categoria"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <Button 
+                onClick={() => {
+                  setProductToEdit(null);
+                  setIsAddProductOpen(true);
+                }}
+                className="w-full mb-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold gap-2 h-12 shadow-lg shadow-emerald-100"
+              >
+                <PackagePlus className="h-5 w-5" />
+                Novo Produto
+              </Button>
+
+              <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 <button 
                   onClick={() => setSelectedCategory("Todas")}
                   className={cn(
-                    "w-full text-left px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                    "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all",
                     selectedCategory === "Todas" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
                   )}
                 >
                   Todas
                 </button>
-                {CATEGORIES.map(cat => (
+                {categories.map(cat => (
                   <button 
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      "w-full text-left px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                      "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all",
                       selectedCategory === cat ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
                     )}
                   >
@@ -143,6 +225,7 @@ const ProductsPage = () => {
                   key={product.id} 
                   product={product} 
                   onAddToCart={handleAddToCart} 
+                  onEdit={handleEditProduct}
                 />
               ))}
             </div>
@@ -155,6 +238,21 @@ const ProductsPage = () => {
           </div>
         </div>
       </div>
+
+      <AddProductDialog 
+        open={isAddProductOpen}
+        onOpenChange={setIsAddProductOpen}
+        onSave={handleSaveProduct}
+        product={productToEdit}
+        categories={categories}
+        defaultCategory={selectedCategory !== "Todas" ? selectedCategory : undefined}
+      />
+
+      <AddCategoryDialog 
+        open={isAddCategoryOpen}
+        onOpenChange={setIsAddCategoryOpen}
+        onAdd={handleAddCategory}
+      />
     </AppLayout>
   );
 };

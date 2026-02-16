@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ShoppingCart, Tag, Star } from 'lucide-react';
+import { ShoppingCart, Tag, Star, Pencil } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,9 +23,10 @@ export interface Product {
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
+  onEdit: (product: Product) => void;
 }
 
-const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
+const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const hasPromo = product.isPromo && product.promoPrice;
 
   return (
@@ -33,6 +34,16 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
       "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2.5rem] bg-white group relative",
       product.isFeatured && "ring-2 ring-blue-500 ring-offset-2"
     )}>
+      {/* Botão de Edição Flutuante */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => onEdit(product)}
+        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-blue-50 hover:text-blue-600 z-20"
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+
       {product.isFeatured && (
         <div className="absolute top-4 left-4 z-10">
           <Badge className="bg-blue-600 text-white border-none rounded-full px-3 py-1 flex items-center gap-1 text-[10px] font-black uppercase">
@@ -48,7 +59,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         {hasPromo && (
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-4 right-4 group-hover:opacity-0 transition-opacity">
             <Badge className="bg-red-600 text-white border-none rounded-full px-3 py-1 text-[10px] font-black uppercase">
               Oferta
             </Badge>
