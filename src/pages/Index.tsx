@@ -20,38 +20,37 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
-        {/* Hero Section - Boas-vindas com o Beto Oficial */}
-        <section className="relative bg-slate-900 rounded-[3rem] p-8 md:p-16 overflow-hidden shadow-2xl border border-slate-800">
+        {/* Hero Section - Agora com fundo azul vibrante */}
+        <section className="relative bg-blue-600 rounded-[3rem] p-8 md:p-16 overflow-hidden shadow-2xl border border-blue-500">
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 text-center md:text-left space-y-6">
-              <div className="inline-flex items-center gap-2 bg-blue-500/10 text-blue-400 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border border-blue-500/20">
+              <div className="inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border border-white/30">
                 <Sparkles className="h-3 w-3" /> Sistema Online
               </div>
               <h1 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tighter">
-                Olá! Eu sou o <span className="text-blue-500">Beto</span>.
+                Olá! Eu sou o <span className="text-blue-200">Beto</span>.
               </h1>
-              <p className="text-slate-400 text-lg max-w-md font-medium leading-relaxed">
+              <p className="text-blue-50 text-lg max-w-md font-medium leading-relaxed">
                 Seu assistente inteligente para gestão de locações na Construlara. Tudo pronto para começarmos?
               </p>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
                 <button 
                   onClick={() => navigate('/alugueis')}
-                  className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 transition-all flex items-center gap-2 shadow-xl shadow-blue-900/20 hover:-translate-y-1"
+                  className="bg-white text-blue-700 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all flex items-center gap-2 shadow-xl shadow-blue-900/20 hover:-translate-y-1"
                 >
                   Novo Aluguel <ArrowRight className="h-5 w-5" />
                 </button>
                 <button 
                   onClick={() => navigate('/equipamentos')}
-                  className="bg-slate-800 text-white px-8 py-4 rounded-2xl font-black hover:bg-slate-700 transition-all border border-slate-700 hover:-translate-y-1"
+                  className="bg-blue-700/50 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 transition-all border border-blue-400/30 hover:-translate-y-1"
                 >
                   Ver Inventário
                 </button>
               </div>
             </div>
             <div className="w-64 md:w-80 shrink-0 relative">
-              <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full"></div>
-              {/* Container com fundo branco para integrar imagens que possuem fundo */}
-              <div className="relative bg-white p-6 rounded-[3.5rem] shadow-2xl animate-bounce-slow border-4 border-blue-500/20">
+              <div className="absolute inset-0 bg-white/20 blur-[100px] rounded-full"></div>
+              <div className="relative bg-white p-6 rounded-[3.5rem] shadow-2xl animate-bounce-slow border-4 border-white/20">
                 <img 
                   src="/beto.png" 
                   alt="Mascote Beto" 
@@ -64,8 +63,8 @@ const Index = () => {
             </div>
           </div>
           {/* Elementos decorativos */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full -mr-48 -mt-48 blur-[120px]"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-600/10 rounded-full -ml-48 -mb-48 blur-[120px]"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-[120px]"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full -ml-48 -mb-48 blur-[120px]"></div>
         </section>
 
         {/* Estatísticas Rápidas */}
@@ -148,7 +147,6 @@ const Index = () => {
                 </button>
               </div>
             </div>
-            {/* Logo de fundo sutil */}
             <img src="/logoconstrulara.png" className="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 -rotate-12 pointer-events-none grayscale" />
           </div>
         </div>

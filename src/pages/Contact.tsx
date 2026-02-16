@@ -84,7 +84,8 @@ const ContactPage = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-slate-900 text-white overflow-hidden relative">
+          {/* Card de Redes Sociais agora com fundo azul índigo vibrante */}
+          <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-indigo-600 text-white overflow-hidden relative">
             <div className="relative z-10 space-y-6">
               <h3 className="text-2xl font-black tracking-tight">Redes Sociais</h3>
               <div className="space-y-4">
@@ -97,18 +98,18 @@ const ContactPage = () => {
                     className="flex items-center justify-between p-5 bg-white/10 rounded-2xl hover:bg-white/20 transition-all group"
                   >
                     <div className="flex items-center gap-4">
-                      <social.icon className={`h-6 w-6 ${social.color}`} />
+                      <social.icon className={`h-6 w-6 ${social.color} bg-white p-1 rounded-lg`} />
                       <div>
                         <p className="font-black text-sm">{social.name}</p>
-                        <p className="text-xs text-slate-400 font-bold">{social.handle}</p>
+                        <p className="text-xs text-indigo-100 font-bold">{social.handle}</p>
                       </div>
                     </div>
-                    <ExternalLink className="h-4 w-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ExternalLink className="h-4 w-4 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </a>
                 ))}
               </div>
             </div>
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
           </Card>
 
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-white border border-slate-100 flex flex-col justify-center items-center text-center space-y-6">
@@ -121,7 +122,7 @@ const ContactPage = () => {
                 Visite nossa unidade física para conhecer nosso catálogo completo de equipamentos.
               </p>
             </div>
-            <Button className="bg-slate-900 text-white rounded-2xl font-bold px-8 h-12">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
               Ver no Google Maps
             </Button>
           </Card>
