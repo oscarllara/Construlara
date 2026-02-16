@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, UserCog, Mail, Phone, MapPin, Home } from 'lucide-react';
+import { Shield, UserCog, Mail, Phone, MapPin, Home, CreditCard } from 'lucide-react';
 import { UserAccount, UserRole } from './UserTable';
 
 interface EditUserDialogProps {
@@ -39,10 +39,24 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
 
+  const formatCPF = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+  };
+
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!formData) return;
     const formatted = formatWhatsApp(e.target.value);
     setFormData({ ...formData, whatsapp: formatted });
+  };
+
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!formData) return;
+    const formatted = formatCPF(e.target.value);
+    setFormData({ ...formData, cpf: formatted });
   };
 
   const handleSubmit = () => {
@@ -54,7 +68,7 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[650px] rounded-[3rem] border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] rounded-[3rem] border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-900">
             <UserCog className="h-7 w-7 text-blue-700" />
@@ -66,14 +80,28 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="space-y-1.5">
-            <Label className="text-slate-700 font-bold text-sm">Nome Completo</Label>
-            <Input 
-              placeholder="Ex: João Silva" 
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="rounded-2xl border-slate-200 h-12 text-base"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold text-sm">Nome Completo</Label>
+              <Input 
+                placeholder="Ex: João Silva" 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12 text-base"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-slate-400" /> CPF
+              </Label>
+              <Input 
+                placeholder="000.000.000-00" 
+                value={formData.cpf || ""}
+                onChange={handleCPFChange}
+                maxLength={14}
+                className="rounded-2xl border-slate-200 h-12 text-base"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -124,19 +152,49 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
             />
           </div>
 
-          {formData.role === 'Cliente' && (
-            <div className="grid grid-cols-1 gap-4 pt-2 border-t border-slate-100 mt-2">
+          <div className="grid grid-cols-1 gap-4 pt-2 border-t border-slate-100 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                <Home className="h-4 w-4 text-slate-400" /> Endereço (Rua e Número)
+              </Label>
+              <Input 
+                placeholder="Rua Exemplo, 123" 
+                value={formData.address || ""}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12 text-base"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                  <Home className="h-4 w-4 text-slate-400" /> Endereço Residencial
-                </Label>
+                <Label className="text-slate-700 font-bold text-sm">Bairro</Label>
                 <Input 
-                  placeholder="Rua, número, bairro, cidade..." 
-                  value={formData.address || ""}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  placeholder="Centro" 
+                  value={formData.neighborhood || ""}
+                  onChange={(e) => setFormData({...formData, neighborhood: e.target.value})}
                   className="rounded-2xl border-slate-200 h-12 text-base"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-bold text-sm">Cidade</Label>
+                <Input 
+                  placeholder="São João del-Rei" 
+                  value={formData.city || ""}
+                  onChange={(e) => setFormData({...formData, city: e.target.value})}
+                  className="rounded-2xl border-slate-200 h-12 text-base"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-bold text-sm">Estado</Label>
+                <Input 
+                  placeholder="MG" 
+                  value={formData.state || ""}
+                  onChange={(e) => setFormData({...formData, state: e.target.value})}
+                  className="rounded-2xl border-slate-200 h-12 text-base"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+            {formData.role === 'Cliente' && (
               <div className="space-y-1.5">
                 <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-slate-400" /> Endereço da Obra
@@ -148,8 +206,8 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
                   className="rounded-2xl border-slate-200 h-12 text-base"
                 />
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <DialogFooter className="gap-3 pt-2">

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, User, ArrowLeft, Briefcase, Phone } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Briefcase, Phone, CreditCard, Home, MapPin } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const INITIAL_USERS = [
@@ -21,11 +21,29 @@ const Register = () => {
     name: '',
     email: '',
     whatsapp: '',
+    cpf: '',
     role: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    address: '',
+    neighborhood: '',
+    city: '',
+    state: ''
   });
   const navigate = useNavigate();
+
+  const formatCPF = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+  };
+
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCPF(e.target.value);
+    setFormData({ ...formData, cpf: formatted });
+  };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +61,6 @@ const Register = () => {
     const stored = localStorage.getItem('app_users');
     const currentUsers = stored ? JSON.parse(stored) : INITIAL_USERS;
     
-    // Validação de duplicidade
     const userExists = currentUsers.some((u: any) => u.email.toLowerCase() === formData.email.toLowerCase());
     if (userExists) {
       showError("Este e-mail já está cadastrado no sistema.");
@@ -55,7 +72,12 @@ const Register = () => {
       name: formData.name,
       email: formData.email,
       whatsapp: formData.whatsapp,
+      cpf: formData.cpf,
       role: formData.role,
+      address: formData.address,
+      neighborhood: formData.neighborhood,
+      city: formData.city,
+      state: formData.state,
       status: 'active',
       lastAccess: 'Recém-chegado'
     };
@@ -68,7 +90,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-[520px] space-y-6">
+      <div className="w-full max-w-[600px] space-y-6">
         <div className="text-center space-y-2">
           <div className="h-32 w-full flex items-center justify-center mx-auto mb-2">
             <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-auto object-contain" />
@@ -89,18 +111,35 @@ const Register = () => {
           </CardHeader>
           <CardContent className="px-10 pb-8 space-y-4">
             <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-bold">Nome Completo</Label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input 
-                    id="name" 
-                    placeholder="Seu nome" 
-                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-bold">Nome Completo</Label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input 
+                      id="name" 
+                      placeholder="Seu nome" 
+                      className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf" className="text-sm font-bold">CPF</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input 
+                      id="cpf" 
+                      placeholder="000.000.000-00" 
+                      className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                      value={formData.cpf}
+                      onChange={handleCPFChange}
+                      maxLength={14}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -133,6 +172,50 @@ const Register = () => {
                       required
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold">Endereço (Rua e Número)</Label>
+                <div className="relative">
+                  <Home className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Input 
+                    placeholder="Rua Exemplo, 123" 
+                    className="pl-12 rounded-2xl h-12 border-slate-200 text-base"
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold">Bairro</Label>
+                  <Input 
+                    placeholder="Centro" 
+                    className="rounded-2xl h-12 border-slate-200 text-base"
+                    value={formData.neighborhood}
+                    onChange={(e) => setFormData({...formData, neighborhood: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold">Cidade</Label>
+                  <Input 
+                    placeholder="Cidade" 
+                    className="rounded-2xl h-12 border-slate-200 text-base"
+                    value={formData.city}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold">Estado</Label>
+                  <Input 
+                    placeholder="UF" 
+                    className="rounded-2xl h-12 border-slate-200 text-base"
+                    value={formData.state}
+                    onChange={(e) => setFormData({...formData, state: e.target.value})}
+                    maxLength={2}
+                  />
                 </div>
               </div>
 

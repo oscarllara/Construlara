@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { UserX, UserCheck, Mail, Trash2, Phone, Pencil, MapPin, SearchX } from 'lucide-react';
+import { UserX, UserCheck, Mail, Trash2, Phone, Pencil, MapPin, SearchX, CreditCard } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export type UserRole = 'Cliente' | 'Entregador' | 'Vendas' | 'Gestor';
@@ -22,10 +22,14 @@ export interface UserAccount {
   name: string;
   email: string;
   whatsapp: string;
+  cpf?: string;
   role: UserRole;
   status: 'active' | 'inactive';
   lastAccess: string;
   address?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
   worksiteAddress?: string;
 }
 
@@ -75,11 +79,18 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit }: UserTableProps) 
                 <TableCell className="py-5 pl-8">
                   <div className="flex flex-col">
                     <span className="font-black text-slate-900">{user.name}</span>
-                    {user.role === 'Cliente' && user.worksiteAddress && (
-                      <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
-                        <MapPin className="h-2.5 w-2.5" /> Obra: {user.worksiteAddress.substring(0, 30)}...
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      {user.cpf && (
+                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <CreditCard className="h-2.5 w-2.5" /> CPF: {user.cpf}
+                        </span>
+                      )}
+                      {user.role === 'Cliente' && user.worksiteAddress && (
+                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <MapPin className="h-2.5 w-2.5" /> Obra: {user.worksiteAddress.substring(0, 30)}...
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
