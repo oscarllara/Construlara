@@ -43,7 +43,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 relative overflow-hidden">
-      {/* Background decorativo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-red-600/5 rounded-full blur-3xl"></div>
@@ -70,7 +69,9 @@ const Login = () => {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</Label>
                 <div className="relative">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center z-10 border border-slate-100">
+                    <Mail className="h-5 w-5 text-slate-400" />
+                  </div>
                   <Input 
                     id="email" 
                     type="email" 
@@ -85,7 +86,9 @@ const Login = () => {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Senha de Acesso</Label>
                 <div className="relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center z-10 border border-slate-100">
+                    <Lock className="h-5 w-5 text-slate-400" />
+                  </div>
                   <Input 
                     id="password" 
                     type="password" 
@@ -102,7 +105,9 @@ const Login = () => {
                 <Label htmlFor="role" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Nível de Acesso</Label>
                 <Select onValueChange={(value) => setRole(value)}>
                   <SelectTrigger className="rounded-2xl h-14 border-slate-200 bg-white pl-14 relative text-base focus:ring-2 focus:ring-blue-500/20 transition-all">
-                    <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center z-10 border border-blue-100">
+                      <Briefcase className="h-5 w-5 text-blue-600" />
+                    </div>
                     <SelectValue placeholder="Selecione seu cargo..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-slate-100 shadow-2xl">

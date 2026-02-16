@@ -125,7 +125,10 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
                 value={formData.role} 
                 onValueChange={(v) => setFormData({...formData, role: v as UserRole})}
               >
-                <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base">
+                <SelectTrigger className="rounded-2xl border-slate-200 h-12 text-base pl-12 relative">
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center z-10 border border-blue-100">
+                    <Shield className="h-4 w-4 text-blue-600" />
+                  </div>
                   <SelectValue placeholder="Selecione o nível..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
