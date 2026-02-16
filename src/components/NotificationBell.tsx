@@ -38,7 +38,6 @@ const NotificationBell = () => {
       rentals.forEach((rental: any) => {
         if (rental.status === 'completed') return;
 
-        // Tenta converter a data (formato DD/MM/YYYY ou YYYY-MM-DD)
         let endDate: Date;
         try {
           if (rental.end.includes('/')) {
@@ -75,7 +74,6 @@ const NotificationBell = () => {
     };
 
     checkRentals();
-    // Verifica a cada 1 minuto
     const interval = setInterval(checkRentals, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -94,7 +92,10 @@ const NotificationBell = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-80 rounded-[2rem] p-4 border-none shadow-2xl mt-2" align="end">
+      <DropdownMenuContent 
+        className="w-80 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.15)] mt-2 z-[100]" 
+        align="end"
+      >
         <DropdownMenuLabel className="px-4 py-2 flex items-center justify-between">
           <span className="text-sm font-black text-slate-900">Notificações</span>
           {unreadCount > 0 && (

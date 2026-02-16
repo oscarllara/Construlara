@@ -85,7 +85,10 @@ const Navbar = () => {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64 rounded-[2rem] p-4 border-none shadow-2xl mt-2" align="end">
+              <DropdownMenuContent 
+                className="w-64 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.15)] mt-2 z-[100]" 
+                align="end"
+              >
                 <DropdownMenuLabel className="px-4 py-3">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-black text-slate-900 leading-none">Minha Conta</p>
