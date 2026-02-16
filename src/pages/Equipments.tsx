@@ -1,4 +1,3 @@
-Alugado > Manutenção) e ordem alfabética.">
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -120,21 +119,16 @@ const EquipmentsPage = () => {
     navigate('/alugueis');
   };
 
-  // Lógica de filtragem e ordenação automática
   const filtered = equipments
     .filter(e => 
       e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      // Prioridade de Status: available (0) > rented (1) > maintenance (2)
       const statusPriority = { available: 0, rented: 1, maintenance: 2 };
-      
       if (statusPriority[a.status] !== statusPriority[b.status]) {
         return statusPriority[a.status] - statusPriority[b.status];
       }
-      
-      // Se o status for igual, ordena por nome (A-Z)
       return a.name.localeCompare(b.name);
     });
 
