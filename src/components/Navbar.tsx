@@ -1,15 +1,25 @@
 "use client";
 
 import React from 'react';
-import { LayoutGrid, Bell, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall } from 'lucide-react';
+import { LayoutGrid, Bell, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const userRole = localStorage.getItem('userRole') || 'Usuário';
+  const userEmail = localStorage.getItem('userEmail') || '';
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutGrid },
@@ -22,6 +32,8 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
     showSuccess("Sessão encerrada com sucesso.");
     navigate('/login');
   };
@@ -64,19 +76,51 @@ const Navbar = () => {
             <Bell className="h-5 w-5 text-slate-600" />
             <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
           </Button>
+          
           <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center border-2 border-white shadow-md">
-              <User className="h-5 w-5 text-white" />
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleLogout}
-              className="rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50"
-              title="Sair do sistema"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-12 w-12 rounded-full p-0 hover:bg-transparent focus-visible:ring-0">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center border-2 border-white shadow-md hover:scale-105 transition-transform">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64 rounded-[2rem] p-4 border-none shadow-2xl mt-2" align="end">
+                <DropdownMenuLabel className="px-4 py-3">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-black text-slate-900 leading-none">Minha Conta</p>
+                    <p className="text-xs font-bold text-slate-400 truncate">{userEmail}</p>
+                    <Badge className="w-fit mt-2 bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase">
+                      {userRole}
+                    </Badge>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                <DropdownMenuItem 
+                  onClick={() => navigate('/perfil')}
+                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
+                >
+                  <UserCircle className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Meu Perfil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => navigate('/perfil')}
+                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
+                >
+                  <FileText className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group"
+                >
+                  <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-red-600" />
+                  <span className="font-bold text-slate-600 group-hover:text-red-700">Sair do Sistema</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

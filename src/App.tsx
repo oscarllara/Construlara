@@ -9,6 +9,7 @@ import Rentals from "./pages/Rentals";
 import Users from "./pages/Users";
 import Reports from "./pages/Reports";
 import Contact from "./pages/Contact";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ChangePassword from "./pages/ChangePassword";
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/usuarios" element={<ProtectedRoute><Users /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/contato" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+          <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -33,6 +33,7 @@ const Login = () => {
     if (email && password) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRole', role);
+      localStorage.setItem('userEmail', email);
       showSuccess(`Bem-vindo de volta, ${role}!`);
       navigate('/');
     } else {
