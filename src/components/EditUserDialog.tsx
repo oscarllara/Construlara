@@ -112,6 +112,24 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                Email
+              </Label>
+              <div className="relative">
+                <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-9 w-9 bg-slate-100 rounded-xl flex items-center justify-center z-10 border border-slate-200">
+                  <Mail className="h-5 w-5 text-slate-500" />
+                </div>
+                <Input 
+                  type="email"
+                  placeholder="joao.silva@construlara.com" 
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="pl-14 rounded-2xl border-slate-200 h-12 text-base"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                 Nível de Acesso
               </Label>
               <Select 
@@ -131,24 +149,6 @@ const EditUserDialog = ({ user, open, onOpenChange, onSave }: EditUserDialogProp
                   <SelectItem value="Gestor">Gestor</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                Email
-              </Label>
-              <div className="relative">
-                <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-9 w-9 bg-slate-100 rounded-xl flex items-center justify-center z-10 border border-slate-200">
-                  <Mail className="h-5 w-5 text-slate-500" />
-                </div>
-                <Input 
-                  type="email"
-                  placeholder="joao.silva@construlara.com" 
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="pl-14 rounded-2xl border-slate-200 h-12 text-base"
-                />
-              </div>
             </div>
           </div>
 
