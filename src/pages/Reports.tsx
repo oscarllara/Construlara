@@ -10,22 +10,70 @@ import {
 } from 'recharts';
 import { 
   Hammer, Receipt, DollarSign, TrendingUp, 
-  AlertCircle, CheckCircle2, Clock, FileText, Download
+  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Equipment } from '@/components/EquipmentCard';
+import ReturnEquipmentDialog from '@/components/ReturnEquipmentDialog';
+import { showSuccess } from '@/utils/toast';
 
 const ReportsPage = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [rentals, setRentals] = useState<any[]>([]);
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
+  const [selectedEquip, setSelectedEquip] = useState<Equipment | null>(null);
 
   useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) setEquipments(JSON.parse(savedEquip));
 
     const savedRentals = localStorage.getItem('app_rentals');
     if (savedRentals) setRentals(JSON.parse(savedRentals));
-  }, []);
+  };
+
+  const handleStatusAction = (equip: Equipment) => {
+    if (equip.status === 'rented') {
+      setSelectedEquip(equip);
+      setIsReturnOpen(true);
+    } else if (equip.status === 'maintenance') {
+      updateStatus(equip.id, 'available');
+      showSuccess(`${equip.name} agora está disponível.`);
+    } else {
+      updateStatus(equip.id, 'maintenance');
+      showSuccess(`${equip.name} enviado para manutenção.`);
+    }
+  };
+
+  const updateStatus = (id: string, nextStatus: 'available' | 'maintenance' | 'rented', notes?: string) => {
+    const newEquipments = equipments.map(e => 
+      e.id === id ? { ...e, status: nextStatus, lastClient: nextStatus === 'rented' ? e.lastClient : undefined } : e
+    );
+    
+    localStorage.setItem('app_equipments', JSON.stringify(newEquipments));
+    setEquipments(newEquipments);
+
+    if (notes) {
+      const savedRentals = localStorage.getItem('app_rentals');
+      if (savedRentals) {
+        const rentalsList = JSON.parse(savedRentals);
+        const updatedRentals = rentalsList.map((r: any) => 
+          (r.equipmentId === id && r.status === 'active') ? { ...r, status: 'completed', notes: notes } : r
+        );
+        localStorage.setItem('app_rentals', JSON.stringify(updatedRentals));
+        setRentals(updatedRentals);
+      }
+    }
+  };
+
+  const handleConfirmReturn = (id: string, nextStatus: 'available' | 'maintenance', notes: string) => {
+    updateStatus(id, nextStatus, notes);
+    setIsReturnOpen(false);
+    showSuccess("Devolução processada com sucesso.");
+  };
 
   // Dados para o Relatório de Equipamentos
   const equipmentStats = useMemo(() => {
@@ -93,7 +141,7 @@ const ReportsPage = () => {
                     <div className="mt-2 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                       <div 
                         className="h-full transition-all duration-1000" 
-                        style={{ width: `${(stat.value / equipments.length) * 100}%`, backgroundColor: stat.color }}
+                        style={{ width: `${(stat.value / (equipments.length || 1)) * 100}%`, backgroundColor: stat.color }}
                       />
                     </div>
                   </CardContent>
@@ -136,17 +184,28 @@ const ReportsPage = () => {
                 <CardContent className="max-h-[300px] overflow-y-auto">
                   <div className="space-y-4">
                     {equipments.map((e) => (
-                      <div key={e.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                      <div key={e.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group">
                         <div>
                           <p className="font-bold text-slate-900">{e.name}</p>
                           <p className="text-[10px] text-slate-400 font-black uppercase">{e.serialNumber}</p>
                         </div>
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${
-                          e.status === 'available' ? 'bg-blue-100 text-blue-700' :
-                          e.status === 'rented' ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-600'
-                        }`}>
-                          {e.status === 'available' ? 'Disponível' : e.status === 'rented' ? 'Alugado' : 'Manutenção'}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${
+                            e.status === 'available' ? 'bg-blue-100 text-blue-700' :
+                            e.status === 'rented' ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            {e.status === 'available' ? 'Disponível' : e.status === 'rented' ? 'Alugado' : 'Manutenção'}
+                          </span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleStatusAction(e)}
+                            className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100 hover:text-blue-700"
+                            title="Alterar Status"
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -239,6 +298,13 @@ const ReportsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ReturnEquipmentDialog 
+        equipment={selectedEquip}
+        open={isReturnOpen}
+        onOpenChange={setIsReturnOpen}
+        onConfirm={handleConfirmReturn}
+      />
     </AppLayout>
   );
 };
