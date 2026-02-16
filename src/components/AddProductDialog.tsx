@@ -117,13 +117,15 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-slate-700 font-bold text-sm">Categoria</Label>
+          <div className="bg-blue-50/50 p-5 rounded-[2rem] border border-blue-100/50 space-y-2">
+            <Label className="text-blue-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+              <Tag className="h-3 w-3" /> Classificação
+            </Label>
             <Select 
               value={formData.category} 
               onValueChange={(v) => setFormData({...formData, category: v})}
             >
-              <SelectTrigger className="rounded-2xl border-slate-200 h-12">
+              <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-white">
                 <SelectValue placeholder="Selecione a categoria..." />
               </SelectTrigger>
               <SelectContent className="rounded-2xl">
@@ -186,26 +188,30 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-            <div className="space-y-0.5">
-              <Label className="text-sm font-bold">Ativar Oferta</Label>
-              <p className="text-xs text-slate-500">Exibir preço promocional</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-bold">Ativar Oferta</Label>
+                <p className="text-[10px] text-slate-500">Preço promocional</p>
+              </div>
+              <Switch 
+                checked={formData.isPromo} 
+                onCheckedChange={(v) => setFormData({...formData, isPromo: v})} 
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500"
+              />
             </div>
-            <Switch 
-              checked={formData.isPromo} 
-              onCheckedChange={(v) => setFormData({...formData, isPromo: v})} 
-            />
-          </div>
 
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-            <div className="space-y-0.5">
-              <Label className="text-sm font-bold">Produto em Destaque</Label>
-              <p className="text-xs text-slate-500">Exibir selo de destaque</p>
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-bold">Destaque</Label>
+                <p className="text-[10px] text-slate-500">Selo especial</p>
+              </div>
+              <Switch 
+                checked={formData.isFeatured} 
+                onCheckedChange={(v) => setFormData({...formData, isFeatured: v})} 
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500"
+              />
             </div>
-            <Switch 
-              checked={formData.isFeatured} 
-              onCheckedChange={(v) => setFormData({...formData, isFeatured: v})} 
-            />
           </div>
         </div>
 
