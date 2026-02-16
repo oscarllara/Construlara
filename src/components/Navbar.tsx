@@ -43,6 +43,7 @@ const Navbar = () => {
     { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
     { name: 'Usuários', path: '/usuarios', icon: Users },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
+    { name: 'Contato', path: '/contato', icon: PhoneCall },
   ];
 
   const handleLogout = () => {
