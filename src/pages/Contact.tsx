@@ -4,6 +4,7 @@ import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Phone, Facebook, Instagram, MapPin, MessageCircle, ExternalLink } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 const ContactPage = () => {
   const contacts = [
