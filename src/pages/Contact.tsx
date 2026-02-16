@@ -51,6 +51,11 @@ const ContactPage = () => {
     },
   ];
 
+  const handleOpenMaps = () => {
+    // Link de busca para a Construlara em São João del-Rei
+    window.open("https://www.google.com/maps/search/Construlara+São+João+del-Rei", "_blank");
+  };
+
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto space-y-10">
@@ -122,7 +127,10 @@ const ContactPage = () => {
                 Visite nossa unidade física para conhecer nosso catálogo completo de equipamentos.
               </p>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
+            <Button 
+              onClick={handleOpenMaps}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12 shadow-lg shadow-blue-100"
+            >
               Ver no Google Maps
             </Button>
           </Card>
