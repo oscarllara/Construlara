@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Filter, ShoppingCart, Calculator as CalcIcon } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
   "Pisos e revestimentos", "Louças e acabamentos", "Gabinetes, pias e tanques", 

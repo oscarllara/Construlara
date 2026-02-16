@@ -37,9 +37,9 @@ const Navbar = () => {
   }, []);
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutGrid },
+    { name: 'Loja', path: '/', icon: ShoppingBag },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
     { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
-    { name: 'Loja', path: '/produtos', icon: ShoppingBag },
     { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
     { name: 'Usuários', path: '/usuarios', icon: Users },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
