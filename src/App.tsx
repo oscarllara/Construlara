@@ -13,6 +13,8 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ChangePassword from "./pages/ChangePassword";
+import Products from "./pages/Products";
+import Cart from "./pages/Cart";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ const App = () => (
           {/* Rotas Protegidas */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/equipamentos" element={<ProtectedRoute><Equipments /></ProtectedRoute>} />
+          <Route path="/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/alugueis" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute><Users /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />

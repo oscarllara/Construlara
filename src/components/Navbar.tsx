@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -20,16 +20,29 @@ import { Badge } from "@/components/ui/badge";
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [cartCount, setCartCount] = useState(0);
   const userRole = localStorage.getItem('userRole') || 'Usuário';
   const userEmail = localStorage.getItem('userEmail') || '';
+
+  const updateCartCount = () => {
+    const cart = JSON.parse(localStorage.getItem('app_cart') || '[]');
+    const count = cart.reduce((acc: number, item: any) => acc + item.quantity, 0);
+    setCartCount(count);
+  };
+
+  useEffect(() => {
+    updateCartCount();
+    window.addEventListener('cart-updated', updateCartCount);
+    return () => window.removeEventListener('cart-updated', updateCartCount);
+  }, []);
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutGrid },
     { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
+    { name: 'Loja', path: '/produtos', icon: ShoppingBag },
     { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
     { name: 'Usuários', path: '/usuarios', icon: Users },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
-    { name: 'Contato', path: '/contato', icon: PhoneCall },
   ];
 
   const handleLogout = () => {
@@ -74,6 +87,20 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/carrinho')}
+            className="rounded-full hover:bg-blue-50 relative h-10 w-10"
+          >
+            <ShoppingBag className="h-5 w-5 text-slate-600" />
+            {cartCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-blue-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
+                {cartCount}
+              </span>
+            )}
+          </Button>
+
           <NotificationBell />
           
           <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
