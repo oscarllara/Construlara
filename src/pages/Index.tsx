@@ -20,29 +20,29 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
-        {/* Hero Section - Agora com fundo azul vibrante */}
+        {/* Hero Section - Cores e Contrastes Otimizados */}
         <section className="relative bg-blue-600 rounded-[3rem] p-8 md:p-16 overflow-hidden shadow-2xl border border-blue-500">
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 text-center md:text-left space-y-6">
-              <div className="inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border border-white/30">
-                <Sparkles className="h-3 w-3" /> Sistema Online
+              <div className="inline-flex items-center gap-2 bg-white/25 text-white px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest border border-white/40 backdrop-blur-md shadow-lg">
+                <Sparkles className="h-3.5 w-3.5 text-blue-200" /> Sistema Online
               </div>
               <h1 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tighter">
-                Olá! Eu sou o <span className="text-blue-200">Beto</span>.
+                Olá! Eu sou o <span className="text-sky-300 drop-shadow-sm">Beto</span>.
               </h1>
-              <p className="text-blue-50 text-lg max-w-md font-medium leading-relaxed">
+              <p className="text-white/90 text-lg max-w-md font-bold leading-relaxed">
                 Seu assistente inteligente para gestão de locações na Construlara. Tudo pronto para começarmos?
               </p>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
                 <button 
                   onClick={() => navigate('/alugueis')}
-                  className="bg-white text-blue-700 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all flex items-center gap-2 shadow-xl shadow-blue-900/20 hover:-translate-y-1"
+                  className="bg-white text-blue-700 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all flex items-center gap-2 shadow-2xl shadow-blue-900/40 hover:-translate-y-1 active:scale-95"
                 >
                   Novo Aluguel <ArrowRight className="h-5 w-5" />
                 </button>
                 <button 
                   onClick={() => navigate('/equipamentos')}
-                  className="bg-blue-700/50 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 transition-all border border-blue-400/30 hover:-translate-y-1"
+                  className="bg-blue-800/40 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-800/60 transition-all border-2 border-white/20 backdrop-blur-sm hover:-translate-y-1 active:scale-95"
                 >
                   Ver Inventário
                 </button>
@@ -57,14 +57,14 @@ const Index = () => {
                   className="w-full h-auto rounded-[2.5rem]" 
                 />
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  <span className="bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white uppercase tracking-widest">BETO OFICIAL</span>
+                  <span className="bg-blue-700 text-white text-[10px] font-black px-5 py-2 rounded-full shadow-xl border-2 border-white uppercase tracking-widest">BETO OFICIAL</span>
                 </div>
               </div>
             </div>
           </div>
-          {/* Elementos decorativos */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-[120px]"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full -ml-48 -mb-48 blur-[120px]"></div>
+          {/* Elementos decorativos para dar profundidade */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full -mr-64 -mt-64 blur-[120px]"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-400/20 rounded-full -ml-64 -mb-64 blur-[120px]"></div>
         </section>
 
         {/* Estatísticas Rápidas */}
