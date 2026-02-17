@@ -25,15 +25,33 @@ const Navbar = () => {
   const userEmail = localStorage.getItem('userEmail') || '';
 
   const updateCartCount = () => {
-    const cart = JSON.parse(localStorage.getItem('app_cart') || '[]');
-    const count = cart.reduce((acc: number, item: any) => acc + item.quantity, 0);
-    setCartCount(count);
+    try {
+      const cartData = localStorage.getItem('app_cart');
+      if (!cartData) {
+        setCartCount(0);
+        return;
+      }
+      const cart = JSON.parse(cartData);
+      if (Array.isArray(cart)) {
+        const count = cart.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0);
+        setCartCount(count);
+      } else {
+        setCartCount(0);
+      }
+    } catch (e) {
+      console.error("Erro ao ler carrinho:", e);
+      setCartCount(0);
+    }
   };
 
   useEffect(() => {
     updateCartCount();
     window.addEventListener('cart-updated', updateCartCount);
-    return () => window.removeEventListener('cart-updated', updateCartCount);
+    window.addEventListener('storage', updateCartCount);
+    return () => {
+      window.removeEventListener('cart-updated', updateCartCount);
+      window.removeEventListener('storage', updateCartCount);
+    };
   }, []);
 
   const navItems = [
@@ -88,7 +106,6 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          {/* Carrinho em Destaque */}
           <Button 
             onClick={() => navigate('/carrinho')}
             className="rounded-2xl bg-blue-700 hover:bg-blue-800 text-white relative h-14 px-6 flex items-center gap-3 shadow-xl shadow-blue-100 transition-all hover:-translate-y-1 active:scale-95"

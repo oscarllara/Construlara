@@ -42,20 +42,32 @@ const ProductsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedProducts = localStorage.getItem('app_products');
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    } else {
+    // Carregar Produtos com Segurança
+    try {
+      const savedProducts = localStorage.getItem('app_products');
+      if (savedProducts) {
+        const parsed = JSON.parse(savedProducts);
+        setProducts(Array.isArray(parsed) ? parsed : INITIAL_PRODUCTS);
+      } else {
+        setProducts(INITIAL_PRODUCTS);
+        localStorage.setItem('app_products', JSON.stringify(INITIAL_PRODUCTS));
+      }
+    } catch (e) {
       setProducts(INITIAL_PRODUCTS);
-      localStorage.setItem('app_products', JSON.stringify(INITIAL_PRODUCTS));
     }
 
-    const savedCategories = localStorage.getItem('app_categories');
-    if (savedCategories) {
-      setCategories(JSON.parse(savedCategories));
-    } else {
+    // Carregar Categorias com Segurança
+    try {
+      const savedCategories = localStorage.getItem('app_categories');
+      if (savedCategories) {
+        const parsed = JSON.parse(savedCategories);
+        setCategories(Array.isArray(parsed) ? parsed : DEFAULT_CATEGORIES);
+      } else {
+        setCategories(DEFAULT_CATEGORIES);
+        localStorage.setItem('app_categories', JSON.stringify(DEFAULT_CATEGORIES));
+      }
+    } catch (e) {
       setCategories(DEFAULT_CATEGORIES);
-      localStorage.setItem('app_categories', JSON.stringify(DEFAULT_CATEGORIES));
     }
   }, []);
 
@@ -100,25 +112,36 @@ const ProductsPage = () => {
   };
 
   const handleAddToCart = (product: Product, quantity: number, totalAmount?: number) => {
-    const cart = JSON.parse(localStorage.getItem('app_cart') || '[]');
-    const existing = cart.find((item: any) => item.id === product.id);
-    
-    if (existing) {
-      existing.quantity += quantity;
-      if (totalAmount) {
-        existing.totalAmount = (existing.totalAmount || 0) + totalAmount;
+    try {
+      const cartData = localStorage.getItem('app_cart');
+      const cart = cartData ? JSON.parse(cartData) : [];
+      
+      if (!Array.isArray(cart)) {
+        localStorage.setItem('app_cart', JSON.stringify([{ ...product, quantity, totalAmount: totalAmount || quantity }]));
+      } else {
+        const existing = cart.find((item: any) => item.id === product.id);
+        if (existing) {
+          existing.quantity += quantity;
+          if (totalAmount) {
+            existing.totalAmount = (existing.totalAmount || 0) + totalAmount;
+          }
+        } else {
+          cart.push({ 
+            ...product, 
+            quantity, 
+            totalAmount: totalAmount || quantity 
+          });
+        }
+        localStorage.setItem('app_cart', JSON.stringify(cart));
       }
-    } else {
-      cart.push({ 
-        ...product, 
-        quantity, 
-        totalAmount: totalAmount || quantity 
-      });
+      
+      showSuccess(`${quantity}x ${product.name} adicionado ao carrinho!`);
+      window.dispatchEvent(new Event('cart-updated'));
+    } catch (e) {
+      console.error("Erro ao adicionar ao carrinho:", e);
+      localStorage.setItem('app_cart', JSON.stringify([{ ...product, quantity, totalAmount: totalAmount || quantity }]));
+      window.dispatchEvent(new Event('cart-updated'));
     }
-    
-    localStorage.setItem('app_cart', JSON.stringify(cart));
-    showSuccess(`${quantity}x ${product.name} adicionado ao carrinho!`);
-    window.dispatchEvent(new Event('cart-updated'));
   };
 
   const filtered = products.filter(p => {
