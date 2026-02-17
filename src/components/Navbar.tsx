@@ -37,10 +37,10 @@ const Navbar = () => {
   }, []);
 
   const navItems = [
-    { name: 'Loja', path: '/', icon: ShoppingBag },
     { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
-    { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
+    { name: 'Loja', path: '/', icon: ShoppingBag },
     { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
+    { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
     { name: 'Usuários', path: '/usuarios', icon: Users },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
     { name: 'Contato', path: '/contato', icon: PhoneCall },
@@ -57,9 +57,9 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
       <div className="container flex h-24 items-center justify-between">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center group">
-            <div className="h-24 w-80 flex items-center justify-start transition-transform group-hover:scale-105">
+            <div className="h-24 w-64 flex items-center justify-start transition-transform group-hover:scale-105">
               <img 
                 src="/logoconstrulara.png" 
                 alt="Construlara Logo" 
@@ -68,13 +68,13 @@ const Navbar = () => {
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             {navItems.map((item) => (
               <Link 
                 key={item.path} 
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                  "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap",
                   location.pathname === item.path 
                     ? "bg-blue-50 text-blue-700 shadow-sm" 
                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -87,7 +87,7 @@ const Navbar = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
             size="icon" 
