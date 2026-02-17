@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Package, Tag, DollarSign, Image as ImageIcon, Hash } from 'lucide-react';
+import { Package, Tag, DollarSign, ImageIcon, Hash } from 'lucide-react';
 import { Product } from './ProductCard';
 
 interface AddProductDialogProps {
@@ -117,20 +117,23 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
             </div>
           </div>
 
-          <div className="bg-blue-50/50 p-5 rounded-[2rem] border border-blue-100/50 space-y-2">
-            <Label className="text-blue-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-              <Tag className="h-3 w-3" /> Classificação
+          {/* Seção de Classificação com fundo mais sólido e destaque */}
+          <div className="bg-blue-100/40 p-6 rounded-[2.5rem] border-2 border-blue-200/50 shadow-inner space-y-3">
+            <Label className="text-blue-800 font-black text-[11px] uppercase tracking-widest flex items-center gap-2 ml-1">
+              <Tag className="h-4 w-4" /> Classificação do Item
             </Label>
             <Select 
               value={formData.category} 
               onValueChange={(v) => setFormData({...formData, category: v})}
             >
-              <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-white">
+              <SelectTrigger className="rounded-2xl border-blue-200 h-12 bg-white shadow-sm font-bold text-slate-700 focus:ring-blue-500">
                 <SelectValue placeholder="Selecione a categoria..." />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl">
+              <SelectContent className="rounded-2xl bg-white border border-slate-200 shadow-2xl z-[100]">
                 {categories.filter(c => c !== "Todas").map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat} value={cat} className="rounded-xl py-3 font-medium focus:bg-blue-50 focus:text-blue-700">
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -197,7 +200,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               <Switch 
                 checked={formData.isPromo} 
                 onCheckedChange={(v) => setFormData({...formData, isPromo: v})} 
-                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500"
+                className="data-[state=checked]:bg-emerald-500"
               />
             </div>
 
@@ -209,7 +212,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               <Switch 
                 checked={formData.isFeatured} 
                 onCheckedChange={(v) => setFormData({...formData, isFeatured: v})} 
-                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500"
+                className="data-[state=checked]:bg-emerald-500"
               />
             </div>
           </div>
