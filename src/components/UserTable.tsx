@@ -85,7 +85,8 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit }: UserTableProps) 
                           <CreditCard className="h-2.5 w-2.5" /> CPF: {user.cpf}
                         </span>
                       )}
-                      {user.role === 'Cliente' && user.worksiteAddress && (
+                      {/* Agora exibe para qualquer cargo se houver endereço de obra */}
+                      {user.worksiteAddress && (
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                           <MapPin className="h-2.5 w-2.5" /> Obra: {user.worksiteAddress.substring(0, 30)}...
                         </span>

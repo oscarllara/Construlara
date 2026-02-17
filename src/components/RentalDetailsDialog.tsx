@@ -40,7 +40,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const [modality, setModality] = useState("");
   const [totalValue, setTotalValue] = useState<string>("0");
 
-  // Carregar dados iniciais
   useEffect(() => {
     if (rental && open) {
       setStatus(rental.status);
@@ -53,9 +52,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
         const users: UserAccount[] = JSON.parse(savedUsers);
-        const clients = users.filter(u => u.role === 'Cliente');
-        setAllClients(clients);
-        const currentClient = clients.find(u => u.name === rental.client || u.id === rental.clientId);
+        // Agora todos os usuários podem ser locatários
+        setAllClients(users);
+        const currentClient = users.find(u => u.name === rental.client || u.id === rental.clientId);
         setSelectedClientId(currentClient?.id || "");
       }
 
@@ -72,7 +71,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     allClients.find(c => c.id === selectedClientId), 
   [selectedClientId, allClients]);
 
-  // Lógica de cálculo misto (Mix de prazos) - Dispara apenas quando datas ou equipamento mudam
   useEffect(() => {
     if (!equipment || !startDate || !endDate) return;
 
@@ -167,18 +165,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           <div className="space-y-8">
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <User className="h-4 w-4" /> Locatário (Cliente)
+                <User className="h-4 w-4" /> Locatário
               </h3>
               <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Selecionar Cliente</Label>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Selecionar Usuário</Label>
                   <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                     <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-white font-bold">
-                      <SelectValue placeholder="Escolha o cliente..." />
+                      <SelectValue placeholder="Escolha o usuário..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
                       {allClients.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

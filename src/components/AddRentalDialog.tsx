@@ -45,13 +45,13 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const savedUsers = localStorage.getItem('app_users');
     if (savedUsers) {
       const allUsers = JSON.parse(savedUsers);
-      setClients(allUsers.filter((u: UserAccount) => u.role === 'Cliente'));
+      // Agora todos os usuários podem ser clientes
+      setClients(allUsers);
     }
 
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       const allEquip = JSON.parse(savedEquip);
-      // Se estivermos alugando um específico, ele deve aparecer na lista mesmo se o status for 'available'
       setEquipments(allEquip);
     }
   };
@@ -65,7 +65,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     }
   }, [open, initialEquipmentId]);
 
-  // Lógica de cálculo misto (Mix de prazos)
   useEffect(() => {
     if (!formData.startDate || !formData.endDate || !formData.equipmentId) return;
 
@@ -129,10 +128,10 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const updatedUsers = [newUser, ...currentUsers];
     localStorage.setItem('app_users', JSON.stringify(updatedUsers));
     
-    setClients(updatedUsers.filter((u: any) => u.role === 'Cliente'));
+    setClients(updatedUsers);
     setFormData(prev => ({ ...prev, clientId: newUser.id }));
     setIsAddUserOpen(false);
-    showSuccess(`Cliente ${userData.name} cadastrado e selecionado.`);
+    showSuccess(`Usuário ${userData.name} cadastrado e selecionado.`);
   };
 
   const handleSubmit = () => {
@@ -168,7 +167,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
               Gerar Contrato
             </DialogTitle>
             <DialogDescription className="text-base font-medium">
-              Vincule o equipamento a um cliente para iniciar a locação.
+              Vincule o equipamento a um usuário para iniciar a locação.
             </DialogDescription>
           </DialogHeader>
           
@@ -176,7 +175,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                  <User className="h-4 w-4 text-slate-400" /> Cliente
+                  <User className="h-4 w-4 text-slate-400" /> Locatário
                 </Label>
                 <Button 
                   variant="ghost" 
@@ -184,16 +183,16 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
                   onClick={() => setIsAddUserOpen(true)}
                   className="h-7 text-[10px] font-black uppercase text-blue-600 hover:bg-blue-50 rounded-lg gap-1"
                 >
-                  <UserPlus className="h-3 w-3" /> Novo Cliente
+                  <UserPlus className="h-3 w-3" /> Novo Usuário
                 </Button>
               </div>
               <Select value={formData.clientId} onValueChange={(v) => setFormData({...formData, clientId: v})}>
                 <SelectTrigger className="rounded-2xl border-slate-200 h-12">
-                  <SelectValue placeholder="Selecione o cliente..." />
+                  <SelectValue placeholder="Selecione o usuário..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
                   {clients.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
