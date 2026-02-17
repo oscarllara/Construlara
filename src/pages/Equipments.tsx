@@ -6,6 +6,7 @@ import EquipmentCard, { Equipment } from '@/components/EquipmentCard';
 import AddEquipmentDialog from '@/components/AddEquipmentDialog';
 import EditEquipmentDialog from '@/components/EditEquipmentDialog';
 import ReturnEquipmentDialog from '@/components/ReturnEquipmentDialog';
+import AddRentalDialog from '@/components/AddRentalDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Filter, Hammer } from 'lucide-react';
@@ -25,6 +26,7 @@ const EquipmentsPage = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
+  const [isRentalDialogOpen, setIsRentalDialogOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const navigate = useNavigate();
 
@@ -62,12 +64,41 @@ const EquipmentsPage = () => {
     showSuccess(`Dados de ${updated.name} atualizados.`);
   };
 
-  const handleRent = (id: string) => {
+  const handleRentClick = (id: string) => {
+    const equip = equipments.find(e => e.id === id);
+    if (equip) {
+      setSelectedEquipment(equip);
+      setIsRentalDialogOpen(true);
+    }
+  };
+
+  const handleConfirmRental = (data: any) => {
+    // 1. Atualizar status do equipamento
     const newEquipments = equipments.map(e => 
-      e.id === id ? { ...e, status: 'rented' as const, lastClient: 'Cliente Balcão' } : e
+      e.id === data.equipmentId ? { ...e, status: 'rented' as const, lastClient: data.clientName } : e
     );
     saveEquipments(newEquipments);
-    showSuccess("Equipamento alugado com sucesso!");
+
+    // 2. Criar o contrato no histórico
+    const savedRentals = localStorage.getItem('app_rentals');
+    const currentRentals = savedRentals ? JSON.parse(savedRentals) : [];
+    const newRental = {
+      id: `r-${Date.now()}`,
+      client: data.clientName,
+      clientId: data.clientId,
+      item: data.itemName,
+      equipmentId: data.equipmentId,
+      start: data.startDate,
+      end: data.endDate,
+      status: 'active',
+      total: data.totalValue,
+      modality: data.modality,
+      notes: ''
+    };
+    localStorage.setItem('app_rentals', JSON.stringify([newRental, ...currentRentals]));
+
+    setIsRentalDialogOpen(false);
+    showSuccess(`Contrato gerado para ${data.clientName}!`);
   };
 
   const handleMaintenance = (id: string) => {
@@ -170,7 +201,7 @@ const EquipmentsPage = () => {
             <EquipmentCard 
               key={item.id} 
               equipment={item} 
-              onRent={handleRent}
+              onRent={handleRentClick}
               onMaintenance={handleMaintenance}
               onFinishRepair={handleFinishRepair}
               onViewContract={handleViewContract}
@@ -206,6 +237,13 @@ const EquipmentsPage = () => {
         open={isReturnDialogOpen}
         onOpenChange={setIsReturnDialogOpen}
         onConfirm={handleConfirmReturn}
+      />
+
+      <AddRentalDialog 
+        open={isRentalDialogOpen}
+        onOpenChange={setIsRentalDialogOpen}
+        onAdd={handleConfirmRental}
+        initialEquipmentId={selectedEquipment?.id}
       />
     </AppLayout>
   );

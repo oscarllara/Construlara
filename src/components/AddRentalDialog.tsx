@@ -13,20 +13,24 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Receipt, User, Hammer, Calendar, DollarSign } from 'lucide-react';
+import { Receipt, User, Hammer, Calendar, DollarSign, UserPlus } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { differenceInDays } from 'date-fns';
+import AddUserDialog from './AddUserDialog';
+import { showSuccess } from '@/utils/toast';
 
 interface AddRentalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (rental: any) => void;
+  initialEquipmentId?: string;
 }
 
-const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) => {
+const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddRentalDialogProps) => {
   const [clients, setClients] = useState<UserAccount[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     clientId: "",
@@ -37,7 +41,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
     totalValue: ""
   });
 
-  useEffect(() => {
+  const loadData = () => {
     const savedUsers = localStorage.getItem('app_users');
     if (savedUsers) {
       const allUsers = JSON.parse(savedUsers);
@@ -47,9 +51,19 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       const allEquip = JSON.parse(savedEquip);
-      setEquipments(allEquip.filter((e: Equipment) => e.status === 'available'));
+      // Se estivermos alugando um específico, ele deve aparecer na lista mesmo se o status for 'available'
+      setEquipments(allEquip);
     }
-  }, [open]);
+  };
+
+  useEffect(() => {
+    if (open) {
+      loadData();
+      if (initialEquipmentId) {
+        setFormData(prev => ({ ...prev, equipmentId: initialEquipmentId }));
+      }
+    }
+  }, [open, initialEquipmentId]);
 
   // Lógica de cálculo misto (Mix de prazos)
   useEffect(() => {
@@ -66,33 +80,28 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
       let remainingDays = totalDays;
       let calculatedTotal = 0;
 
-      // 1. Meses (30 dias)
       const months = Math.floor(remainingDays / 30);
       if (months > 0) {
         calculatedTotal += months * (equipment.monthlyRate || (equipment.dailyRate * 30));
         remainingDays %= 30;
       }
 
-      // 2. Quinzenas (15 dias)
       const biweeks = Math.floor(remainingDays / 15);
       if (biweeks > 0) {
         calculatedTotal += biweeks * (equipment.biweeklyRate || (equipment.dailyRate * 15));
         remainingDays %= 15;
       }
 
-      // 3. Semanas (7 dias)
       const weeks = Math.floor(remainingDays / 7);
       if (weeks > 0) {
         calculatedTotal += weeks * (equipment.weeklyRate || (equipment.dailyRate * 7));
         remainingDays %= 7;
       }
 
-      // 4. Diárias restantes
       if (remainingDays > 0) {
         calculatedTotal += remainingDays * equipment.dailyRate;
       }
 
-      // Determinar modalidade principal para exibição
       let displayModality = "Diária";
       if (totalDays >= 30) displayModality = "Mês";
       else if (totalDays >= 15) displayModality = "Quinzena";
@@ -105,6 +114,26 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
       }));
     }
   }, [formData.startDate, formData.endDate, formData.equipmentId, equipments]);
+
+  const handleAddNewUser = (userData: any) => {
+    const savedUsers = localStorage.getItem('app_users');
+    const currentUsers = savedUsers ? JSON.parse(savedUsers) : [];
+    
+    const newUser = {
+      id: `u-${Date.now()}`,
+      ...userData,
+      status: 'active',
+      lastAccess: 'Nunca'
+    };
+    
+    const updatedUsers = [newUser, ...currentUsers];
+    localStorage.setItem('app_users', JSON.stringify(updatedUsers));
+    
+    setClients(updatedUsers.filter((u: any) => u.role === 'Cliente'));
+    setFormData(prev => ({ ...prev, clientId: newUser.id }));
+    setIsAddUserOpen(false);
+    showSuccess(`Cliente ${userData.name} cadastrado e selecionado.`);
+  };
 
   const handleSubmit = () => {
     if (!formData.clientId || !formData.equipmentId || !formData.totalValue) return;
@@ -130,24 +159,34 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] rounded-[3rem] border-none shadow-2xl p-6">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-900">
-            <Receipt className="h-7 w-7 text-red-600" />
-            Novo Contrato
-          </DialogTitle>
-          <DialogDescription className="text-base font-medium">
-            Inicie uma nova locação com cálculo automático de mix de prazos.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px] rounded-[3rem] border-none shadow-2xl p-6">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-900">
+              <Receipt className="h-7 w-7 text-red-600" />
+              Gerar Contrato
+            </DialogTitle>
+            <DialogDescription className="text-base font-medium">
+              Vincule o equipamento a um cliente para iniciar a locação.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
             <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <User className="h-4 w-4 text-slate-400" /> Cliente
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                  <User className="h-4 w-4 text-slate-400" /> Cliente
+                </Label>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsAddUserOpen(true)}
+                  className="h-7 text-[10px] font-black uppercase text-blue-600 hover:bg-blue-50 rounded-lg gap-1"
+                >
+                  <UserPlus className="h-3 w-3" /> Novo Cliente
+                </Button>
+              </div>
               <Select value={formData.clientId} onValueChange={(v) => setFormData({...formData, clientId: v})}>
                 <SelectTrigger className="rounded-2xl border-slate-200 h-12">
                   <SelectValue placeholder="Selecione o cliente..." />
@@ -164,76 +203,86 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd }: AddRentalDialogProps) =>
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                 <Hammer className="h-4 w-4 text-slate-400" /> Equipamento
               </Label>
-              <Select value={formData.equipmentId} onValueChange={(v) => setFormData({...formData, equipmentId: v})}>
+              <Select 
+                value={formData.equipmentId} 
+                onValueChange={(v) => setFormData({...formData, equipmentId: v})}
+                disabled={!!initialEquipmentId}
+              >
                 <SelectTrigger className="rounded-2xl border-slate-200 h-12">
                   <SelectValue placeholder="Selecione o item..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
-                  {equipments.map(e => (
+                  {equipments.filter(e => e.status === 'available' || e.id === initialEquipmentId).map(e => (
                     <SelectItem key={e.id} value={e.id}>{e.name} ({e.serialNumber})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm">Modalidade Base</Label>
-              <div className="h-12 flex items-center px-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-slate-600">
-                {formData.modality}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-bold text-sm">Modalidade Base</Label>
+                <div className="h-12 flex items-center px-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-slate-600">
+                  {formData.modality}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-slate-400" /> Valor Total (Mix)
+                </Label>
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={formData.totalValue}
+                  onChange={(e) => setFormData({...formData, totalValue: e.target.value})}
+                  className="rounded-2xl border-slate-200 h-12 font-bold text-blue-700"
+                />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-slate-400" /> Valor Total (Mix)
-              </Label>
-              <Input 
-                type="number" 
-                placeholder="0.00" 
-                value={formData.totalValue}
-                onChange={(e) => setFormData({...formData, totalValue: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12 font-bold text-blue-700"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-slate-400" /> Data Início
+                </Label>
+                <Input 
+                  type="date" 
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                  className="rounded-2xl border-slate-200 h-12"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-slate-400" /> Previsão Devolução
+                </Label>
+                <Input 
+                  type="date" 
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                  className="rounded-2xl border-slate-200 h-12"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-slate-400" /> Data Início
-              </Label>
-              <Input 
-                type="date" 
-                value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-slate-400" /> Previsão Devolução
-              </Label>
-              <Input 
-                type="date" 
-                value={formData.endDate}
-                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                className="rounded-2xl border-slate-200 h-12"
-              />
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter className="gap-3 pt-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold h-12 px-6">
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold px-8 h-12 shadow-xl shadow-red-100">
-            Gerar Contrato
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="gap-3 pt-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold h-12 px-6">
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold px-8 h-12 shadow-xl shadow-red-100">
+              Confirmar Aluguel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <AddUserDialog 
+        open={isAddUserOpen} 
+        onOpenChange={setIsAddUserOpen} 
+        onAdd={handleAddNewUser} 
+      />
+    </>
   );
 };
 
