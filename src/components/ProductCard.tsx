@@ -1,12 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import Calculators from './Calculators';
 import { cn } from "@/lib/utils";
 
 export interface Product {
@@ -41,6 +49,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
 
   // Lógica para produtos vendidos por embalagem (ex: Pisos)
   const isPackaged = product.isFractional && product.packageSize && product.packageSize > 0;
+  const isFloorCategory = product.category === "Pisos e revestimentos";
   
   const calculatedPacks = isPackaged && desiredAmount 
     ? Math.ceil(parseFloat(desiredAmount) / product.packageSize!) 
@@ -54,6 +63,15 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
 
   const handleIncrement = () => setQuantity(prev => prev + 1);
   const handleDecrement = () => setQuantity(prev => Math.max(1, prev - 1));
+  
+  const handleQuantityChange = (val: string) => {
+    const num = parseInt(val);
+    if (!isNaN(num)) {
+      setQuantity(Math.max(1, num));
+    } else if (val === "") {
+      setQuantity(1);
+    }
+  };
 
   return (
     <Card className={cn(
@@ -120,9 +138,23 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         {isPackaged && (
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">
-                Quanto você precisa ({product.unitLabel})?
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">
+                  Quanto você precisa ({product.unitLabel})?
+                </Label>
+                {isFloorCategory && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-blue-700 hover:bg-blue-100 rounded-lg gap-1">
+                        <CalcIcon className="h-3 w-3" /> Calcular Área
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden">
+                      <Calculators />
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
               <Input 
                 type="number" 
                 placeholder={`Ex: 23 ${product.unitLabel}`}
@@ -149,7 +181,12 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
             <Button variant="ghost" size="icon" onClick={handleDecrement} className="h-9 w-9 rounded-xl">
               <Minus className="h-4 w-4" />
             </Button>
-            <span className="font-black text-slate-900 text-lg">{quantity}</span>
+            <Input 
+              type="number"
+              value={quantity}
+              onChange={(e) => handleQuantityChange(e.target.value)}
+              className="w-16 h-9 text-center font-black text-lg border-none bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
             <Button variant="ghost" size="icon" onClick={handleIncrement} className="h-9 w-9 rounded-xl">
               <Plus className="h-4 w-4" />
             </Button>
