@@ -52,7 +52,6 @@ const ContactPage = () => {
   ];
 
   const handleOpenMaps = () => {
-    // Link de busca para a Construlara em São João del-Rei
     window.open("https://www.google.com/maps/search/Construlara+São+João+del-Rei", "_blank");
   };
 
@@ -89,32 +88,36 @@ const ContactPage = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Card de Redes Sociais agora com fundo azul índigo vibrante */}
-          <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-indigo-600 text-white overflow-hidden relative">
-            <div className="relative z-10 space-y-6">
+          <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-blue-600 text-white overflow-hidden relative">
+            <div className="relative z-10 space-y-8">
               <h3 className="text-2xl font-black tracking-tight">Redes Sociais</h3>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {socials.map((social, i) => (
                   <a 
                     key={i} 
                     href={social.link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-5 bg-white/10 rounded-2xl hover:bg-white/20 transition-all group"
+                    className="flex items-center justify-between p-6 bg-white/15 rounded-[2rem] hover:bg-white/25 transition-all group border border-white/10"
                   >
-                    <div className="flex items-center gap-4">
-                      <social.icon className={`h-6 w-6 ${social.color} bg-white p-1 rounded-lg`} />
+                    <div className="flex items-center gap-5">
+                      <div className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <social.icon className={`h-8 w-8 ${social.color}`} />
+                      </div>
                       <div>
-                        <p className="font-black text-sm">{social.name}</p>
-                        <p className="text-xs text-indigo-100 font-bold">{social.handle}</p>
+                        <p className="font-black text-lg leading-none">{social.name}</p>
+                        <p className="text-sm text-blue-100 font-bold mt-1">{social.handle}</p>
                       </div>
                     </div>
-                    <ExternalLink className="h-4 w-4 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                      <ExternalLink className="h-5 w-5 text-white" />
+                    </div>
                   </a>
                 ))}
               </div>
             </div>
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl"></div>
           </Card>
 
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-white border border-slate-100 flex flex-col justify-center items-center text-center space-y-6">
