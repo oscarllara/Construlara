@@ -8,8 +8,8 @@ import AddProductDialog from '@/components/AddProductDialog';
 import AddCategoryDialog from '@/components/AddCategoryDialog';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, Calculator as CalcIcon, Plus, PackagePlus } from 'lucide-react';
-import { showSuccess } from '@/utils/toast';
+import { Search, Calculator as CalcIcon, Plus, PackagePlus } from 'lucide-react';
+import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -42,7 +42,6 @@ const ProductsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Carregar Produtos com Segurança
     try {
       const savedProducts = localStorage.getItem('app_products');
       if (savedProducts) {
@@ -56,7 +55,6 @@ const ProductsPage = () => {
       setProducts(INITIAL_PRODUCTS);
     }
 
-    // Carregar Categorias com Segurança
     try {
       const savedCategories = localStorage.getItem('app_categories');
       if (savedCategories) {
@@ -112,35 +110,41 @@ const ProductsPage = () => {
   };
 
   const handleAddToCart = (product: Product, quantity: number, totalAmount?: number) => {
+    // Validação de segurança para evitar NaN ou valores inválidos
+    const safeQuantity = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
+    const safeTotalAmount = isNaN(totalAmount || 0) || (totalAmount || 0) <= 0 ? safeQuantity : totalAmount;
+
     try {
       const cartData = localStorage.getItem('app_cart');
-      const cart = cartData ? JSON.parse(cartData) : [];
+      let cart = [];
       
-      if (!Array.isArray(cart)) {
-        localStorage.setItem('app_cart', JSON.stringify([{ ...product, quantity, totalAmount: totalAmount || quantity }]));
-      } else {
-        const existing = cart.find((item: any) => item.id === product.id);
-        if (existing) {
-          existing.quantity += quantity;
-          if (totalAmount) {
-            existing.totalAmount = (existing.totalAmount || 0) + totalAmount;
-          }
-        } else {
-          cart.push({ 
-            ...product, 
-            quantity, 
-            totalAmount: totalAmount || quantity 
-          });
+      if (cartData) {
+        try {
+          const parsed = JSON.parse(cartData);
+          cart = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          cart = [];
         }
-        localStorage.setItem('app_cart', JSON.stringify(cart));
       }
       
-      showSuccess(`${quantity}x ${product.name} adicionado ao carrinho!`);
+      const existingIndex = cart.findIndex((item: any) => item.id === product.id);
+      
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += safeQuantity;
+        cart[existingIndex].totalAmount = (cart[existingIndex].totalAmount || 0) + (safeTotalAmount || safeQuantity);
+      } else {
+        cart.push({ 
+          ...product, 
+          quantity: safeQuantity, 
+          totalAmount: safeTotalAmount || safeQuantity 
+        });
+      }
+      
+      localStorage.setItem('app_cart', JSON.stringify(cart));
+      showSuccess(`${safeQuantity}x ${product.name} adicionado ao carrinho!`);
       window.dispatchEvent(new Event('cart-updated'));
     } catch (e) {
-      console.error("Erro ao adicionar ao carrinho:", e);
-      localStorage.setItem('app_cart', JSON.stringify([{ ...product, quantity, totalAmount: totalAmount || quantity }]));
-      window.dispatchEvent(new Event('cart-updated'));
+      showError("Erro ao salvar no carrinho. Tente novamente.");
     }
   };
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2, Box, Store } from 'lucide-react';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -18,8 +18,16 @@ const CartPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const saved = localStorage.getItem('app_cart');
-    if (saved) setCart(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('app_cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCart(Array.isArray(parsed) ? parsed : []);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar carrinho:", e);
+      setCart([]);
+    }
   }, []);
 
   const saveCart = (newCart: any[]) => {
@@ -31,8 +39,8 @@ const CartPage = () => {
   const updateQuantity = (id: string, delta: number) => {
     const newCart = cart.map(item => {
       if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
-        const newTotalAmount = item.isFractional ? newQty * item.packageSize : newQty;
+        const newQty = Math.max(1, (item.quantity || 1) + delta);
+        const newTotalAmount = item.isFractional ? newQty * (item.packageSize || 1) : newQty;
         return { ...item, quantity: newQty, totalAmount: newTotalAmount };
       }
       return item;
@@ -47,8 +55,8 @@ const CartPage = () => {
   };
 
   const total = cart.reduce((acc, item) => {
-    const price = item.isPromo ? item.promoPrice : item.price;
-    const amount = item.isFractional ? item.totalAmount : item.quantity;
+    const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
+    const amount = item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0);
     return acc + (price * amount);
   }, 0);
 
@@ -58,47 +66,57 @@ const CartPage = () => {
     const orderId = `ORD-${Date.now()}`;
     const orderDate = new Date().toLocaleString('pt-BR');
     
-    // 1. Salvar no Histórico de Pedidos
-    const savedOrders = localStorage.getItem('app_orders');
-    const currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
-    const newOrder = {
-      id: orderId,
-      date: orderDate,
-      items: [...cart],
-      total: total,
-      paymentMethod: paymentMethod,
-      status: 'Pendente'
-    };
-    localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
+    try {
+      const savedOrders = localStorage.getItem('app_orders');
+      let currentOrders = [];
+      if (savedOrders) {
+        try {
+          const parsed = JSON.parse(savedOrders);
+          currentOrders = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          currentOrders = [];
+        }
+      }
 
-    // 2. Gerar Mensagem WhatsApp
-    const itemsList = cart.map(item => {
-      const price = item.isPromo ? item.promoPrice : item.price;
-      const detail = item.isFractional 
-        ? `${item.quantity} cx (${item.totalAmount.toFixed(2)}${item.unitLabel})`
-        : `${item.quantity} un`;
-      return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}`;
-    }).join('\n');
+      const newOrder = {
+        id: orderId,
+        date: orderDate,
+        items: [...cart],
+        total: total,
+        paymentMethod: paymentMethod,
+        status: 'Pendente'
+      };
+      localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
 
-    const methodLabel = paymentMethod === 'pix' ? 'PIX' : paymentMethod === 'store' ? 'Pagar na Loja' : 'WhatsApp';
+      const itemsList = cart.map(item => {
+        const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
+        const detail = item.isFractional 
+          ? `${item.quantity} cx (${(item.totalAmount || 0).toFixed(2)}${item.unitLabel || 'un'})`
+          : `${item.quantity} un`;
+        return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}`;
+      }).join('\n');
 
-    const message = `*NOVO PEDIDO - CONSTRULARA*\n` +
-      `*ID:* ${orderId}\n` +
-      `*Data:* ${orderDate}\n\n` +
-      `*Itens:*\n${itemsList}\n\n` +
-      `*Total:* R$ ${total.toFixed(2)}\n` +
-      `*Pagamento:* ${methodLabel}\n\n` +
-      `Por favor, confirme meu pedido!`;
+      const methodLabel = paymentMethod === 'pix' ? 'PIX' : paymentMethod === 'store' ? 'Pagar na Loja' : 'WhatsApp';
 
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
-    
-    // 3. Limpar Carrinho e Redirecionar para Perfil
-    localStorage.removeItem('app_cart');
-    setCart([]);
-    window.dispatchEvent(new Event('cart-updated'));
-    showSuccess("Pedido registrado! Redirecionando para seus pedidos...");
-    navigate('/perfil');
+      const message = `*NOVO PEDIDO - CONSTRULARA*\n` +
+        `*ID:* ${orderId}\n` +
+        `*Data:* ${orderDate}\n\n` +
+        `*Itens:*\n${itemsList}\n\n` +
+        `*Total:* R$ ${total.toFixed(2)}\n` +
+        `*Pagamento:* ${methodLabel}\n\n` +
+        `Por favor, confirme meu pedido!`;
+
+      const encoded = encodeURIComponent(message);
+      window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
+      
+      localStorage.removeItem('app_cart');
+      setCart([]);
+      window.dispatchEvent(new Event('cart-updated'));
+      showSuccess("Pedido registrado! Redirecionando para seus pedidos...");
+      navigate('/perfil');
+    } catch (e) {
+      showError("Erro ao processar pedido. Tente novamente.");
+    }
   };
 
   const copyPix = () => {
@@ -160,7 +178,7 @@ const CartPage = () => {
                           <Minus className="h-3 w-3" />
                         </Button>
                         <div className="px-3 text-center">
-                          <span className="block font-black text-sm leading-none">{item.quantity}</span>
+                          <span className="block font-black text-sm leading-none">{item.quantity || 0}</span>
                           <span className="text-[8px] font-bold text-slate-400 uppercase">{item.isFractional ? 'caixas' : 'un'}</span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, 1)} className="h-8 w-8 rounded-lg">
@@ -169,16 +187,16 @@ const CartPage = () => {
                       </div>
                       
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase">Total {item.unitLabel}</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase">Total {item.unitLabel || 'un'}</span>
                         <span className="font-black text-slate-900">
-                          {item.isFractional ? item.totalAmount.toFixed(2) : item.quantity} {item.unitLabel}
+                          {item.isFractional ? (item.totalAmount || 0).toFixed(2) : (item.quantity || 0)} {item.unitLabel || 'un'}
                         </span>
                       </div>
 
                       <div className="flex flex-col ml-auto pr-4">
                         <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
                         <span className="font-black text-blue-700">
-                          R$ {((item.isPromo ? item.promoPrice : item.price) * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}
+                          R$ {((item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}
                         </span>
                       </div>
                     </div>
