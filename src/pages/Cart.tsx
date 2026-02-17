@@ -5,7 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2 } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2, Box } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,9 @@ const CartPage = () => {
     const newCart = cart.map(item => {
       if (item.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
+        // Se for fracionado, o totalAmount também precisa ser atualizado
+        const newTotalAmount = item.isFractional ? newQty * item.packageSize : newQty;
+        return { ...item, quantity: newQty, totalAmount: newTotalAmount };
       }
       return item;
     });
@@ -47,15 +49,20 @@ const CartPage = () => {
 
   const total = cart.reduce((acc, item) => {
     const price = item.isPromo ? item.promoPrice : item.price;
-    return acc + (price * item.quantity);
+    const amount = item.isFractional ? item.totalAmount : item.quantity;
+    return acc + (price * amount);
   }, 0);
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
 
-    const itemsList = cart.map(item => 
-      `• ${item.name} (${item.quantity}x) - R$ ${(item.isPromo ? item.promoPrice : item.price).toFixed(2)}`
-    ).join('\n');
+    const itemsList = cart.map(item => {
+      const price = item.isPromo ? item.promoPrice : item.price;
+      const detail = item.isFractional 
+        ? `${item.quantity} cx (${item.totalAmount.toFixed(2)}${item.unitLabel})`
+        : `${item.quantity} un`;
+      return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}`;
+    }).join('\n');
 
     const message = `*NOVO PEDIDO - CONSTRULARA*\n\n` +
       `*Itens:*\n${itemsList}\n\n` +
@@ -66,11 +73,10 @@ const CartPage = () => {
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
     
-    // Limpar carrinho após pedido
     localStorage.removeItem('app_cart');
     setCart([]);
     showSuccess("Pedido enviado com sucesso!");
-    navigate('/produtos');
+    navigate('/');
   };
 
   const copyPix = () => {
@@ -87,10 +93,7 @@ const CartPage = () => {
           </div>
           <h2 className="text-3xl font-black text-slate-900">Seu carrinho está vazio</h2>
           <p className="text-slate-500 font-medium">Que tal dar uma olhada nos nossos produtos?</p>
-          <Button 
-            onClick={() => navigate('/produtos')}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12"
-          >
+          <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
             Ir para a Loja
           </Button>
         </div>
@@ -102,7 +105,7 @@ const CartPage = () => {
     <AppLayout>
       <div className="max-w-5xl mx-auto space-y-10">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate('/produtos')} className="rounded-xl gap-2 font-bold text-slate-500">
+          <Button variant="ghost" onClick={() => navigate('/')} className="rounded-xl gap-2 font-bold text-slate-500">
             <ArrowLeft className="h-4 w-4" /> Continuar Comprando
           </Button>
           <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Meu Carrinho</h2>
@@ -118,20 +121,44 @@ const CartPage = () => {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-black text-slate-900">{item.name}</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.code}</p>
-                    <div className="mt-2 flex items-center gap-4">
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase border-slate-200">
+                        {item.code}
+                      </Badge>
+                      {item.isFractional && (
+                        <Badge className="bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase flex items-center gap-1">
+                          <Box className="h-3 w-3" /> Venda por Caixa
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="mt-3 flex items-center gap-6">
                       <div className="flex items-center bg-slate-100 rounded-xl p-1">
                         <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, -1)} className="h-8 w-8 rounded-lg">
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-8 text-center font-black text-sm">{item.quantity}</span>
+                        <div className="px-3 text-center">
+                          <span className="block font-black text-sm leading-none">{item.quantity}</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase">caixas</span>
+                        </div>
                         <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, 1)} className="h-8 w-8 rounded-lg">
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
-                      <span className="font-black text-blue-700">
-                        R$ {((item.isPromo ? item.promoPrice : item.price) * item.quantity).toFixed(2)}
-                      </span>
+                      
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase">Total {item.unitLabel}</span>
+                        <span className="font-black text-slate-900">
+                          {item.isFractional ? item.totalAmount.toFixed(2) : item.quantity} {item.unitLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col ml-auto pr-4">
+                        <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
+                        <span className="font-black text-blue-700">
+                          R$ {((item.isPromo ? item.promoPrice : item.price) * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <Button 
@@ -206,9 +233,6 @@ const CartPage = () => {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-[10px] text-slate-400 font-medium leading-tight">
-                    Após o pagamento, envie o comprovante pelo WhatsApp para agilizar seu pedido.
-                  </p>
                 </div>
               )}
 

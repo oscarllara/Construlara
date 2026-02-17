@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Package, Tag, DollarSign, ImageIcon, Hash, AlertCircle } from 'lucide-react';
+import { Package, Tag, DollarSign, ImageIcon, Hash, AlertCircle, Layers } from 'lucide-react';
 import { Product } from './ProductCard';
 
 interface AddProductDialogProps {
@@ -37,7 +37,10 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
     promoPrice: "",
     image: "",
     isPromo: false,
-    isFeatured: false
+    isFeatured: false,
+    isFractional: false,
+    packageSize: "",
+    unitLabel: "un"
   });
 
   useEffect(() => {
@@ -51,7 +54,10 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         promoPrice: product.promoPrice?.toString() || "",
         image: product.image,
         isPromo: product.isPromo,
-        isFeatured: product.isFeatured
+        isFeatured: product.isFeatured,
+        isFractional: product.isFractional || false,
+        packageSize: product.packageSize?.toString() || "",
+        unitLabel: product.unitLabel || "un"
       });
     } else {
       setFormData({
@@ -63,7 +69,10 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         promoPrice: "",
         image: "",
         isPromo: false,
-        isFeatured: false
+        isFeatured: false,
+        isFractional: false,
+        packageSize: "",
+        unitLabel: "un"
       });
     }
   }, [product, open, defaultCategory, categories]);
@@ -75,20 +84,21 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
       id: product?.id,
       ...formData,
       price: parseFloat(formData.price),
-      promoPrice: formData.promoPrice ? parseFloat(formData.promoPrice) : undefined
+      promoPrice: formData.promoPrice ? parseFloat(formData.promoPrice) : undefined,
+      packageSize: formData.packageSize ? parseFloat(formData.packageSize) : undefined
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] rounded-[3rem] border-none shadow-2xl p-8 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[650px] rounded-[3rem] border-none shadow-2xl p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-900">
-            {product ? <Package className="h-7 w-7 text-blue-600" /> : <Package className="h-7 w-7 text-emerald-600" />}
+            <Package className="h-7 w-7 text-blue-600" />
             {product ? "Editar Produto" : "Novo Produto"}
           </DialogTitle>
           <DialogDescription className="text-base font-medium">
-            {product ? "Atualize as informações do item no catálogo." : "Adicione um novo item ao catálogo da loja."}
+            Configure os detalhes técnicos e a forma de venda do item.
           </DialogDescription>
         </DialogHeader>
         
@@ -105,120 +115,121 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
             </div>
             <div className="space-y-2">
               <Label className="text-slate-700 font-bold text-sm">Código/SKU</Label>
-              <div className="relative">
-                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input 
-                  placeholder="PR-001" 
-                  value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
-                  className="pl-10 rounded-2xl border-slate-200 h-12"
-                />
-              </div>
+              <Input 
+                placeholder="PR-001" 
+                value={formData.code}
+                onChange={(e) => setFormData({...formData, code: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12"
+              />
             </div>
-          </div>
-
-          <div className="bg-blue-100/40 p-6 rounded-[2.5rem] border-2 border-blue-200/50 shadow-inner space-y-3">
-            <Label className="text-blue-800 font-black text-[11px] uppercase tracking-widest flex items-center gap-2 ml-1">
-              <Tag className="h-4 w-4" /> Classificação do Item
-            </Label>
-            <Select 
-              value={formData.category} 
-              onValueChange={(v) => setFormData({...formData, category: v})}
-            >
-              <SelectTrigger className="rounded-2xl border-blue-200 h-12 bg-white shadow-sm font-bold text-slate-700 focus:ring-blue-500">
-                <SelectValue placeholder="Selecione a categoria..." />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl bg-white border border-slate-200 shadow-2xl z-[100]">
-                {categories.filter(c => c !== "Todas").map(cat => (
-                  <SelectItem key={cat} value={cat} className="rounded-xl py-3 font-medium focus:bg-blue-50 focus:text-blue-700">
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-slate-700 font-bold text-sm">Descrição Curta</Label>
-            <Textarea 
-              placeholder="Detalhes do produto..." 
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="rounded-2xl border-slate-200 min-h-[80px]"
-            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-700 font-bold text-sm">Preço Base (R$)</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input 
-                  type="number"
-                  placeholder="0.00" 
-                  value={formData.price}
-                  onChange={(e) => setFormData({...formData, price: e.target.value})}
-                  className="pl-10 rounded-2xl border-slate-200 h-12"
-                />
+              <Label className="text-slate-700 font-bold text-sm">Categoria</Label>
+              <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
+                <SelectTrigger className="rounded-2xl h-12">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  {categories.filter(c => c !== "Todas").map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-bold text-sm">Unidade de Medida</Label>
+              <Select value={formData.unitLabel} onValueChange={(v) => setFormData({...formData, unitLabel: v})}>
+                <SelectTrigger className="rounded-2xl h-12">
+                  <SelectValue placeholder="un, m², kg..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  <SelectItem value="un">Unidade (un)</SelectItem>
+                  <SelectItem value="m²">Metro Quadrado (m²)</SelectItem>
+                  <SelectItem value="m">Metro Linear (m)</SelectItem>
+                  <SelectItem value="kg">Quilo (kg)</SelectItem>
+                  <SelectItem value="L">Litro (L)</SelectItem>
+                  <SelectItem value="cx">Caixa (cx)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Layers className="h-5 w-5 text-blue-600" />
+                <Label className="font-black text-blue-900 text-sm">Venda por Embalagem/Caixa</Label>
               </div>
+              <Switch 
+                checked={formData.isFractional} 
+                onCheckedChange={(v) => setFormData({...formData, isFractional: v})}
+              />
+            </div>
+            
+            {formData.isFractional && (
+              <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-blue-600 uppercase">Tamanho da Embalagem</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 2.43" 
+                    value={formData.packageSize}
+                    onChange={(e) => setFormData({...formData, packageSize: e.target.value})}
+                    className="rounded-xl border-blue-200 h-11"
+                  />
+                </div>
+                <div className="flex items-center pt-5">
+                  <p className="text-[10px] text-blue-500 font-medium leading-tight">
+                    O cliente informará quanto precisa em <strong>{formData.unitLabel}</strong> e o sistema arredondará para caixas fechadas.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-bold text-sm">Preço por {formData.unitLabel} (R$)</Label>
+              <Input 
+                type="number"
+                placeholder="0.00" 
+                value={formData.price}
+                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-slate-700 font-bold text-sm">Preço Oferta (Opcional)</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input 
-                  type="number"
-                  placeholder="0.00" 
-                  value={formData.promoPrice}
-                  onChange={(e) => setFormData({...formData, promoPrice: e.target.value})}
-                  className="pl-10 rounded-2xl border-slate-200 h-12"
-                />
-              </div>
+              <Input 
+                type="number"
+                placeholder="0.00" 
+                value={formData.promoPrice}
+                onChange={(e) => setFormData({...formData, promoPrice: e.target.value})}
+                className="rounded-2xl border-slate-200 h-12"
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-slate-700 font-bold text-sm">URL da Imagem</Label>
-            <div className="relative">
-              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input 
-                placeholder="https://..." 
-                value={formData.image}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
-                className="pl-10 rounded-2xl border-slate-200 h-12"
-              />
-            </div>
-            <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100">
-              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-amber-800 font-medium leading-tight">
-                <strong>Dica:</strong> No Google Imagens, clique com o botão direito na imagem e selecione <strong>"Copiar endereço da imagem"</strong> para obter um link válido.
-              </p>
-            </div>
+            <Input 
+              placeholder="https://..." 
+              value={formData.image}
+              onChange={(e) => setFormData({...formData, image: e.target.value})}
+              className="rounded-2xl border-slate-200 h-12"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="space-y-0.5">
-                <Label className="text-xs font-bold">Ativar Oferta</Label>
-                <p className="text-[10px] text-slate-500">Preço promocional</p>
-              </div>
-              <Switch 
-                checked={formData.isPromo} 
-                onCheckedChange={(v) => setFormData({...formData, isPromo: v})} 
-                className="data-[state=checked]:bg-emerald-500"
-              />
+              <Label className="text-xs font-bold">Ativar Oferta</Label>
+              <Switch checked={formData.isPromo} onCheckedChange={(v) => setFormData({...formData, isPromo: v})} />
             </div>
-
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="space-y-0.5">
-                <Label className="text-xs font-bold">Destaque</Label>
-                <p className="text-[10px] text-slate-500">Selo especial</p>
-              </div>
-              <Switch 
-                checked={formData.isFeatured} 
-                onCheckedChange={(v) => setFormData({...formData, isFeatured: v})} 
-                className="data-[state=checked]:bg-emerald-500"
-              />
+              <Label className="text-xs font-bold">Destaque</Label>
+              <Switch checked={formData.isFeatured} onCheckedChange={(v) => setFormData({...formData, isFeatured: v})} />
             </div>
           </div>
         </div>
@@ -228,7 +239,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
             Cancelar
           </Button>
           <Button onClick={handleSubmit} className="bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-bold px-8 h-12 shadow-xl shadow-blue-100">
-            {product ? "Salvar Alterações" : "Cadastrar Produto"}
+            Salvar Produto
           </Button>
         </DialogFooter>
       </DialogContent>
