@@ -5,6 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Phone, Facebook, Instagram, MapPin, MessageCircle, ExternalLink } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { cn } from '@/lib/utils';
 
 const ContactPage = () => {
   const contacts = [
@@ -39,16 +40,14 @@ const ContactPage = () => {
       name: "Facebook", 
       handle: "construlara rdm", 
       icon: Facebook, 
-      color: "text-[#1877F2]", // Azul oficial do Facebook
-      bgClass: "text-[#1877F2]",
+      color: "text-[#1877F2]", 
       link: "https://facebook.com/construlara.rdm" 
     },
     { 
       name: "Instagram", 
       handle: "@construlara.rdm", 
       icon: Instagram, 
-      color: "text-transparent bg-clip-text bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]", // Gradiente oficial do Instagram
-      bgClass: "text-[#E4405F]",
+      color: "text-transparent bg-clip-text bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]", 
       link: "https://instagram.com/construlara.rdm" 
     },
   ];
@@ -90,7 +89,6 @@ const ContactPage = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Card de Redes Sociais com fundo azul clarinho (marca d'água) */}
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-blue-50/50 border border-blue-100 overflow-hidden relative">
             <div className="relative z-10 space-y-8">
               <h3 className="text-2xl font-black tracking-tight text-slate-900">Redes Sociais</h3>
@@ -125,7 +123,6 @@ const ContactPage = () => {
                 ))}
               </div>
             </div>
-            {/* Efeito de Marca d'água no fundo */}
             <div className="absolute -bottom-10 -right-10 opacity-[0.03] pointer-events-none">
               <img src="/logoconstrulara.png" alt="" className="w-64 h-64 grayscale" />
             </div>
