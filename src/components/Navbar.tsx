@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag } from 'lucide-react';
+import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -87,28 +87,30 @@ const Navbar = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Carrinho em Destaque */}
           <Button 
-            variant="ghost" 
-            size="icon" 
             onClick={() => navigate('/carrinho')}
-            className="rounded-full hover:bg-blue-50 relative h-10 w-10"
+            className="rounded-2xl bg-blue-700 hover:bg-blue-800 text-white relative h-14 px-6 flex items-center gap-3 shadow-xl shadow-blue-100 transition-all hover:-translate-y-1 active:scale-95"
           >
-            <ShoppingBag className="h-5 w-5 text-slate-600" />
-            {cartCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-blue-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
-                {cartCount}
-              </span>
-            )}
+            <div className="relative">
+              <ShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 h-6 w-6 bg-red-600 text-white text-[11px] font-black flex items-center justify-center rounded-full border-2 border-blue-700 animate-in zoom-in duration-300">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            <span className="hidden md:inline font-black text-sm uppercase tracking-wider">Meu Carrinho</span>
           </Button>
 
-          <NotificationBell />
-          
           <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
+            <NotificationBell />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-12 w-12 rounded-full p-0 hover:bg-transparent focus-visible:ring-0">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center border-2 border-white shadow-md hover:scale-105 transition-transform">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center border-2 border-white shadow-md hover:scale-105 transition-transform">
                     <User className="h-5 w-5 text-white" />
                   </div>
                 </Button>

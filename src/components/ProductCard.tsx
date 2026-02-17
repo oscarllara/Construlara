@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ShoppingCart, Tag, Star, Pencil, Package } from 'lucide-react';
+import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,17 +22,21 @@ export interface Product {
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, quantity: number) => void;
   onEdit: (product: Product) => void;
 }
 
 const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const [imgError, setImgError] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const hasPromo = product.isPromo && product.promoPrice;
+
+  const handleIncrement = () => setQuantity(prev => prev + 1);
+  const handleDecrement = () => setQuantity(prev => Math.max(1, prev - 1));
 
   return (
     <Card className={cn(
-      "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2.5rem] bg-white group relative",
+      "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2.5rem] bg-white group relative flex flex-col h-full",
       product.isFeatured && "ring-2 ring-blue-500 ring-offset-2"
     )}>
       {/* Botão de Edição Flutuante */}
@@ -53,7 +57,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </div>
       )}
       
-      <div className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center">
+      <div className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0">
         {!imgError && product.image ? (
           <img 
             src={product.image} 
@@ -85,7 +89,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </h3>
       </CardHeader>
       
-      <CardContent className="px-6 pb-4">
+      <CardContent className="px-6 pb-4 flex-1">
         <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4">
           {product.description}
         </p>
@@ -102,12 +106,33 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="p-6 pt-0">
+      <CardFooter className="p-6 pt-0 flex flex-col gap-4">
+        {/* Seletor de Quantidade */}
+        <div className="flex items-center justify-between w-full bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleDecrement}
+            className="h-9 w-9 rounded-xl hover:bg-white hover:text-blue-600 transition-all"
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="font-black text-slate-900 text-lg">{quantity}</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleIncrement}
+            className="h-9 w-9 rounded-xl hover:bg-white hover:text-blue-600 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
         <Button 
-          onClick={() => onAddToCart(product)}
-          className="w-full bg-slate-900 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 h-12 transition-all shadow-lg shadow-slate-200"
+          onClick={() => onAddToCart(product, quantity)}
+          className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-black gap-3 h-14 transition-all shadow-xl shadow-blue-100 hover:-translate-y-1 active:scale-95"
         >
-          <ShoppingCart className="h-4 w-4" />
+          <ShoppingCart className="h-5 w-5" />
           Comprar
         </Button>
       </CardFooter>

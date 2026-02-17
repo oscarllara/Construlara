@@ -102,18 +102,18 @@ const ProductsPage = () => {
     setIsAddProductOpen(true);
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: Product, quantity: number) => {
     const cart = JSON.parse(localStorage.getItem('app_cart') || '[]');
     const existing = cart.find((item: any) => item.id === product.id);
     
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += quantity;
     } else {
-      cart.push({ ...product, quantity: 1 });
+      cart.push({ ...product, quantity });
     }
     
     localStorage.setItem('app_cart', JSON.stringify(cart));
-    showSuccess(`${product.name} adicionado ao carrinho!`);
+    showSuccess(`${quantity}x ${product.name} adicionado ao carrinho!`);
     window.dispatchEvent(new Event('cart-updated'));
   };
 
@@ -138,13 +138,6 @@ const ProductsPage = () => {
             >
               <CalcIcon className="h-5 w-5" />
               Calculadoras
-            </Button>
-            <Button 
-              onClick={() => navigate('/carrinho')}
-              className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-slate-200"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              Ver Carrinho
             </Button>
           </div>
         </div>
