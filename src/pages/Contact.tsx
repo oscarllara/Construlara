@@ -39,14 +39,16 @@ const ContactPage = () => {
       name: "Facebook", 
       handle: "construlara rdm", 
       icon: Facebook, 
-      color: "text-blue-700", 
+      color: "text-[#1877F2]", // Azul oficial do Facebook
+      bgClass: "text-[#1877F2]",
       link: "https://facebook.com/construlara.rdm" 
     },
     { 
       name: "Instagram", 
       handle: "@construlara.rdm", 
       icon: Instagram, 
-      color: "text-pink-600", 
+      color: "text-transparent bg-clip-text bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]", // Gradiente oficial do Instagram
+      bgClass: "text-[#E4405F]",
       link: "https://instagram.com/construlara.rdm" 
     },
   ];
@@ -88,9 +90,10 @@ const ContactPage = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-blue-600 text-white overflow-hidden relative">
+          {/* Card de Redes Sociais com fundo azul clarinho (marca d'água) */}
+          <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-blue-50/50 border border-blue-100 overflow-hidden relative">
             <div className="relative z-10 space-y-8">
-              <h3 className="text-2xl font-black tracking-tight">Redes Sociais</h3>
+              <h3 className="text-2xl font-black tracking-tight text-slate-900">Redes Sociais</h3>
               <div className="space-y-6">
                 {socials.map((social, i) => (
                   <a 
@@ -98,26 +101,34 @@ const ContactPage = () => {
                     href={social.link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-6 bg-white/15 rounded-[2rem] hover:bg-white/25 transition-all group border border-white/10"
+                    className="flex items-center justify-between p-6 bg-white rounded-[2rem] hover:shadow-lg transition-all group border border-slate-100"
                   >
                     <div className="flex items-center gap-5">
-                      <div className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <social.icon className={`h-8 w-8 ${social.color}`} />
+                      <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        {social.name === "Instagram" ? (
+                          <Instagram className="h-8 w-8 text-[#E4405F]" />
+                        ) : (
+                          <Facebook className="h-8 w-8 text-[#1877F2]" />
+                        )}
                       </div>
                       <div>
-                        <p className="font-black text-lg leading-none">{social.name}</p>
-                        <p className="text-sm text-blue-100 font-bold mt-1">{social.handle}</p>
+                        <p className={cn("font-black text-xl leading-none", social.color)}>
+                          {social.name}
+                        </p>
+                        <p className="text-sm text-slate-400 font-bold mt-1">{social.handle}</p>
                       </div>
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                      <ExternalLink className="h-5 w-5 text-white" />
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                      <ExternalLink className="h-5 w-5 text-slate-400" />
                     </div>
                   </a>
                 ))}
               </div>
             </div>
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl"></div>
+            {/* Efeito de Marca d'água no fundo */}
+            <div className="absolute -bottom-10 -right-10 opacity-[0.03] pointer-events-none">
+              <img src="/logoconstrulara.png" alt="" className="w-64 h-64 grayscale" />
+            </div>
           </Card>
 
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-white border border-slate-100 flex flex-col justify-center items-center text-center space-y-6">
