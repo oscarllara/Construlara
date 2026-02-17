@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Package, Tag, DollarSign, ImageIcon, Hash } from 'lucide-react';
+import { Package, Tag, DollarSign, ImageIcon, Hash, AlertCircle } from 'lucide-react';
 import { Product } from './ProductCard';
 
 interface AddProductDialogProps {
@@ -117,7 +117,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
             </div>
           </div>
 
-          {/* Seção de Classificação com fundo mais sólido e destaque */}
           <div className="bg-blue-100/40 p-6 rounded-[2.5rem] border-2 border-blue-200/50 shadow-inner space-y-3">
             <Label className="text-blue-800 font-black text-[11px] uppercase tracking-widest flex items-center gap-2 ml-1">
               <Tag className="h-4 w-4" /> Classificação do Item
@@ -188,6 +187,12 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
                 onChange={(e) => setFormData({...formData, image: e.target.value})}
                 className="pl-10 rounded-2xl border-slate-200 h-12"
               />
+            </div>
+            <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-amber-800 font-medium leading-tight">
+                <strong>Dica:</strong> No Google Imagens, clique com o botão direito na imagem e selecione <strong>"Copiar endereço da imagem"</strong> para obter um link válido.
+              </p>
             </div>
           </div>
 

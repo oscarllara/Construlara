@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { ShoppingCart, Tag, Star, Pencil } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingCart, Tag, Star, Pencil, Package } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
+  const [imgError, setImgError] = useState(false);
   const hasPromo = product.isPromo && product.promoPrice;
 
   return (
@@ -52,12 +53,20 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </div>
       )}
       
-      <div className="aspect-square overflow-hidden bg-slate-100 relative">
-        <img 
-          src={product.image || "/placeholder.svg"} 
-          alt={product.name} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+      <div className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center">
+        {!imgError && product.image ? (
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-slate-300">
+            <Package className="h-16 w-16 mb-2" />
+            <span className="text-[10px] font-black uppercase">Sem Imagem</span>
+          </div>
+        )}
         {hasPromo && (
           <div className="absolute top-4 right-4 group-hover:opacity-0 transition-opacity">
             <Badge className="bg-red-600 text-white border-none rounded-full px-3 py-1 text-[10px] font-black uppercase">
