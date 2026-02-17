@@ -42,10 +42,11 @@ const ProfilePage = () => {
 
         if (savedOrders) {
           const orders = JSON.parse(savedOrders);
-          // Filtra pedidos do usuário ou mostra todos se for gestor
+          // Filtra pedidos do usuário (comparação insensível a maiúsculas/minúsculas)
+          // Se for Gestor, vê todos os pedidos do sistema
           const filteredOrders = foundUser.role === 'Gestor' 
             ? orders 
-            : orders.filter((o: any) => o.userEmail === foundUser.email);
+            : orders.filter((o: any) => o.userEmail?.toLowerCase() === email.toLowerCase());
           setUserOrders(filteredOrders);
         }
       } else {
@@ -60,6 +61,12 @@ const ProfilePage = () => {
           status: 'active',
           lastAccess: 'Agora'
         });
+
+        if (savedOrders) {
+          const orders = JSON.parse(savedOrders);
+          const filteredOrders = orders.filter((o: any) => o.userEmail?.toLowerCase() === email.toLowerCase());
+          setUserOrders(filteredOrders);
+        }
       }
     }
     setIsLoading(false);

@@ -157,6 +157,13 @@ const Navbar = () => {
                   onClick={() => navigate('/perfil')}
                   className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
                 >
+                  <ShoppingBag className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Pedidos</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => navigate('/perfil')}
+                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
+                >
                   <FileText className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                   <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
                 </DropdownMenuItem>
