@@ -23,7 +23,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
-  { id: 'p1', code: 'PR-001', name: 'Porcelanato Polido 60x60', description: 'Piso de alta qualidade para áreas internas.', category: 'Pisos e revestimentos', price: 89.90, promoPrice: 74.90, isPromo: true, isFeatured: true, image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=80' },
+  { id: 'p1', code: 'PR-001', name: 'Porcelanato Polido 60x60', description: 'Piso de alta qualidade para áreas internas.', category: 'Pisos e revestimentos', price: 89.90, promoPrice: 74.90, isPromo: true, isFeatured: true, image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=80', isFractional: true, packageSize: 2.43, unitLabel: 'm²' },
   { id: 'p2', code: 'PR-002', name: 'Cimento CP-II 50kg', description: 'Cimento de alta resistência para obras em geral.', category: 'Cimento e Ferragens', price: 32.00, isPromo: false, isFeatured: false, image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&q=80' },
   { id: 'p3', code: 'PT-001', name: 'Ração Premium Cães 15kg', description: 'Nutrição completa para cães adultos.', category: 'Rações pet', price: 185.00, promoPrice: 159.00, isPromo: true, isFeatured: true, image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=500&q=80' },
 ];
@@ -35,7 +35,6 @@ const ProductsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [showCalculators, setShowCalculators] = useState(false);
   
-  // Dialog States
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
@@ -72,12 +71,10 @@ const ProductsPage = () => {
 
   const handleSaveProduct = (data: any) => {
     if (data.id) {
-      // Edit
       const newProducts = products.map(p => p.id === data.id ? data : p);
       saveProducts(newProducts);
       showSuccess("Produto atualizado!");
     } else {
-      // Add
       const newProduct = { ...data, id: `p-${Date.now()}` };
       saveProducts([newProduct, ...products]);
       showSuccess("Produto cadastrado!");
@@ -102,14 +99,21 @@ const ProductsPage = () => {
     setIsAddProductOpen(true);
   };
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  const handleAddToCart = (product: Product, quantity: number, totalAmount?: number) => {
     const cart = JSON.parse(localStorage.getItem('app_cart') || '[]');
     const existing = cart.find((item: any) => item.id === product.id);
     
     if (existing) {
       existing.quantity += quantity;
+      if (totalAmount) {
+        existing.totalAmount = (existing.totalAmount || 0) + totalAmount;
+      }
     } else {
-      cart.push({ ...product, quantity });
+      cart.push({ 
+        ...product, 
+        quantity, 
+        totalAmount: totalAmount || quantity 
+      });
     }
     
     localStorage.setItem('app_cart', JSON.stringify(cart));
