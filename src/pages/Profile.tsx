@@ -5,7 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, ShoppingBag, MessageCircle, Pencil, ArrowRight } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, ShoppingBag, MessageCircle, Pencil, ArrowRight, Package } from 'lucide-react';
 import { UserAccount } from '@/components/UserTable';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ const ProfilePage = () => {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [userRentals, setUserRentals] = useState<any[]>([]);
   const [userOrders, setUserOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +27,8 @@ const ProfilePage = () => {
 
     if (email && savedUsers) {
       const users: UserAccount[] = JSON.parse(savedUsers);
-      const foundUser = users.find(u => u.email === email);
+      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
       if (foundUser) {
         setUser(foundUser);
         
@@ -39,19 +41,37 @@ const ProfilePage = () => {
         }
 
         if (savedOrders) {
-          setUserOrders(JSON.parse(savedOrders));
+          const orders = JSON.parse(savedOrders);
+          // Filtra pedidos do usuário ou mostra todos se for gestor
+          const filteredOrders = foundUser.role === 'Gestor' 
+            ? orders 
+            : orders.filter((o: any) => o.userEmail === foundUser.email);
+          setUserOrders(filteredOrders);
         }
+      } else {
+        // Fallback: se não achar na lista, cria um perfil temporário com os dados da sessão
+        const role = localStorage.getItem('userRole') || 'Usuário';
+        setUser({
+          id: 'temp',
+          name: email.split('@')[0],
+          email: email,
+          whatsapp: '(32) 99999-9999',
+          role: role as any,
+          status: 'active',
+          lastAccess: 'Agora'
+        });
       }
     }
+    setIsLoading(false);
   }, []);
 
   const handleResendOrder = (order: any) => {
     const itemsList = order.items.map((item: any) => {
-      const price = item.isPromo ? item.promoPrice : item.price;
+      const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
       const detail = item.isFractional 
-        ? `${item.quantity} cx (${item.totalAmount.toFixed(2)}${item.unitLabel})`
+        ? `${item.quantity} cx (${(item.totalAmount || 0).toFixed(2)}${item.unitLabel || 'un'})`
         : `${item.quantity} un`;
-      return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}`;
+      return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}`;
     }).join('\n');
 
     const methodLabel = order.paymentMethod === 'pix' ? 'PIX' : order.paymentMethod === 'store' ? 'Pagar na Loja' : 'WhatsApp';
@@ -76,11 +96,14 @@ const ProfilePage = () => {
     navigate('/carrinho');
   };
 
-  if (!user) {
+  if (isLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-[60vh]">
-          <p className="text-slate-500 font-bold">Carregando perfil...</p>
+          <div className="text-center space-y-4">
+            <div className="h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-slate-500 font-bold">Carregando seu perfil...</p>
+          </div>
         </div>
       </AppLayout>
     );
@@ -104,9 +127,9 @@ const ProfilePage = () => {
                 </div>
                 
                 <div className="mt-16 text-center space-y-2">
-                  <h2 className="text-2xl font-black text-slate-900">{user.name}</h2>
+                  <h2 className="text-2xl font-black text-slate-900">{user?.name}</h2>
                   <Badge className="bg-blue-100 text-blue-700 border-none rounded-xl font-bold px-4 py-1">
-                    {user.role}
+                    {user?.role}
                   </Badge>
                 </div>
 
@@ -115,17 +138,17 @@ const ProfilePage = () => {
                     <Mail className="h-5 w-5 text-blue-500" />
                     <div className="overflow-hidden">
                       <p className="text-[10px] font-black text-slate-400 uppercase">E-mail</p>
-                      <p className="text-sm font-bold text-slate-700 truncate">{user.email}</p>
+                      <p className="text-sm font-bold text-slate-700 truncate">{user?.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
                     <Phone className="h-5 w-5 text-emerald-500" />
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase">WhatsApp</p>
-                      <p className="text-sm font-bold text-slate-700">{user.whatsapp}</p>
+                      <p className="text-sm font-bold text-slate-700">{user?.whatsapp}</p>
                     </div>
                   </div>
-                  {user.worksiteAddress && (
+                  {user?.worksiteAddress && (
                     <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
                       <MapPin className="h-5 w-5 text-red-500" />
                       <div>
@@ -143,7 +166,7 @@ const ProfilePage = () => {
                 <ShieldCheck className="h-6 w-6 text-blue-400" />
                 <h3 className="font-black text-lg">Segurança</h3>
               </div>
-              <p className="text-sm text-blue-200 font-medium">Sua conta está protegida. Último acesso registrado em {user.lastAccess}.</p>
+              <p className="text-sm text-blue-200 font-medium">Sua conta está protegida. Último acesso registrado em {user?.lastAccess}.</p>
             </div>
           </div>
 
@@ -164,6 +187,9 @@ const ProfilePage = () => {
                   <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
                     <ShoppingBag className="h-12 w-12 text-slate-200 mx-auto mb-4" />
                     <p className="text-slate-500 font-bold">Você ainda não realizou compras na loja.</p>
+                    <Button onClick={() => navigate('/')} variant="link" className="text-blue-600 font-black mt-2">
+                      Ir para a Loja <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </div>
                 ) : (
                   <div className="grid gap-4">
@@ -173,7 +199,7 @@ const ProfilePage = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                                <ShoppingBag className="h-6 w-6 text-blue-600" />
+                                <Package className="h-6 w-6 text-blue-600" />
                               </div>
                               <div>
                                 <h4 className="font-black text-slate-900">{order.id}</h4>
@@ -188,7 +214,19 @@ const ProfilePage = () => {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
+                          <div className="bg-slate-50 p-4 rounded-2xl">
+                            <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Itens do Pedido</p>
+                            <div className="space-y-1">
+                              {order.items.map((item: any, idx: number) => (
+                                <p key={idx} className="text-xs font-bold text-slate-600 flex justify-between">
+                                  <span>{item.quantity}x {item.name}</span>
+                                  <span>R$ {((item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}</span>
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2">
                             <Button 
                               onClick={() => handleResendOrder(order)}
                               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold gap-2 h-10 text-xs"

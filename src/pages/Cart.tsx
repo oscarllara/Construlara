@@ -66,6 +66,7 @@ const CartPage = () => {
 
     const orderId = `ORD-${Date.now()}`;
     const orderDate = new Date().toLocaleString('pt-BR');
+    const userEmail = localStorage.getItem('userEmail');
     
     try {
       const savedOrders = localStorage.getItem('app_orders');
@@ -82,6 +83,7 @@ const CartPage = () => {
       const newOrder = {
         id: orderId,
         date: orderDate,
+        userEmail: userEmail,
         items: [...cart],
         total: total,
         paymentMethod: paymentMethod,
@@ -113,6 +115,7 @@ const CartPage = () => {
       localStorage.removeItem('app_cart');
       setCart([]);
       window.dispatchEvent(new Event('cart-updated'));
+      window.dispatchEvent(new Event('order-placed'));
       showSuccess("Pedido registrado! Redirecionando para seus pedidos...");
       navigate('/perfil');
     } catch (e) {

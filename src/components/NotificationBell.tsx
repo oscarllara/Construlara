@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Bell, Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Calendar, AlertCircle, CheckCircle2, Clock, ShoppingBag } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ interface Notification {
   id: string;
   title: string;
   description: string;
-  type: 'warning' | 'danger' | 'info';
+  type: 'warning' | 'danger' | 'info' | 'success';
   date: string;
 }
 
@@ -27,55 +27,78 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    const checkRentals = () => {
-      const savedRentals = localStorage.getItem('app_rentals');
-      if (!savedRentals) return;
-
-      const rentals = JSON.parse(savedRentals);
+    const checkNotifications = () => {
       const newNotifications: Notification[] = [];
       const today = new Date();
 
-      rentals.forEach((rental: any) => {
-        if (rental.status === 'completed') return;
+      // 1. Checar Aluguéis
+      const savedRentals = localStorage.getItem('app_rentals');
+      if (savedRentals) {
+        const rentals = JSON.parse(savedRentals);
+        rentals.forEach((rental: any) => {
+          if (rental.status === 'completed') return;
 
-        let endDate: Date;
-        try {
-          if (rental.end.includes('/')) {
-            endDate = parse(rental.end, 'dd/MM/yyyy', new Date());
-          } else {
-            endDate = new Date(rental.end);
+          let endDate: Date;
+          try {
+            if (rental.end.includes('/')) {
+              endDate = parse(rental.end, 'dd/MM/yyyy', new Date());
+            } else {
+              endDate = new Date(rental.end);
+            }
+          } catch (e) {
+            return;
           }
-        } catch (e) {
-          return;
-        }
 
-        const daysLeft = differenceInDays(endDate, today);
+          const daysLeft = differenceInDays(endDate, today);
 
-        if (rental.status === 'overdue' || daysLeft < 0) {
+          if (rental.status === 'overdue' || daysLeft < 0) {
+            newNotifications.push({
+              id: `notif-overdue-${rental.id}`,
+              title: "Contrato Atrasado!",
+              description: `O item ${rental.item} deveria ter sido devolvido.`,
+              type: 'danger',
+              date: rental.end
+            });
+          } else if (daysLeft <= 2) {
+            newNotifications.push({
+              id: `notif-near-${rental.id}`,
+              title: "Devolução Próxima",
+              description: `O item ${rental.item} vence em ${daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : daysLeft + ' dias'}.`,
+              type: 'warning',
+              date: rental.end
+            });
+          }
+        });
+      }
+
+      // 2. Checar Pedidos Recentes (últimas 24h)
+      const savedOrders = localStorage.getItem('app_orders');
+      if (savedOrders) {
+        const orders = JSON.parse(savedOrders);
+        orders.slice(0, 3).forEach((order: any) => {
           newNotifications.push({
-            id: `notif-overdue-${rental.id}`,
-            title: "Contrato Atrasado!",
-            description: `O item ${rental.item} deveria ter sido devolvido.`,
-            type: 'danger',
-            date: rental.end
+            id: `notif-order-${order.id}`,
+            title: "Pedido Realizado",
+            description: `Pedido ${order.id} de R$ ${order.total.toFixed(2)} registrado.`,
+            type: 'success',
+            date: order.date
           });
-        } else if (daysLeft <= 2) {
-          newNotifications.push({
-            id: `notif-near-${rental.id}`,
-            title: "Devolução Próxima",
-            description: `O item ${rental.item} vence em ${daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : daysLeft + ' dias'}.`,
-            type: 'warning',
-            date: rental.end
-          });
-        }
-      });
+        });
+      }
 
       setNotifications(newNotifications);
     };
 
-    checkRentals();
-    const interval = setInterval(checkRentals, 60000);
-    return () => clearInterval(interval);
+    checkNotifications();
+    const interval = setInterval(checkNotifications, 60000);
+    window.addEventListener('storage', checkNotifications);
+    window.addEventListener('order-placed', checkNotifications);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', checkNotifications);
+      window.removeEventListener('order-placed', checkNotifications);
+    };
   }, []);
 
   const unreadCount = notifications.length;
@@ -121,9 +144,12 @@ const NotificationBell = () => {
                 <div className="flex gap-4">
                   <div className={cn(
                     "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                    notif.type === 'danger' ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
+                    notif.type === 'danger' ? "bg-red-50 text-red-600" : 
+                    notif.type === 'warning' ? "bg-amber-50 text-amber-600" :
+                    notif.type === 'success' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
                   )}>
-                    {notif.type === 'danger' ? <AlertCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+                    {notif.type === 'danger' ? <AlertCircle className="h-5 w-5" /> : 
+                     notif.type === 'success' ? <ShoppingBag className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-black text-slate-900 leading-none">{notif.title}</p>
