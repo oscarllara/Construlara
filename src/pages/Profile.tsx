@@ -4,17 +4,25 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, ShoppingBag, MessageCircle, Pencil, ArrowRight } from 'lucide-react';
 import { UserAccount } from '@/components/UserTable';
+import { Button } from "@/components/ui/button";
+import { useNavigate } from 'react-router-dom';
+import { showSuccess } from '@/utils/toast';
+import { cn } from '@/lib/utils';
 
 const ProfilePage = () => {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [userRentals, setUserRentals] = useState<any[]>([]);
+  const [userOrders, setUserOrders] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const email = localStorage.getItem('userEmail');
     const savedUsers = localStorage.getItem('app_users');
     const savedRentals = localStorage.getItem('app_rentals');
+    const savedOrders = localStorage.getItem('app_orders');
 
     if (email && savedUsers) {
       const users: UserAccount[] = JSON.parse(savedUsers);
@@ -24,15 +32,49 @@ const ProfilePage = () => {
         
         if (savedRentals) {
           const rentals = JSON.parse(savedRentals);
-          // Filtra contratos onde o nome do cliente ou ID coincide
           const filtered = rentals.filter((r: any) => 
             r.client === foundUser.name || r.clientId === foundUser.id
           );
           setUserRentals(filtered);
         }
+
+        if (savedOrders) {
+          setUserOrders(JSON.parse(savedOrders));
+        }
       }
     }
   }, []);
+
+  const handleResendOrder = (order: any) => {
+    const itemsList = order.items.map((item: any) => {
+      const price = item.isPromo ? item.promoPrice : item.price;
+      const detail = item.isFractional 
+        ? `${item.quantity} cx (${item.totalAmount.toFixed(2)}${item.unitLabel})`
+        : `${item.quantity} un`;
+      return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}`;
+    }).join('\n');
+
+    const methodLabel = order.paymentMethod === 'pix' ? 'PIX' : order.paymentMethod === 'store' ? 'Pagar na Loja' : 'WhatsApp';
+
+    const message = `*REENVIO DE PEDIDO - CONSTRULARA*\n` +
+      `*ID:* ${order.id}\n` +
+      `*Data Original:* ${order.date}\n\n` +
+      `*Itens:*\n${itemsList}\n\n` +
+      `*Total:* R$ ${order.total.toFixed(2)}\n` +
+      `*Pagamento:* ${methodLabel}\n\n` +
+      `Estou reenviando meu pedido para confirmação!`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
+    showSuccess("WhatsApp aberto para reenvio.");
+  };
+
+  const handleEditOrder = (order: any) => {
+    localStorage.setItem('app_cart', JSON.stringify(order.items));
+    window.dispatchEvent(new Event('cart-updated'));
+    showSuccess("Itens carregados no carrinho para edição!");
+    navigate('/carrinho');
+  };
 
   if (!user) {
     return (
@@ -46,7 +88,7 @@ const ProfilePage = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Coluna da Esquerda: Dados Pessoais */}
           <div className="w-full md:w-1/3 space-y-6">
@@ -105,55 +147,109 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          {/* Coluna da Direita: Contratos/Pedidos */}
+          {/* Coluna da Direita: Abas de Atividade */}
           <div className="flex-1 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                <Receipt className="h-7 w-7 text-blue-600" />
-                Meus Contratos
-              </h3>
-              <Badge className="bg-slate-100 text-slate-600 border-none rounded-xl font-bold px-4 py-1">
-                {userRentals.length} Total
-              </Badge>
-            </div>
+            <Tabs defaultValue="orders" className="space-y-6">
+              <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full md:w-auto">
+                <TabsTrigger value="orders" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <ShoppingBag className="h-4 w-4 mr-2" /> Meus Pedidos
+                </TabsTrigger>
+                <TabsTrigger value="rentals" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Receipt className="h-4 w-4 mr-2" /> Meus Contratos
+                </TabsTrigger>
+              </TabsList>
 
-            {userRentals.length === 0 ? (
-              <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
-                <Receipt className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Você ainda não possui contratos registrados.</p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {userRentals.map((rental) => (
-                  <Card key={rental.id} className="border-none shadow-sm rounded-[2rem] bg-white hover:shadow-md transition-all overflow-hidden group">
-                    <div className="flex items-center p-6 gap-6">
-                      <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                        <Calendar className="h-7 w-7 text-blue-600 group-hover:text-white transition-colors" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-black text-slate-900">{rental.item}</h4>
-                          <span className="text-lg font-black text-blue-700">R$ {rental.total?.toFixed(2)}</span>
+              <TabsContent value="orders" className="space-y-4">
+                {userOrders.length === 0 ? (
+                  <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
+                    <ShoppingBag className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-500 font-bold">Você ainda não realizou compras na loja.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {userOrders.map((order) => (
+                      <Card key={order.id} className="border-none shadow-sm rounded-[2rem] bg-white hover:shadow-md transition-all overflow-hidden group">
+                        <div className="p-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                                <ShoppingBag className="h-6 w-6 text-blue-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-black text-slate-900">{order.id}</h4>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">{order.date}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-black text-blue-700">R$ {order.total.toFixed(2)}</p>
+                              <Badge className="bg-slate-100 text-slate-600 border-none text-[10px] font-black uppercase">
+                                {order.paymentMethod === 'store' ? 'Pagar na Loja' : order.paymentMethod.toUpperCase()}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
+                            <Button 
+                              onClick={() => handleResendOrder(order)}
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold gap-2 h-10 text-xs"
+                            >
+                              <MessageCircle className="h-4 w-4" /> Reenviar WhatsApp
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => handleEditOrder(order)}
+                              className="flex-1 rounded-xl border-slate-200 font-bold gap-2 h-10 text-xs hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                            >
+                              <Pencil className="h-4 w-4" /> Editar Pedido
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                          <span>Início: {rental.start}</span>
-                          <span>Fim: {rental.end}</span>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="rentals" className="space-y-4">
+                {userRentals.length === 0 ? (
+                  <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
+                    <Receipt className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-500 font-bold">Você ainda não possui contratos registrados.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {userRentals.map((rental) => (
+                      <Card key={rental.id} className="border-none shadow-sm rounded-[2rem] bg-white hover:shadow-md transition-all overflow-hidden group">
+                        <div className="flex items-center p-6 gap-6">
+                          <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                            <Calendar className="h-7 w-7 text-blue-600 group-hover:text-white transition-colors" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-black text-slate-900">{rental.item}</h4>
+                              <span className="text-lg font-black text-blue-700">R$ {rental.total?.toFixed(2)}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                              <span>Início: {rental.start}</span>
+                              <span>Fim: {rental.end}</span>
+                            </div>
+                          </div>
+                          <Badge className={cn(
+                            "rounded-xl border-none font-bold px-4 py-2",
+                            rental.status === 'active' ? "bg-blue-100 text-blue-700" :
+                            rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
+                            "bg-red-100 text-red-700"
+                          )}>
+                            {rental.status === 'active' ? 'Ativo' : 
+                             rental.status === 'completed' ? 'Finalizado' : 'Atrasado'}
+                          </Badge>
                         </div>
-                      </div>
-                      <Badge className={cn(
-                        "rounded-xl border-none font-bold px-4 py-2",
-                        rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                        rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                        "bg-red-100 text-red-700"
-                      )}>
-                        {rental.status === 'active' ? 'Ativo' : 
-                         rental.status === 'completed' ? 'Finalizado' : 'Atrasado'}
-                      </Badge>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
@@ -161,5 +257,4 @@ const ProfilePage = () => {
   );
 };
 
-import { cn } from '@/lib/utils';
 export default ProfilePage;

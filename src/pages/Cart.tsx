@@ -5,7 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2, Box } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2, Box, Store } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ const PIX_KEY = "16403481000116";
 
 const CartPage = () => {
   const [cart, setCart] = useState<any[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'whatsapp'>('whatsapp');
+  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'whatsapp' | 'store'>('whatsapp');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,7 +32,6 @@ const CartPage = () => {
     const newCart = cart.map(item => {
       if (item.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
-        // Se for fracionado, o totalAmount também precisa ser atualizado
         const newTotalAmount = item.isFractional ? newQty * item.packageSize : newQty;
         return { ...item, quantity: newQty, totalAmount: newTotalAmount };
       }
@@ -56,6 +55,23 @@ const CartPage = () => {
   const handleCheckout = () => {
     if (cart.length === 0) return;
 
+    const orderId = `ORD-${Date.now()}`;
+    const orderDate = new Date().toLocaleString('pt-BR');
+    
+    // 1. Salvar no Histórico de Pedidos
+    const savedOrders = localStorage.getItem('app_orders');
+    const currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
+    const newOrder = {
+      id: orderId,
+      date: orderDate,
+      items: [...cart],
+      total: total,
+      paymentMethod: paymentMethod,
+      status: 'Pendente'
+    };
+    localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
+
+    // 2. Gerar Mensagem WhatsApp
     const itemsList = cart.map(item => {
       const price = item.isPromo ? item.promoPrice : item.price;
       const detail = item.isFractional 
@@ -64,19 +80,25 @@ const CartPage = () => {
       return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}`;
     }).join('\n');
 
-    const message = `*NOVO PEDIDO - CONSTRULARA*\n\n` +
+    const methodLabel = paymentMethod === 'pix' ? 'PIX' : paymentMethod === 'store' ? 'Pagar na Loja' : 'WhatsApp';
+
+    const message = `*NOVO PEDIDO - CONSTRULARA*\n` +
+      `*ID:* ${orderId}\n` +
+      `*Data:* ${orderDate}\n\n` +
       `*Itens:*\n${itemsList}\n\n` +
       `*Total:* R$ ${total.toFixed(2)}\n` +
-      `*Pagamento:* ${paymentMethod === 'pix' ? 'PIX' : 'WhatsApp'}\n\n` +
+      `*Pagamento:* ${methodLabel}\n\n` +
       `Por favor, confirme meu pedido!`;
 
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
     
+    // 3. Limpar Carrinho e Redirecionar para Perfil
     localStorage.removeItem('app_cart');
     setCart([]);
-    showSuccess("Pedido enviado com sucesso!");
-    navigate('/');
+    window.dispatchEvent(new Event('cart-updated'));
+    showSuccess("Pedido registrado! Redirecionando para seus pedidos...");
+    navigate('/perfil');
   };
 
   const copyPix = () => {
@@ -139,7 +161,7 @@ const CartPage = () => {
                         </Button>
                         <div className="px-3 text-center">
                           <span className="block font-black text-sm leading-none">{item.quantity}</span>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase">caixas</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase">{item.isFractional ? 'caixas' : 'un'}</span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, 1)} className="h-8 w-8 rounded-lg">
                           <Plus className="h-3 w-3" />
@@ -197,26 +219,36 @@ const CartPage = () => {
 
               <div className="space-y-3">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forma de Pagamento</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button 
                     onClick={() => setPaymentMethod('whatsapp')}
                     className={cn(
-                      "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all",
+                      "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all",
                       paymentMethod === 'whatsapp' ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-100 text-slate-400"
                     )}
                   >
-                    <MessageCircle className="h-6 w-6 mb-1" />
-                    <span className="text-[10px] font-black uppercase">WhatsApp</span>
+                    <MessageCircle className="h-5 w-5 mb-1" />
+                    <span className="text-[8px] font-black uppercase">WhatsApp</span>
                   </button>
                   <button 
                     onClick={() => setPaymentMethod('pix')}
                     className={cn(
-                      "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all",
+                      "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all",
                       paymentMethod === 'pix' ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-100 text-slate-400"
                     )}
                   >
-                    <CreditCard className="h-6 w-6 mb-1" />
-                    <span className="text-[10px] font-black uppercase">PIX</span>
+                    <CreditCard className="h-5 w-5 mb-1" />
+                    <span className="text-[8px] font-black uppercase">PIX</span>
+                  </button>
+                  <button 
+                    onClick={() => setPaymentMethod('store')}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all",
+                      paymentMethod === 'store' ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-100 text-slate-400"
+                    )}
+                  >
+                    <Store className="h-5 w-5 mb-1" />
+                    <span className="text-[8px] font-black uppercase">Na Loja</span>
                   </button>
                 </div>
               </div>
