@@ -41,7 +41,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const [imgError, setImgError] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [desiredAmount, setDesiredAmount] = useState<string>("");
   
   const hasPromo = product.isPromo && product.promoPrice;
@@ -51,25 +51,29 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const isPackaged = product.isFractional && product.packageSize && product.packageSize > 0;
   const isFloorCategory = product.category === "Pisos e revestimentos";
   
+  const currentQuantity = quantity === "" ? 0 : Number(quantity);
+
   const calculatedPacks = isPackaged && desiredAmount 
     ? Math.ceil(parseFloat(desiredAmount) / product.packageSize!) 
-    : quantity;
+    : currentQuantity;
 
   const totalAmount = isPackaged 
     ? calculatedPacks * product.packageSize! 
-    : quantity;
+    : currentQuantity;
 
   const totalPrice = totalAmount * currentPrice;
 
-  const handleIncrement = () => setQuantity(prev => prev + 1);
-  const handleDecrement = () => setQuantity(prev => Math.max(1, prev - 1));
+  const handleIncrement = () => setQuantity(prev => (prev === "" ? 1 : Number(prev) + 1));
+  const handleDecrement = () => setQuantity(prev => (prev === "" ? 1 : Math.max(1, Number(prev) - 1)));
   
   const handleQuantityChange = (val: string) => {
+    if (val === "") {
+      setQuantity("");
+      return;
+    }
     const num = parseInt(val);
     if (!isNaN(num)) {
-      setQuantity(Math.max(1, num));
-    } else if (val === "") {
-      setQuantity(1);
+      setQuantity(num);
     }
   };
 
@@ -200,7 +204,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
           </div>
           <Button 
             onClick={() => onAddToCart(product, calculatedPacks, totalAmount)}
-            disabled={isPackaged && !desiredAmount}
+            disabled={(isPackaged && !desiredAmount) || (!isPackaged && currentQuantity === 0)}
             className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-black gap-3 h-14 transition-all shadow-xl shadow-blue-100 hover:-translate-y-1 active:scale-95"
           >
             <ShoppingCart className="h-5 w-5" />
