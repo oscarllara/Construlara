@@ -47,35 +47,43 @@
   z-index: 100 !important;
 }
 
-/* Estilos de Impressão Refinados */
+/* Estilos de Impressão Refinados para A4 */
 @media print {
-  /* Esconde tudo por padrão */
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+
+  /* Esconde absolutamente tudo do site */
   body * {
     visibility: hidden;
+    overflow: visible !important;
   }
   
-  /* Mostra apenas o contrato e seus filhos */
+  /* Mostra apenas o contrato */
   #printable-contract, #printable-contract * {
     visibility: visible;
   }
 
-  /* Posiciona o contrato no topo da página impressa */
+  /* Reseta o posicionamento para o topo da folha A4 */
   #printable-contract {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
+    max-width: 100%;
     margin: 0;
     padding: 0;
     display: block !important;
     box-shadow: none !important;
     border: none !important;
+    background: white !important;
+    color: black !important;
   }
 
-  /* Remove margens extras do navegador */
-  @page {
-    margin: 1.5cm;
-    size: auto;
+  /* Remove cores de fundo forçadas para economizar tinta e garantir contraste */
+  .print-bg-none {
+    background: none !important;
   }
 }
 

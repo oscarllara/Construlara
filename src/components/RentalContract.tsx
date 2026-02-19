@@ -19,7 +19,7 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
     <div 
       id="printable-contract" 
       className={cn(
-        "bg-white text-slate-900 font-serif leading-relaxed text-[12px] sm:text-sm p-8 sm:p-16 shadow-2xl mx-auto max-w-[800px] border border-slate-100 print:shadow-none print:border-none print:p-0 print:max-w-none",
+        "bg-white text-slate-900 font-serif leading-relaxed text-[12px] sm:text-sm p-8 sm:p-16 shadow-2xl mx-auto w-full max-w-[800px] border border-slate-100 print:shadow-none print:border-none print:p-0 print:max-w-none",
         className
       )}
     >
