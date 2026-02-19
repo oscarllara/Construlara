@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Hammer, Receipt, Users, AlertCircle, TrendingUp, ArrowRight, Sparkles, ShoppingBag, Store } from 'lucide-react';
-import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useNavigate } from 'react-router-dom';
 import AddEquipmentDialog from '@/components/AddEquipmentDialog';
 import AddRentalDialog from '@/components/AddRentalDialog';
@@ -178,7 +177,6 @@ const Index = () => {
 
       <AddEquipmentDialog open={isAddEquipOpen} onOpenChange={setIsAddEquipOpen} onAdd={handleAddEquipment} />
       <AddRentalDialog open={isAddRentalOpen} onOpenChange={setIsAddRentalOpen} onAdd={handleAddRental} />
-      <MadeWithDyad />
     </AppLayout>
   );
 };
