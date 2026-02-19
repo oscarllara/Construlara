@@ -11,8 +11,8 @@ const Footer = () => {
           &copy; {new Date().getFullYear()} Construlara. Todos os direitos reservados.
         </p>
         <div className="flex gap-6 text-sm font-medium text-slate-600">
-          <Link to="/contato" className="hover:text-blue-600 transition-colors">Privacidade</Link>
-          <Link to="/contato" className="hover:text-blue-600 transition-colors">Termos</Link>
+          <Link to="/privacidade" className="hover:text-blue-600 transition-colors">Privacidade</Link>
+          <Link to="/termos" className="hover:text-blue-600 transition-colors">Termos</Link>
           <Link to="/contato" className="hover:text-blue-600 transition-colors">Suporte</Link>
         </div>
       </div>
