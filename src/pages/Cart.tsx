@@ -66,7 +66,8 @@ const CartPage = () => {
 
     const orderId = `ORD-${Date.now()}`;
     const orderDate = new Date().toLocaleString('pt-BR');
-    const userEmail = localStorage.getItem('userEmail');
+    // Padronizando o e-mail para evitar erros de filtragem
+    const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
     
     try {
       const savedOrders = localStorage.getItem('app_orders');
@@ -89,6 +90,7 @@ const CartPage = () => {
         paymentMethod: paymentMethod,
         status: 'Pendente'
       };
+      
       localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
 
       const itemsList = cart.map(item => {
@@ -116,8 +118,12 @@ const CartPage = () => {
       setCart([]);
       window.dispatchEvent(new Event('cart-updated'));
       window.dispatchEvent(new Event('order-placed'));
-      showSuccess("Pedido registrado! Redirecionando para seus pedidos...");
-      navigate('/perfil');
+      showSuccess("Pedido registrado com sucesso!");
+      
+      // Pequeno delay para garantir que o localStorage foi processado antes de navegar
+      setTimeout(() => {
+        navigate('/perfil');
+      }, 100);
     } catch (e) {
       showError("Erro ao processar pedido. Tente novamente.");
     }

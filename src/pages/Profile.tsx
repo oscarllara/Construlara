@@ -5,7 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, ShoppingBag, MessageCircle, Pencil, ArrowRight, Package } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, ShoppingBag, MessageCircle, Pencil, ArrowRight, Package, RefreshCw } from 'lucide-react';
 import { UserAccount } from '@/components/UserTable';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
@@ -19,57 +19,78 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const email = localStorage.getItem('userEmail');
+  const loadProfileData = () => {
+    const email = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
     const savedUsers = localStorage.getItem('app_users');
     const savedRentals = localStorage.getItem('app_rentals');
     const savedOrders = localStorage.getItem('app_orders');
 
-    if (email && savedUsers) {
-      const users: UserAccount[] = JSON.parse(savedUsers);
-      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (foundUser) {
-        setUser(foundUser);
-        
-        if (savedRentals) {
-          const rentals = JSON.parse(savedRentals);
-          const filtered = rentals.filter((r: any) => 
-            r.client === foundUser.name || r.clientId === foundUser.id
-          );
-          setUserRentals(filtered);
-        }
-
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          // Filtra pedidos do usuário (comparação insensível a maiúsculas/minúsculas)
-          // Se for Gestor, vê todos os pedidos do sistema
-          const filteredOrders = foundUser.role === 'Gestor' 
-            ? orders 
-            : orders.filter((o: any) => o.userEmail?.toLowerCase() === email.toLowerCase());
-          setUserOrders(filteredOrders);
-        }
-      } else {
-        // Fallback: se não achar na lista, cria um perfil temporário com os dados da sessão
-        const role = localStorage.getItem('userRole') || 'Usuário';
-        setUser({
-          id: 'temp',
-          name: email.split('@')[0],
-          email: email,
-          whatsapp: '(32) 99999-9999',
-          role: role as any,
-          status: 'active',
-          lastAccess: 'Agora'
-        });
-
-        if (savedOrders) {
-          const orders = JSON.parse(savedOrders);
-          const filteredOrders = orders.filter((o: any) => o.userEmail?.toLowerCase() === email.toLowerCase());
-          setUserOrders(filteredOrders);
-        }
-      }
+    if (!email) {
+      navigate('/login');
+      return;
     }
+
+    // 1. Carregar Dados do Usuário
+    let foundUser: UserAccount | undefined;
+    if (savedUsers) {
+      const users: UserAccount[] = JSON.parse(savedUsers);
+      foundUser = users.find(u => u.email.toLowerCase().trim() === email);
+    }
+
+    if (foundUser) {
+      setUser(foundUser);
+    } else {
+      // Fallback para perfil temporário
+      const role = localStorage.getItem('userRole') || 'Usuário';
+      const tempUser: UserAccount = {
+        id: 'temp',
+        name: email.split('@')[0],
+        email: email,
+        whatsapp: '(32) 99999-9999',
+        role: role as any,
+        status: 'active',
+        lastAccess: 'Agora'
+      };
+      setUser(tempUser);
+      foundUser = tempUser;
+    }
+
+    // 2. Carregar Aluguéis
+    if (savedRentals) {
+      const rentals = JSON.parse(savedRentals);
+      const filtered = rentals.filter((r: any) => 
+        (r.clientId && r.clientId === foundUser?.id) || 
+        (r.client && r.client.toLowerCase() === foundUser?.name.toLowerCase())
+      );
+      setUserRentals(filtered);
+    }
+
+    // 3. Carregar Pedidos (Lógica Reforçada)
+    if (savedOrders) {
+      const orders = JSON.parse(savedOrders);
+      const filteredOrders = foundUser.role === 'Gestor' 
+        ? orders 
+        : orders.filter((o: any) => {
+            const orderEmail = (o.userEmail || '').toLowerCase().trim();
+            return orderEmail === email;
+          });
+      setUserOrders(filteredOrders);
+    }
+
     setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadProfileData();
+    
+    // Listener para atualizações em tempo real se o usuário mudar algo em outra aba
+    window.addEventListener('storage', loadProfileData);
+    window.addEventListener('order-placed', loadProfileData);
+    
+    return () => {
+      window.removeEventListener('storage', loadProfileData);
+      window.removeEventListener('order-placed', loadProfileData);
+    };
   }, []);
 
   const handleResendOrder = (order: any) => {
@@ -180,14 +201,24 @@ const ProfilePage = () => {
           {/* Coluna da Direita: Abas de Atividade */}
           <div className="flex-1 space-y-6">
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full md:w-auto">
-                <TabsTrigger value="orders" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <ShoppingBag className="h-4 w-4 mr-2" /> Meus Pedidos
-                </TabsTrigger>
-                <TabsTrigger value="rentals" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Receipt className="h-4 w-4 mr-2" /> Meus Contratos
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex items-center justify-between">
+                <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full md:w-auto">
+                  <TabsTrigger value="orders" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <ShoppingBag className="h-4 w-4 mr-2" /> Meus Pedidos
+                  </TabsTrigger>
+                  <TabsTrigger value="rentals" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <Receipt className="h-4 w-4 mr-2" /> Meus Contratos
+                  </TabsTrigger>
+                </TabsList>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={loadProfileData}
+                  className="rounded-xl font-bold text-slate-400 hover:text-blue-600 gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" /> Atualizar
+                </Button>
+              </div>
 
               <TabsContent value="orders" className="space-y-4">
                 {userOrders.length === 0 ? (
