@@ -15,11 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Hammer, MapPin, Phone, Mail, FileText, AlertCircle, CheckCircle2, Wrench, Hash, Tag, Calendar, DollarSign } from 'lucide-react';
+import { User, Hammer, MapPin, Phone, Mail, FileText, AlertCircle, CheckCircle2, Wrench, Hash, Tag, Calendar, DollarSign, RotateCcw } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
+import { showSuccess } from '@/utils/toast';
 
 interface RentalDetailsDialogProps {
   rental: any;
@@ -40,6 +41,10 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const [modality, setModality] = useState("");
   const [totalValue, setTotalValue] = useState<string>("0");
 
+  // Estado para Devolução
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnStatus, setReturnStatus] = useState<'available' | 'maintenance'>('available');
+
   useEffect(() => {
     if (rental && open) {
       setStatus(rental.status);
@@ -48,11 +53,11 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setEndDate(rental.end.includes('/') ? rental.end.split('/').reverse().join('-') : rental.end);
       setModality(rental.modality || "Diária");
       setTotalValue(rental.total?.toString() || "0");
+      setShowReturnForm(false);
       
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
         const users: UserAccount[] = JSON.parse(savedUsers);
-        // Agora todos os usuários podem ser locatários
         setAllClients(users);
         const currentClient = users.find(u => u.name === rental.client || u.id === rental.clientId);
         setSelectedClientId(currentClient?.id || "");
@@ -67,52 +72,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
   }, [rental, open]);
 
-  const currentClient = useMemo(() => 
-    allClients.find(c => c.id === selectedClientId), 
-  [selectedClientId, allClients]);
-
-  useEffect(() => {
-    if (!equipment || !startDate || !endDate) return;
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const totalDays = Math.max(1, differenceInDays(end, start));
-    
-    if (differenceInDays(end, start) < 0) return;
-
-    let remainingDays = totalDays;
-    let calculatedTotal = 0;
-
-    const months = Math.floor(remainingDays / 30);
-    if (months > 0) {
-      calculatedTotal += months * (equipment.monthlyRate || (equipment.dailyRate * 30));
-      remainingDays %= 30;
-    }
-
-    const biweeks = Math.floor(remainingDays / 15);
-    if (biweeks > 0) {
-      calculatedTotal += biweeks * (equipment.biweeklyRate || (equipment.dailyRate * 15));
-      remainingDays %= 15;
-    }
-
-    const weeks = Math.floor(remainingDays / 7);
-    if (weeks > 0) {
-      calculatedTotal += weeks * (equipment.weeklyRate || (equipment.dailyRate * 7));
-      remainingDays %= 7;
-    }
-
-    if (remainingDays > 0) {
-      calculatedTotal += remainingDays * equipment.dailyRate;
-    }
-
-    let displayModality = "Diária";
-    if (totalDays >= 30) displayModality = "Mês";
-    else if (totalDays >= 15) displayModality = "Quinzena";
-    else if (totalDays >= 7) displayModality = "Semanal";
-
-    setModality(displayModality);
-    setTotalValue(calculatedTotal.toFixed(2));
-  }, [startDate, endDate, equipment]);
+  const currentClient = useMemo(() => allClients.find(c => c.id === selectedClientId), [selectedClientId, allClients]);
 
   const handleSave = () => {
     onUpdate({ 
@@ -128,6 +88,29 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     });
   };
 
+  const handleProcessReturn = () => {
+    // 1. Atualizar o aluguel para concluído
+    const updatedRental = {
+      ...rental,
+      status: 'completed',
+      notes: notes + (notes ? "\n" : "") + `Devolvido em ${new Date().toLocaleDateString()} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
+    };
+
+    // 2. Atualizar o equipamento
+    const savedEquip = localStorage.getItem('app_equipments');
+    if (savedEquip) {
+      const allEquip = JSON.parse(savedEquip);
+      const newEquip = allEquip.map((e: any) => 
+        e.id === rental.equipmentId ? { ...e, status: returnStatus, lastClient: undefined } : e
+      );
+      localStorage.setItem('app_equipments', JSON.stringify(newEquip));
+    }
+
+    onUpdate(updatedRental);
+    showSuccess("Devolução processada com sucesso!");
+    onOpenChange(false);
+  };
+
   if (!rental) return null;
 
   return (
@@ -140,7 +123,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 <FileText className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h2 className="text-3xl font-black tracking-tighter">CONTRATO DE LOCAÇÃO</h2>
+                <h2 className="text-3xl font-black tracking-tighter">DETALHES DO CONTRATO</h2>
                 <p className="text-blue-400 font-bold text-xs uppercase tracking-widest">Nº {rental.id.toUpperCase()}</p>
               </div>
             </div>
@@ -198,15 +181,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                     </div>
                   </div>
                 )}
-                
-                {currentClient?.worksiteAddress && (
-                  <div className="pt-4 border-t border-slate-200">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Endereço da Obra</p>
-                    <p className="text-sm text-slate-700 leading-tight flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" /> {currentClient.worksiteAddress}
-                    </p>
-                  </div>
-                )}
               </div>
             </section>
 
@@ -240,100 +214,114 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </div>
 
           <div className="space-y-8">
-            <section>
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Calendar className="h-4 w-4" /> Prazos e Modalidade
-              </h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Data Início</Label>
-                    <Input 
-                      type="date" 
-                      value={startDate} 
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="rounded-xl border-slate-200 h-11 font-bold"
+            {showReturnForm ? (
+              <section className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-200 space-y-6 animate-in fade-in zoom-in duration-300">
+                <h3 className="text-lg font-black text-emerald-900 flex items-center gap-2">
+                  <RotateCcw className="h-6 w-6" /> Processar Devolução
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-emerald-800">Estado do Item no Recebimento</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        variant={returnStatus === 'available' ? 'default' : 'outline'}
+                        onClick={() => setReturnStatus('available')}
+                        className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}
+                      >
+                        Pronto p/ Uso
+                      </Button>
+                      <Button 
+                        variant={returnStatus === 'maintenance' ? 'default' : 'outline'}
+                        onClick={() => setReturnStatus('maintenance')}
+                        className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}
+                      >
+                        Necessita Reparo
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-emerald-800">Notas de Devolução</Label>
+                    <Textarea 
+                      placeholder="Descreva o estado do item..." 
+                      className="rounded-xl bg-white border-emerald-200"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Previsão Devolução</Label>
-                    <Input 
-                      type="date" 
-                      value={endDate} 
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="rounded-xl border-slate-200 h-11 font-bold"
-                    />
+                  <div className="flex gap-2">
+                    <Button onClick={handleProcessReturn} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-12">
+                      Confirmar Recebimento
+                    </Button>
+                    <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="rounded-xl h-12 font-bold">
+                      Cancelar
+                    </Button>
                   </div>
                 </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade Base (Mix Ativo)</Label>
-                  <div className="h-11 flex items-center px-4 bg-slate-50 rounded-xl border border-slate-200 font-bold text-slate-600">
-                    {modality}
+              </section>
+            ) : (
+              <>
+                <section>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" /> Prazos e Valores
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase">Data Início</Label>
+                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded-xl border-slate-200 h-11 font-bold" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase">Previsão Devolução</Label>
+                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="rounded-xl border-slate-200 h-11 font-bold" />
+                      </div>
+                    </div>
+                    <div className="bg-emerald-600 p-6 rounded-[2rem] text-white space-y-2 shadow-lg shadow-emerald-100">
+                      <Label className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total do Contrato</Label>
+                      <div className="relative">
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-emerald-200">R$</span>
+                        <Input type="number" value={totalValue} onChange={(e) => setTotalValue(e.target.value)} className="bg-transparent border-none text-3xl font-black p-0 pl-10 h-auto focus-visible:ring-0 text-white" />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </section>
 
-                <div className="bg-emerald-600 p-6 rounded-[2rem] text-white space-y-2 shadow-lg shadow-emerald-100">
-                  <Label className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total (Editável para Descontos)</Label>
-                  <div className="relative">
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-emerald-200">R$</span>
-                    <Input 
-                      type="number"
-                      value={totalValue}
-                      onChange={(e) => setTotalValue(e.target.value)}
-                      className="bg-transparent border-none text-3xl font-black p-0 pl-10 h-auto focus-visible:ring-0 text-white placeholder:text-emerald-300"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
+                <section className="space-y-4">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" /> Observações
+                  </h3>
+                  <Textarea 
+                    placeholder="Notas do contrato..." 
+                    className="rounded-2xl min-h-[100px] border-slate-200 bg-white text-sm"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </section>
 
-            <section className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" /> Observações do Contrato
-              </h3>
-              <Textarea 
-                placeholder="Registre aqui avarias, atrasos ou detalhes importantes da locação..." 
-                className="rounded-2xl min-h-[120px] border-slate-200 bg-white text-sm"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </section>
+                {status !== 'completed' && (
+                  <Button 
+                    onClick={() => setShowReturnForm(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black gap-2 h-14 shadow-xl shadow-blue-100"
+                  >
+                    <RotateCcw className="h-5 w-5" /> Iniciar Devolução
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
-        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex flex-row items-center justify-between sm:justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <Label className="font-bold text-slate-500 text-xs uppercase whitespace-nowrap">Status:</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="rounded-xl h-10 border-slate-200 bg-white w-48 font-bold text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="active">
-                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-blue-500" /> Em Aberto</div>
-                </SelectItem>
-                <SelectItem value="completed">
-                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Devolvido</div>
-                </SelectItem>
-                <SelectItem value="maintenance">
-                  <div className="flex items-center gap-2"><Wrench className="h-3.5 w-3.5 text-orange-500" /> Em Reparo</div>
-                </SelectItem>
-                <SelectItem value="overdue">
-                  <div className="flex items-center gap-2"><AlertCircle className="h-3.5 w-3.5 text-red-500" /> Atrasado</div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
+        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl font-bold h-10 px-6 text-xs">
-              Cancelar
+              Fechar
             </Button>
-            <Button onClick={handleSave} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold px-8 h-10 text-xs shadow-lg shadow-blue-100">
+            <Button onClick={handleSave} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold px-8 h-10 text-xs">
               Salvar Alterações
             </Button>
           </div>
+          <Button variant="outline" className="rounded-xl font-bold h-10 px-6 text-xs border-slate-200 gap-2">
+            <FileText className="h-4 w-4" /> Imprimir Contrato
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

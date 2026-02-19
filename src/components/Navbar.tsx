@@ -39,7 +39,6 @@ const Navbar = () => {
         setCartCount(0);
       }
     } catch (e) {
-      console.error("Erro ao ler carrinho:", e);
       setCartCount(0);
     }
   };
@@ -57,8 +56,8 @@ const Navbar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
     { name: 'Loja', path: '/', icon: ShoppingBag },
-    { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
     { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
+    { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
     { name: 'Usuários', path: '/usuarios', icon: Users },
     { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
     { name: 'Contato', path: '/contato', icon: PhoneCall },
@@ -68,7 +67,7 @@ const Navbar = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
-    showSuccess("Sessão encerrada com sucesso.");
+    showSuccess("Sessão encerrada.");
     navigate('/login');
   };
 
@@ -78,11 +77,7 @@ const Navbar = () => {
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center group">
             <div className="h-24 w-64 flex items-center justify-start transition-transform group-hover:scale-105">
-              <img 
-                src="/logoconstrulara.png" 
-                alt="Construlara Logo" 
-                className="h-full w-full object-contain object-left" 
-              />
+              <img src="/logoconstrulara.png" alt="Construlara Logo" className="h-full w-full object-contain object-left" />
             </div>
           </Link>
 
@@ -93,9 +88,7 @@ const Navbar = () => {
                 to={item.path}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-bold transition-all whitespace-nowrap",
-                  location.pathname === item.path 
-                    ? "bg-blue-50 text-blue-700 shadow-sm" 
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  location.pathname === item.path ? "bg-blue-50 text-blue-700 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
                 <item.icon className="h-4 w-4" />
@@ -106,24 +99,16 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => navigate('/carrinho')}
-            className="rounded-2xl bg-blue-700 hover:bg-blue-800 text-white relative h-14 px-6 flex items-center gap-3 shadow-xl shadow-blue-100 transition-all hover:-translate-y-1 active:scale-95"
-          >
+          <Button onClick={() => navigate('/carrinho')} className="rounded-2xl bg-blue-700 hover:bg-blue-800 text-white relative h-14 px-6 flex items-center gap-3 shadow-xl shadow-blue-100">
             <div className="relative">
               <ShoppingCart className="h-6 w-6" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 h-6 w-6 bg-red-600 text-white text-[11px] font-black flex items-center justify-center rounded-full border-2 border-blue-700 animate-in zoom-in duration-300">
-                  {cartCount}
-                </span>
-              )}
+              {cartCount > 0 && <span className="absolute -top-2 -right-2 h-6 w-6 bg-red-600 text-white text-[11px] font-black flex items-center justify-center rounded-full border-2 border-blue-700">{cartCount}</span>}
             </div>
             <span className="hidden md:inline font-black text-sm uppercase tracking-wider">Meu Carrinho</span>
           </Button>
 
           <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
             <NotificationBell />
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-12 w-12 rounded-full p-0 hover:bg-transparent focus-visible:ring-0">
@@ -132,46 +117,29 @@ const Navbar = () => {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                className="w-64 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.15)] mt-2 z-[100]" 
-                align="end"
-              >
+              <DropdownMenuContent className="w-64 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-2xl mt-2 z-[100]" align="end">
                 <DropdownMenuLabel className="px-4 py-3">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-black text-slate-900 leading-none">Minha Conta</p>
                     <p className="text-xs font-bold text-slate-400 truncate">{userEmail}</p>
-                    <Badge className="w-fit mt-2 bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase">
-                      {userRole}
-                    </Badge>
+                    <Badge className="w-fit mt-2 bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase">{userRole}</Badge>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-slate-100 my-2" />
-                <DropdownMenuItem 
-                  onClick={() => navigate('/perfil')}
-                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
-                >
+                <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                   <UserCircle className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                   <span className="font-bold text-slate-600 group-hover:text-blue-700">Meu Perfil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => navigate('/perfil')}
-                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
-                >
+                <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                   <ShoppingBag className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                   <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Pedidos</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => navigate('/perfil')}
-                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group"
-                >
+                <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                   <FileText className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                   <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-100 my-2" />
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group"
-                >
+                <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group">
                   <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-red-600" />
                   <span className="font-bold text-slate-600 group-hover:text-red-700">Sair do Sistema</span>
                 </DropdownMenuItem>

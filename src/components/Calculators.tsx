@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ruler, Layers, Maximize, Plus, Trash2, Calculator } from 'lucide-react';
+import { Calculator, Plus, Trash2, Droplets, Ruler, Layers } from 'lucide-react';
 
 const Calculators = () => {
   // Piso
@@ -16,8 +16,9 @@ const Calculators = () => {
   const [wallDim, setWallDim] = useState({ l: "", w: "", h: "" });
   const [openings, setOpenings] = useState<{ id: string, w: string, h: string }[]>([]);
 
-  // Forro
-  const [ceilingDim, setCeilingDim] = useState({ w: "", l: "" });
+  // Argamassa
+  const [mortarArea, setMortarArea] = useState("");
+  const [applicationType, setApplicationType] = useState<"simple" | "double">("simple");
 
   const addOpening = () => setOpenings([...openings, { id: Date.now().toString(), w: "", h: "" }]);
   const removeOpening = (id: string) => setOpenings(openings.filter(o => o.id !== id));
@@ -30,7 +31,11 @@ const Calculators = () => {
   const wallArea = ((2 * Number(wallDim.l)) + (2 * Number(wallDim.w))) * Number(wallDim.h);
   const openingsArea = openings.reduce((acc, o) => acc + (Number(o.w) * Number(o.h)), 0);
   const finalWallArea = Math.max(0, wallArea - openingsArea);
-  const ceilingArea = Number(ceilingDim.w) * Number(ceilingDim.l);
+  
+  // Argamassa: Média de 5kg/m2 simples e 8.5kg/m2 dupla
+  const consumption = applicationType === "simple" ? 5 : 8.5;
+  const totalMortarKg = Number(mortarArea) * consumption;
+  const bags20kg = Math.ceil(totalMortarKg / 20);
 
   return (
     <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden">
@@ -45,7 +50,7 @@ const Calculators = () => {
           <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full">
             <TabsTrigger value="piso" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Pisos</TabsTrigger>
             <TabsTrigger value="parede" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Paredes</TabsTrigger>
-            <TabsTrigger value="forro" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Forro/Telha</TabsTrigger>
+            <TabsTrigger value="argamassa" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Argamassa</TabsTrigger>
           </TabsList>
 
           <TabsContent value="piso" className="space-y-6">
@@ -118,27 +123,52 @@ const Calculators = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="forro" className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <TabsContent value="argamassa" className="space-y-6">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-bold">Largura (m)</Label>
-                <Input type="number" value={ceilingDim.w} onChange={e => setCeilingDim({...ceilingDim, w: e.target.value})} className="rounded-xl h-12" />
+                <Label className="font-bold">Área Total a Revestir (m²)</Label>
+                <Input 
+                  type="number" 
+                  value={mortarArea} 
+                  onChange={e => setMortarArea(e.target.value)} 
+                  placeholder="Ex: 50"
+                  className="rounded-xl h-12" 
+                />
               </div>
               <div className="space-y-2">
-                <Label className="font-bold">Comprimento (m)</Label>
-                <Input type="number" value={ceilingDim.l} onChange={e => setCeilingDim({...ceilingDim, l: e.target.value})} className="rounded-xl h-12" />
+                <Label className="font-bold">Tipo de Aplicação</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button 
+                    variant={applicationType === "simple" ? "default" : "outline"}
+                    onClick={() => setApplicationType("simple")}
+                    className="rounded-xl h-12 font-bold"
+                  >
+                    Camada Simples
+                  </Button>
+                  <Button 
+                    variant={applicationType === "double" ? "default" : "outline"}
+                    onClick={() => setApplicationType("double")}
+                    className="rounded-xl h-12 font-bold"
+                  >
+                    Camada Dupla
+                  </Button>
+                </div>
               </div>
             </div>
+
             <div className="bg-orange-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-black text-orange-400 uppercase">Área Útil</p>
-                <p className="text-2xl font-black text-slate-900">{ceilingArea.toFixed(2)} m²</p>
+                <p className="text-[10px] font-black text-orange-400 uppercase">Total Estimado</p>
+                <p className="text-2xl font-black text-slate-900">{totalMortarKg.toFixed(1)} kg</p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-orange-600 uppercase">Total (+10% Quebra)</p>
-                <p className="text-2xl font-black text-orange-700">{(ceilingArea * 1.1).toFixed(2)} m²</p>
+                <p className="text-[10px] font-black text-orange-600 uppercase">Sacos de 20kg</p>
+                <p className="text-2xl font-black text-orange-700">{bags20kg} sacos</p>
               </div>
             </div>
+            <p className="text-[10px] text-slate-400 font-medium italic">
+              * Cálculo baseado em consumo médio de 5kg/m² (simples) e 8.5kg/m² (dupla).
+            </p>
           </TabsContent>
         </Tabs>
       </CardContent>

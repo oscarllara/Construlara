@@ -43,17 +43,10 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
   const loadData = () => {
     const savedUsers = localStorage.getItem('app_users');
-    if (savedUsers) {
-      const allUsers = JSON.parse(savedUsers);
-      // Agora todos os usuários podem ser clientes
-      setClients(allUsers);
-    }
+    if (savedUsers) setClients(JSON.parse(savedUsers));
 
     const savedEquip = localStorage.getItem('app_equipments');
-    if (savedEquip) {
-      const allEquip = JSON.parse(savedEquip);
-      setEquipments(allEquip);
-    }
+    if (savedEquip) setEquipments(JSON.parse(savedEquip));
   };
 
   useEffect(() => {
@@ -76,35 +69,28 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
     const equipment = equipments.find(e => e.id === formData.equipmentId);
     if (equipment) {
-      let remainingDays = totalDays;
       let calculatedTotal = 0;
-
-      const months = Math.floor(remainingDays / 30);
-      if (months > 0) {
-        calculatedTotal += months * (equipment.monthlyRate || (equipment.dailyRate * 30));
-        remainingDays %= 30;
-      }
-
-      const biweeks = Math.floor(remainingDays / 15);
-      if (biweeks > 0) {
-        calculatedTotal += biweeks * (equipment.biweeklyRate || (equipment.dailyRate * 15));
-        remainingDays %= 15;
-      }
-
-      const weeks = Math.floor(remainingDays / 7);
-      if (weeks > 0) {
-        calculatedTotal += weeks * (equipment.weeklyRate || (equipment.dailyRate * 7));
-        remainingDays %= 7;
-      }
-
-      if (remainingDays > 0) {
-        calculatedTotal += remainingDays * equipment.dailyRate;
-      }
-
       let displayModality = "Diária";
-      if (totalDays >= 30) displayModality = "Mês";
-      else if (totalDays >= 15) displayModality = "Quinzena";
-      else if (totalDays >= 7) displayModality = "Semanal";
+
+      // Nova Lógica de Preços:
+      // 1-4 dias: Diária
+      // 5-10 dias: Semanal
+      // 11-19 dias: Quinzenal
+      // 20-30 dias: Mensal
+      
+      if (totalDays >= 20) {
+        displayModality = "Mensal";
+        calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
+      } else if (totalDays >= 11) {
+        displayModality = "Quinzenal";
+        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
+      } else if (totalDays >= 5) {
+        displayModality = "Semanal";
+        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 5);
+      } else {
+        displayModality = "Diária";
+        calculatedTotal = equipment.dailyRate * totalDays;
+      }
 
       setFormData(prev => ({ 
         ...prev, 
@@ -117,26 +103,17 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   const handleAddNewUser = (userData: any) => {
     const savedUsers = localStorage.getItem('app_users');
     const currentUsers = savedUsers ? JSON.parse(savedUsers) : [];
-    
-    const newUser = {
-      id: `u-${Date.now()}`,
-      ...userData,
-      status: 'active',
-      lastAccess: 'Nunca'
-    };
-    
+    const newUser = { id: `u-${Date.now()}`, ...userData, status: 'active', lastAccess: 'Nunca' };
     const updatedUsers = [newUser, ...currentUsers];
     localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-    
     setClients(updatedUsers);
     setFormData(prev => ({ ...prev, clientId: newUser.id }));
     setIsAddUserOpen(false);
-    showSuccess(`Usuário ${userData.name} cadastrado e selecionado.`);
+    showSuccess(`Usuário ${userData.name} cadastrado.`);
   };
 
   const handleSubmit = () => {
     if (!formData.clientId || !formData.equipmentId || !formData.totalValue) return;
-    
     const client = clients.find(c => c.id === formData.clientId);
     const equipment = equipments.find(e => e.id === formData.equipmentId);
 
@@ -177,12 +154,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
                 <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                   <User className="h-4 w-4 text-slate-400" /> Locatário
                 </Label>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsAddUserOpen(true)}
-                  className="h-7 text-[10px] font-black uppercase text-blue-600 hover:bg-blue-50 rounded-lg gap-1"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setIsAddUserOpen(true)} className="h-7 text-[10px] font-black uppercase text-blue-600 rounded-lg gap-1">
                   <UserPlus className="h-3 w-3" /> Novo Usuário
                 </Button>
               </div>
@@ -220,18 +192,17 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-slate-700 font-bold text-sm">Modalidade Base</Label>
-                <div className="h-12 flex items-center px-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-slate-600">
+                <Label className="text-slate-700 font-bold text-sm">Modalidade Aplicada</Label>
+                <div className="h-12 flex items-center px-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-blue-700">
                   {formData.modality}
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-slate-400" /> Valor Total (Mix)
+                  <DollarSign className="h-4 w-4 text-slate-400" /> Valor Total
                 </Label>
                 <Input 
                   type="number" 
-                  placeholder="0.00" 
                   value={formData.totalValue}
                   onChange={(e) => setFormData({...formData, totalValue: e.target.value})}
                   className="rounded-2xl border-slate-200 h-12 font-bold text-blue-700"
@@ -276,11 +247,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
         </DialogContent>
       </Dialog>
       
-      <AddUserDialog 
-        open={isAddUserOpen} 
-        onOpenChange={setIsAddUserOpen} 
-        onAdd={handleAddNewUser} 
-      />
+      <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} onAdd={handleAddNewUser} />
     </>
   );
 };

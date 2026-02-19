@@ -47,7 +47,6 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const hasPromo = product.isPromo && product.promoPrice;
   const currentPrice = hasPromo ? product.promoPrice! : product.price;
 
-  // Lógica para produtos vendidos por embalagem (ex: Pisos)
   const isPackaged = product.isFractional && product.packageSize && product.packageSize > 0;
   const isFloorCategory = product.category === "Pisos e revestimentos";
   
@@ -72,9 +71,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       return;
     }
     const num = parseInt(val);
-    if (!isNaN(num)) {
-      setQuantity(num);
-    }
+    if (!isNaN(num)) setQuantity(num);
   };
 
   return (
@@ -101,12 +98,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       
       <div className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0">
         {!imgError && product.image ? (
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            onError={() => setImgError(true)}
-          />
+          <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={() => setImgError(true)} />
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-300">
             <Package className="h-16 w-16 mb-2" />
@@ -125,27 +117,23 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       </CardHeader>
       
       <CardContent className="px-6 pb-4 flex-1 space-y-4">
-        <p className="text-xs text-slate-500 font-medium line-clamp-2">
-          {product.description}
-        </p>
+        <p className="text-xs text-slate-500 font-medium line-clamp-2">{product.description}</p>
         
         <div className="flex flex-col">
-          <div className="flex items-baseline gap-1">
+          <div className="flex items-center gap-2">
             <span className="text-2xl font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">/ {product.unitLabel || 'un'}</span>
+            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase border border-blue-100">
+              / {product.unitLabel || 'un'}
+            </span>
           </div>
-          {hasPromo && (
-            <span className="text-xs text-slate-400 line-through font-bold">De R$ {product.price.toFixed(2)}</span>
-          )}
+          {hasPromo && <span className="text-xs text-slate-400 line-through font-bold">De R$ {product.price.toFixed(2)}</span>}
         </div>
 
         {isPackaged && (
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">
-                  Quanto você precisa ({product.unitLabel})?
-                </Label>
+                <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">Quanto você precisa ({product.unitLabel})?</Label>
                 {isFloorCategory && (
                   <Dialog>
                     <DialogTrigger asChild>
@@ -153,26 +141,16 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
                         <CalcIcon className="h-3 w-3" /> Calcular Área
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden">
-                      <Calculators />
-                    </DialogContent>
+                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden"><Calculators /></DialogContent>
                   </Dialog>
                 )}
               </div>
-              <Input 
-                type="number" 
-                placeholder={`Ex: 23 ${product.unitLabel}`}
-                value={desiredAmount}
-                onChange={(e) => setDesiredAmount(e.target.value)}
-                className="h-10 rounded-xl border-blue-200 bg-white font-bold"
-              />
+              <Input type="number" placeholder={`Ex: 23 ${product.unitLabel}`} value={desiredAmount} onChange={(e) => setDesiredAmount(e.target.value)} className="h-10 rounded-xl border-blue-200 bg-white font-bold" />
             </div>
             {calculatedPacks > 0 && (
               <div className="flex items-start gap-2 text-blue-800">
                 <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold leading-tight">
-                  Serão necessárias <strong>{calculatedPacks} embalagens</strong>, totalizando <strong>{totalAmount.toFixed(2)}{product.unitLabel}</strong>.
-                </p>
+                <p className="text-[10px] font-bold leading-tight">Serão necessárias <strong>{calculatedPacks} embalagens</strong>, totalizando <strong>{totalAmount.toFixed(2)}{product.unitLabel}</strong>.</p>
               </div>
             )}
           </div>
@@ -182,18 +160,9 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       <CardFooter className="p-6 pt-0 flex flex-col gap-4">
         {!isPackaged && (
           <div className="flex items-center justify-between w-full bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-            <Button variant="ghost" size="icon" onClick={handleDecrement} className="h-9 w-9 rounded-xl">
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Input 
-              type="number"
-              value={quantity}
-              onChange={(e) => handleQuantityChange(e.target.value)}
-              className="w-16 h-9 text-center font-black text-lg border-none bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <Button variant="ghost" size="icon" onClick={handleIncrement} className="h-9 w-9 rounded-xl">
-              <Plus className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="icon" onClick={handleDecrement} className="h-9 w-9 rounded-xl"><Minus className="h-4 w-4" /></Button>
+            <Input type="number" value={quantity} onChange={(e) => handleQuantityChange(e.target.value)} className="w-16 h-9 text-center font-black text-lg border-none bg-transparent focus-visible:ring-0" />
+            <Button variant="ghost" size="icon" onClick={handleIncrement} className="h-9 w-9 rounded-xl"><Plus className="h-4 w-4" /></Button>
           </div>
         )}
 
