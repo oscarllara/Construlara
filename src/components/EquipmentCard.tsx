@@ -5,7 +5,7 @@ import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw, P
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/utils/utils";
+import { cn } from "@/lib/utils";
 import { useNavigate } from 'react-router-dom';
 
 export interface Equipment {

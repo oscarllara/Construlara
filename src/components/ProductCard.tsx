@@ -15,7 +15,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Calculators from './Calculators';
-import { cn } from "@/utils/utils";
+import { cn } from "@/lib/utils";
 import { useNavigate } from 'react-router-dom';
 
 export interface Product {
