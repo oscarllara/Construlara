@@ -23,19 +23,22 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
         className
       )}
     >
-      {/* Cabeçalho */}
+      {/* Cabeçalho Oficial */}
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold uppercase">CONSTRULARA RDM</h1>
-          <p className="font-bold text-base">Locação de Equipamentos e Materiais de Construção</p>
-          <p>CNPJ: 16.403.481/0001-16</p>
-          <p>Tel: (32) 3374-1135 | WhatsApp: (32) 99962-5979</p>
-          <p>São João del-Rei - MG</p>
+          <h1 className="text-xl font-bold uppercase">BTM Comércio de Material de Construção Ltda</h1>
+          <p className="font-black text-blue-800 text-lg">CONSTRULARA</p>
+          <div className="text-[11px] space-y-0.5">
+            <p><strong>CNPJ:</strong> 16.403.481/0001-16 | <strong>I.E:</strong> 001.993106.00-34</p>
+            <p>Rua Maestro José Cândido das Neves, 38A - Centro</p>
+            <p>Rio das Mortes - MG - CEP 36315-000</p>
+            <p>Tel: (32) 3374-1135 | www.construlara.com.br</p>
+          </div>
         </div>
         <div className="text-right space-y-1">
           <p className="font-bold text-lg">CONTRATO DE LOCAÇÃO</p>
           <p className="text-xl font-bold text-blue-800">Nº {rental.id.toUpperCase()}</p>
-          <p className="text-xs">Data de Emissão: {today}</p>
+          <p className="text-xs">Emissão: {today}</p>
         </div>
       </div>
 
@@ -44,7 +47,7 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
         <section>
           <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">1. IDENTIFICAÇÃO DAS PARTES</h2>
           <div className="grid grid-cols-1 gap-2">
-            <p><strong>LOCADOR:</strong> CONSTRULARA RDM, estabelecida em São João del-Rei/MG.</p>
+            <p><strong>LOCADOR:</strong> BTM Comércio de Material de Construção Ltda (CONSTRULARA).</p>
             <p><strong>LOCATÁRIO:</strong> {rental.client || 'Não informado'}</p>
             <p><strong>CPF/CNPJ:</strong> {client?.cpf || '---'}</p>
             <p><strong>ENDEREÇO:</strong> {client?.address || '---'}, {client?.neighborhood || ''} - {client?.city || ''}/{client?.state || ''}</p>
@@ -83,12 +86,12 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
       <div className="mt-24 grid grid-cols-2 gap-16">
         <div className="text-center space-y-1">
           <div className="border-t border-slate-900 pt-2"></div>
-          <p className="font-bold text-xs">CONSTRULARA RDM</p>
+          <p className="font-bold text-xs uppercase">CONSTRULARA</p>
           <p className="text-[10px] uppercase">Locador</p>
         </div>
         <div className="text-center space-y-1">
           <div className="border-t border-slate-900 pt-2"></div>
-          <p className="font-bold text-xs">{rental.client}</p>
+          <p className="font-bold text-xs uppercase">{rental.client}</p>
           <p className="text-[10px] uppercase">Locatário</p>
         </div>
       </div>

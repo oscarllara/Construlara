@@ -3,7 +3,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, Facebook, Instagram, MapPin, MessageCircle, ExternalLink } from 'lucide-react';
+import { Mail, Phone, Facebook, Instagram, MapPin, MessageCircle, ExternalLink, Globe } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 
@@ -37,11 +37,11 @@ const ContactPage = () => {
 
   const socials = [
     { 
-      name: "Facebook", 
-      handle: "construlara rdm", 
-      icon: Facebook, 
-      color: "text-[#1877F2]", 
-      link: "https://facebook.com/construlara.rdm" 
+      name: "Website", 
+      handle: "www.construlara.com.br", 
+      icon: Globe, 
+      color: "text-blue-700", 
+      link: "http://www.construlara.com.br" 
     },
     { 
       name: "Instagram", 
@@ -53,7 +53,7 @@ const ContactPage = () => {
   ];
 
   const handleOpenMaps = () => {
-    window.open("https://www.google.com/maps/search/Construlara+São+João+del-Rei", "_blank");
+    window.open("https://www.google.com/maps/search/Rua+Maestro+José+Cândido+das+Neves,+38A+-+Centro+-+Rio+das+Mortes+-+MG", "_blank");
   };
 
   return (
@@ -61,7 +61,7 @@ const ContactPage = () => {
       <div className="max-w-4xl mx-auto space-y-10">
         <div className="text-center space-y-4">
           <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Canais de Atendimento</h2>
-          <p className="text-slate-500 font-medium text-lg">Estamos aqui para ajudar você com qualquer dúvida ou suporte técnico.</p>
+          <p className="text-slate-500 font-medium text-lg">BTM Comércio de Material de Construção Ltda</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -91,7 +91,7 @@ const ContactPage = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-blue-50/50 border border-blue-100 overflow-hidden relative">
             <div className="relative z-10 space-y-8">
-              <h3 className="text-2xl font-black tracking-tight text-slate-900">Redes Sociais</h3>
+              <h3 className="text-2xl font-black tracking-tight text-slate-900">Redes & Site</h3>
               <div className="space-y-6">
                 {socials.map((social, i) => (
                   <a 
@@ -103,11 +103,7 @@ const ContactPage = () => {
                   >
                     <div className="flex items-center gap-5">
                       <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        {social.name === "Instagram" ? (
-                          <Instagram className="h-8 w-8 text-[#E4405F]" />
-                        ) : (
-                          <Facebook className="h-8 w-8 text-[#1877F2]" />
-                        )}
+                        <social.icon className={cn("h-8 w-8", social.name === "Website" ? "text-blue-700" : "text-[#E4405F]")} />
                       </div>
                       <div>
                         <p className={cn("font-black text-xl leading-none", social.color)}>
@@ -123,9 +119,6 @@ const ContactPage = () => {
                 ))}
               </div>
             </div>
-            <div className="absolute -bottom-10 -right-10 opacity-[0.03] pointer-events-none">
-              <img src="/logoconstrulara.png" alt="" className="w-64 h-64 grayscale" />
-            </div>
           </Card>
 
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-white border border-slate-100 flex flex-col justify-center items-center text-center space-y-6">
@@ -134,8 +127,10 @@ const ContactPage = () => {
             </div>
             <div className="space-y-2">
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Localização</h3>
-              <p className="text-slate-500 font-medium">
-                Visite nossa unidade física para conhecer nosso catálogo completo de equipamentos.
+              <p className="text-slate-500 font-bold text-sm">
+                Rua Maestro José Cândido das Neves, 38A<br />
+                Centro - Rio das Mortes - MG<br />
+                CEP 36315-000
               </p>
             </div>
             <Button 
