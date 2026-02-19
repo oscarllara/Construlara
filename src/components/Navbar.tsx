@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,8 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
-  const userRole = localStorage.getItem('userRole') || 'Usuário';
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
   const userEmail = localStorage.getItem('userEmail') || '';
 
   const updateCartCount = () => {
@@ -53,15 +54,20 @@ const Navbar = () => {
     };
   }, []);
 
+  // Lógica de permissões de menu
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
-    { name: 'Loja', path: '/', icon: ShoppingBag },
-    { name: 'Equipamentos', path: '/equipamentos', icon: Hammer },
-    { name: 'Aluguéis', path: '/alugueis', icon: Receipt },
-    { name: 'Usuários', path: '/usuarios', icon: Users },
-    { name: 'Relatórios', path: '/relatorios', icon: BarChart3 },
-    { name: 'Contato', path: '/contato', icon: PhoneCall },
+    { name: 'Dashboard', path: '/', icon: LayoutGrid, roles: ['Gestor', 'Vendas', 'Entregador'] },
+    { name: 'Loja', path: '/loja', icon: ShoppingBag, roles: ['all'] },
+    { name: 'Equipamentos', path: '/equipamentos', icon: Hammer, roles: ['all'] },
+    { name: 'Aluguéis', path: '/alugueis', icon: Receipt, roles: ['Gestor', 'Vendas', 'Entregador', 'Cliente'] },
+    { name: 'Usuários', path: '/usuarios', icon: Users, roles: ['Gestor'] },
+    { name: 'Relatórios', path: '/relatorios', icon: BarChart3, roles: ['Gestor', 'Vendas'] },
+    { name: 'Contato', path: '/contato', icon: PhoneCall, roles: ['all'] },
   ];
+
+  const filteredItems = navItems.filter(item => 
+    item.roles.includes('all') || item.roles.includes(userRole)
+  );
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -75,14 +81,14 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
       <div className="container flex h-24 items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/dashboard" className="flex items-center group">
+          <Link to={isLoggedIn ? "/" : "/loja"} className="flex items-center group">
             <div className="h-24 w-64 flex items-center justify-start transition-transform group-hover:scale-105">
               <img src="/logoconstrulara.png" alt="Construlara Logo" className="h-full w-full object-contain object-left" />
             </div>
           </Link>
 
           <div className="hidden lg:flex items-center gap-0.5">
-            {navItems.map((item) => (
+            {filteredItems.map((item) => (
               <Link 
                 key={item.path} 
                 to={item.path}
@@ -108,43 +114,51 @@ const Navbar = () => {
           </Button>
 
           <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
-            <NotificationBell />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-12 w-12 rounded-full p-0 hover:bg-transparent focus-visible:ring-0">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center border-2 border-white shadow-md hover:scale-105 transition-transform">
-                    <User className="h-5 w-5 text-white" />
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-2xl mt-2 z-[100]" align="end">
-                <DropdownMenuLabel className="px-4 py-3">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-black text-slate-900 leading-none">Minha Conta</p>
-                    <p className="text-xs font-bold text-slate-400 truncate">{userEmail}</p>
-                    <Badge className="w-fit mt-2 bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase">{userRole}</Badge>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-100 my-2" />
-                <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
-                  <UserCircle className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Meu Perfil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
-                  <ShoppingBag className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Pedidos</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
-                  <FileText className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
-                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-100 my-2" />
-                <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group">
-                  <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-red-600" />
-                  <span className="font-bold text-slate-600 group-hover:text-red-700">Sair do Sistema</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isLoggedIn ? (
+              <>
+                <NotificationBell />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-12 w-12 rounded-full p-0 hover:bg-transparent focus-visible:ring-0">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center border-2 border-white shadow-md hover:scale-105 transition-transform">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-2xl mt-2 z-[100]" align="end">
+                    <DropdownMenuLabel className="px-4 py-3">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-black text-slate-900 leading-none">Minha Conta</p>
+                        <p className="text-xs font-bold text-slate-400 truncate">{userEmail}</p>
+                        <Badge className="w-fit mt-2 bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase">{userRole}</Badge>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                    <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                      <UserCircle className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                      <span className="font-bold text-slate-600 group-hover:text-blue-700">Meu Perfil</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                      <ShoppingBag className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                      <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Pedidos</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                      <FileText className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                      <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                    <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group">
+                      <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-red-600" />
+                      <span className="font-bold text-slate-600 group-hover:text-red-700">Sair do Sistema</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <Button onClick={() => navigate('/login')} variant="ghost" className="rounded-xl font-bold gap-2 text-blue-700 hover:bg-blue-50">
+                <LogIn className="h-4 w-4" /> Entrar
+              </Button>
+            )}
           </div>
         </div>
       </div>

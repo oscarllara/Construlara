@@ -35,7 +35,13 @@ const Login = () => {
       localStorage.setItem('userRole', role);
       localStorage.setItem('userEmail', email);
       showSuccess(`Bem-vindo de volta, ${role}!`);
-      navigate('/');
+      
+      // Redireciona para a Dashboard (/) se for Gestor/Vendas/Entregador, ou Loja se for Cliente
+      if (role === 'Cliente') {
+        navigate('/loja');
+      } else {
+        navigate('/');
+      }
     } else {
       showError("Credenciais inválidas.");
     }

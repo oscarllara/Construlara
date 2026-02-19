@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon, Maximize2 } from 'lucide-react';
+import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon, Maximize2, Lock } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import Calculators from './Calculators';
 import { cn } from "@/lib/utils";
+import { useNavigate } from 'react-router-dom';
 
 export interface Product {
   id: string;
@@ -44,7 +45,13 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const [quantity, setQuantity] = useState<number | string>(1);
   const [desiredAmount, setDesiredAmount] = useState<string>("");
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const navigate = useNavigate();
   
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const canSeePrice = isLoggedIn && userRole !== 'Cliente';
+  const canEdit = isLoggedIn && ['Gestor', 'Vendas'].includes(userRole);
+
   const hasPromo = product.isPromo && product.promoPrice;
   const currentPrice = hasPromo ? product.promoPrice! : product.price;
 
@@ -75,19 +82,29 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
     if (!isNaN(num)) setQuantity(num);
   };
 
+  const handleAction = () => {
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    onAddToCart(product, calculatedPacks, totalAmount);
+  };
+
   return (
     <Card className={cn(
       "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2.5rem] bg-white group relative flex flex-col h-full",
       product.isFeatured && "ring-2 ring-blue-500 ring-offset-2"
     )}>
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={() => onEdit(product)}
-        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-blue-50 hover:text-blue-600 z-20"
-      >
-        <Pencil className="h-4 w-4" />
-      </Button>
+      {canEdit && (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => onEdit(product)}
+          className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-blue-50 hover:text-blue-600 z-20"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+      )}
 
       {product.isFeatured && (
         <div className="absolute top-4 left-4 z-10">
@@ -129,13 +146,22 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         <p className="text-xs text-slate-500 font-medium line-clamp-2">{product.description}</p>
         
         <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
-            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase border border-blue-100">
-              / {product.unitLabel || 'un'}
-            </span>
-          </div>
-          {hasPromo && <span className="text-xs text-slate-400 line-through font-bold">De R$ {product.price.toFixed(2)}</span>}
+          {canSeePrice ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
+                <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase border border-blue-100">
+                  / {product.unitLabel || 'un'}
+                </span>
+              </div>
+              {hasPromo && <span className="text-xs text-slate-400 line-through font-bold">De R$ {product.price.toFixed(2)}</span>}
+            </>
+          ) : (
+            <div className="flex items-center gap-2 text-slate-400 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
+              <Lock className="h-4 w-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Preço sob consulta</span>
+            </div>
+          )}
         </div>
 
         {isPackaged && (
@@ -176,22 +202,23 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         )}
 
         <div className="w-full space-y-2">
-          <div className="flex justify-between items-end px-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
-            <span className="text-xl font-black text-slate-900">R$ {totalPrice.toFixed(2)}</span>
-          </div>
+          {canSeePrice && (
+            <div className="flex justify-between items-end px-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
+              <span className="text-xl font-black text-slate-900">R$ {totalPrice.toFixed(2)}</span>
+            </div>
+          )}
           <Button 
-            onClick={() => onAddToCart(product, calculatedPacks, totalAmount)}
+            onClick={handleAction}
             disabled={(isPackaged && !desiredAmount) || (!isPackaged && currentQuantity === 0)}
             className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-black gap-3 h-14 transition-all shadow-xl shadow-blue-100 hover:-translate-y-1 active:scale-95"
           >
             <ShoppingCart className="h-5 w-5" />
-            {isPackaged ? `Levar ${calculatedPacks} caixas` : 'Comprar'}
+            {!isLoggedIn ? 'Entrar para Comprar' : isPackaged ? `Levar ${calculatedPacks} caixas` : 'Comprar'}
           </Button>
         </div>
       </CardFooter>
 
-      {/* Modal de Zoom Padronizado */}
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
         <DialogContent className="max-w-[95vw] md:max-w-[700px] p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
           <div className="relative w-full flex flex-col items-center justify-center p-4">
@@ -206,7 +233,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
               <h2 className="text-2xl font-black text-slate-900 leading-tight">{product.name}</h2>
               <div className="flex items-center justify-center gap-3 mt-2">
                 <Badge className="bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase px-3 py-1">{product.category}</Badge>
-                <span className="text-lg font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
+                {canSeePrice && <span className="text-lg font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>}
               </div>
             </div>
           </div>

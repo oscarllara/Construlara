@@ -21,9 +21,16 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const userRole = localStorage.getItem('userRole') || '';
+
   if (!isLoggedIn) return <Navigate to="/login" replace />;
+  
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    return <Navigate to="/loja" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -33,20 +40,29 @@ const App = () => (
       <Toaster /><Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Rotas Públicas */}
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
-          <Route path="/trocar-senha" element={<ChangePassword />} />
-          <Route path="/" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/equipamentos" element={<ProtectedRoute><Equipments /></ProtectedRoute>} />
-          <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="/loja" element={<Products />} />
+          <Route path="/equipamentos" element={<Equipments />} />
+          <Route path="/contato" element={<Contact />} />
+          <Route path="/termos" element={<Terms />} />
+          <Route path="/privacidade" element={<Privacy />} />
+
+          {/* Rotas Protegidas - Dashboard é a Home para logados */}
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          
+          {/* Rotas de Gestão - Apenas Gestor e Vendas */}
+          <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['Gestor']}><Users /></ProtectedRoute>} />
+          <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['Gestor', 'Vendas']}><Reports /></ProtectedRoute>} />
+          
+          {/* Rotas de Operação - Logado (Qualquer cargo) */}
           <Route path="/alugueis" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
-          <Route path="/usuarios" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-          <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-          <Route path="/contato" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/termos" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-          <Route path="/privacidade" element={<ProtectedRoute><Privacy /></ProtectedRoute>} />
+          <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="/trocar-senha" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
