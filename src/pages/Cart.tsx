@@ -182,7 +182,7 @@ const CartPage = () => {
           <h2 className="text-3xl font-black text-slate-900">Seu carrinho está vazio</h2>
           <p className="text-slate-500 font-medium">Que tal dar uma olhada nos nossos produtos?</p>
           <div className="flex justify-center gap-4">
-            <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
+            <Button onClick={() => navigate('/loja')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
               Ir para a Loja
             </Button>
             <Button variant="outline" onClick={() => setIsManualOpen(true)} className="rounded-2xl font-bold px-8 h-12 border-slate-200">
@@ -244,7 +244,7 @@ const CartPage = () => {
     <AppLayout>
       <div className="max-w-5xl mx-auto space-y-10">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate('/')} className="rounded-xl gap-2 font-bold text-slate-500">
+          <Button variant="ghost" onClick={() => navigate('/loja')} className="rounded-xl gap-2 font-bold text-slate-500">
             <ArrowLeft className="h-4 w-4" /> Continuar Comprando
           </Button>
           <div className="flex items-center gap-4">
