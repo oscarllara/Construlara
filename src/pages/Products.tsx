@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Calculator as CalcIcon, Plus, PackagePlus } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_CATEGORIES = [
@@ -40,8 +40,16 @@ const ProductsPage = () => {
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
+    // Verifica se há uma categoria na URL
+    const catParam = searchParams.get('category');
+    if (catParam) {
+      setSelectedCategory(catParam);
+      setShowCalculators(false);
+    }
+
     try {
       const savedProducts = localStorage.getItem('app_products');
       if (savedProducts) {
@@ -67,7 +75,7 @@ const ProductsPage = () => {
     } catch (e) {
       setCategories(DEFAULT_CATEGORIES);
     }
-  }, []);
+  }, [searchParams]);
 
   const saveProducts = (newProducts: Product[]) => {
     setProducts(newProducts);
@@ -110,7 +118,6 @@ const ProductsPage = () => {
   };
 
   const handleAddToCart = (product: Product, quantity: number, totalAmount?: number) => {
-    // Validação de segurança para evitar NaN ou valores inválidos
     const safeQuantity = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
     const safeTotalAmount = isNaN(totalAmount || 0) || (totalAmount || 0) <= 0 ? safeQuantity : totalAmount;
 
@@ -208,7 +215,10 @@ const ProductsPage = () => {
 
               <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 <button 
-                  onClick={() => setSelectedCategory("Todas")}
+                  onClick={() => {
+                    setSelectedCategory("Todas");
+                    setSearchParams({});
+                  }}
                   className={cn(
                     "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all",
                     selectedCategory === "Todas" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
@@ -219,7 +229,10 @@ const ProductsPage = () => {
                 {categories.map(cat => (
                   <button 
                     key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setSearchParams({ category: cat });
+                    }}
                     className={cn(
                       "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all",
                       selectedCategory === cat ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"

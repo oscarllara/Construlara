@@ -56,8 +56,8 @@ const Calculators = () => {
           <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full overflow-x-auto flex-nowrap justify-start md:justify-center">
             <TabsTrigger value="piso" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Pisos</TabsTrigger>
             <TabsTrigger value="parede" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Paredes</TabsTrigger>
-            <TabsTrigger value="forro" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Forro</TabsTrigger>
             <TabsTrigger value="argamassa" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Argamassa</TabsTrigger>
+            <TabsTrigger value="forro" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Forro</TabsTrigger>
           </TabsList>
 
           {/* PISO */}
@@ -148,38 +148,6 @@ const Calculators = () => {
             </button>
           </TabsContent>
 
-          {/* FORRO */}
-          <TabsContent value="forro" className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-bold">Largura do Teto (m)</Label>
-                <Input type="number" value={ceilingDim.w} onChange={e => setCeilingDim({...ceilingDim, w: e.target.value})} className="rounded-xl h-12" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Comprimento do Teto (m)</Label>
-                <Input type="number" value={ceilingDim.l} onChange={e => setCeilingDim({...ceilingDim, l: e.target.value})} className="rounded-xl h-12" />
-              </div>
-            </div>
-            <button 
-              onClick={() => goToCategory("Telhas")}
-              className="w-full bg-purple-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-purple-100 transition-all group text-left border-2 border-transparent hover:border-purple-200"
-            >
-              <div>
-                <p className="text-[10px] font-black text-purple-400 uppercase">Área do Forro</p>
-                <p className="text-2xl font-black text-slate-900">{ceilingArea.toFixed(2)} m²</p>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-purple-600 uppercase">Total (+5%)</p>
-                  <p className="text-2xl font-black text-purple-700">{(ceilingArea * 1.05).toFixed(2)} m²</p>
-                </div>
-                <div className="h-10 w-10 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                  <ArrowRight className="h-5 w-5" />
-                </div>
-              </div>
-            </button>
-          </TabsContent>
-
           {/* ARGAMASSA */}
           <TabsContent value="argamassa" className="space-y-6">
             <div className="space-y-4">
@@ -215,7 +183,7 @@ const Calculators = () => {
             </div>
 
             <button 
-              onClick={() => goToCategory("Material de construção")}
+              onClick={() => goToCategory("Cimento e Ferragens")}
               className="w-full bg-orange-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-orange-100 transition-all group text-left border-2 border-transparent hover:border-orange-200"
             >
               <div>
@@ -228,6 +196,38 @@ const Calculators = () => {
                   <p className="text-2xl font-black text-orange-700">{bags20kg} sacos</p>
                 </div>
                 <div className="h-10 w-10 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                  <ArrowRight className="h-5 w-5" />
+                </div>
+              </div>
+            </button>
+          </TabsContent>
+
+          {/* FORRO */}
+          <TabsContent value="forro" className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-bold">Largura do Teto (m)</Label>
+                <Input type="number" value={ceilingDim.w} onChange={e => setCeilingDim({...ceilingDim, w: e.target.value})} className="rounded-xl h-12" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Comprimento do Teto (m)</Label>
+                <Input type="number" value={ceilingDim.l} onChange={e => setCeilingDim({...ceilingDim, l: e.target.value})} className="rounded-xl h-12" />
+              </div>
+            </div>
+            <button 
+              onClick={() => goToCategory("Telhas")}
+              className="w-full bg-purple-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-purple-100 transition-all group text-left border-2 border-transparent hover:border-purple-200"
+            >
+              <div>
+                <p className="text-[10px] font-black text-purple-400 uppercase">Área do Forro</p>
+                <p className="text-2xl font-black text-slate-900">{ceilingArea.toFixed(2)} m²</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-purple-600 uppercase">Total (+5%)</p>
+                  <p className="text-2xl font-black text-purple-700">{(ceilingArea * 1.05).toFixed(2)} m²</p>
+                </div>
+                <div className="h-10 w-10 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
                   <ArrowRight className="h-5 w-5" />
                 </div>
               </div>
