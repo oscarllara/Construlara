@@ -19,7 +19,6 @@ import { User, Hammer, MapPin, Phone, Mail, FileText, AlertCircle, CheckCircle2,
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
-import { differenceInDays } from 'date-fns';
 import { showSuccess } from '@/utils/toast';
 import RentalContract from './RentalContract';
 
@@ -42,7 +41,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const [modality, setModality] = useState("");
   const [totalValue, setTotalValue] = useState<string>("0");
 
-  // Estado para Devolução
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnStatus, setReturnStatus] = useState<'available' | 'maintenance'>('available');
 
@@ -50,8 +48,15 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     if (rental && open) {
       setStatus(rental.status);
       setNotes(rental.notes || "");
-      setStartDate(rental.start.includes('/') ? rental.start.split('/').reverse().join('-') : rental.start);
-      setEndDate(rental.end.includes('/') ? rental.end.split('/').reverse().join('-') : rental.end);
+      // Converte datas para o formato de input date (YYYY-MM-DD)
+      const formatToInput = (dateStr: string) => {
+        if (!dateStr) return "";
+        if (dateStr.includes('/')) return dateStr.split('/').reverse().join('-');
+        return dateStr;
+      };
+      
+      setStartDate(formatToInput(rental.start));
+      setEndDate(formatToInput(rental.end));
       setModality(rental.modality || "Diária");
       setTotalValue(rental.total?.toString() || "0");
       setShowReturnForm(false);
@@ -75,18 +80,27 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   const currentClient = useMemo(() => allClients.find(c => c.id === selectedClientId), [selectedClientId, allClients]);
 
-  const handleSave = () => {
-    onUpdate({ 
-      ...rental, 
-      status, 
-      notes,
+  // Objeto de contrato atualizado com os dados da tela
+  const currentRentalData = useMemo(() => {
+    if (!rental) return null;
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return "";
+      if (dateStr.includes('-')) return dateStr.split('-').reverse().join('/');
+      return dateStr;
+    };
+
+    return {
+      ...rental,
       client: currentClient?.name || rental.client,
-      clientId: selectedClientId,
-      start: startDate,
-      end: endDate,
+      start: formatDate(startDate),
+      end: formatDate(endDate),
       modality,
-      total: parseFloat(totalValue)
-    });
+      total: parseFloat(totalValue) || 0
+    };
+  }, [rental, currentClient, startDate, endDate, modality, totalValue]);
+
+  const handleSave = () => {
+    onUpdate(currentRentalData);
   };
 
   const handlePrint = () => {
@@ -94,14 +108,12 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   };
 
   const handleProcessReturn = () => {
-    // 1. Atualizar o aluguel para concluído
     const updatedRental = {
-      ...rental,
+      ...currentRentalData,
       status: 'completed',
       notes: notes + (notes ? "\n" : "") + `Devolvido em ${new Date().toLocaleDateString()} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
-    // 2. Atualizar o equipamento
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       const allEquip = JSON.parse(savedEquip);
@@ -333,8 +345,8 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </Button>
         </DialogFooter>
 
-        {/* Componente de Contrato Oculto (Apenas para Impressão) */}
-        <RentalContract rental={rental} client={currentClient} />
+        {/* Componente de Contrato (Visível apenas na impressão) */}
+        <RentalContract rental={currentRentalData} client={currentClient} />
       </DialogContent>
     </Dialog>
   );
