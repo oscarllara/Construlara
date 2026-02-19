@@ -21,6 +21,7 @@ import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
 import { showSuccess } from '@/utils/toast';
+import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
   rental: any;
@@ -88,6 +89,10 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     });
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleProcessReturn = () => {
     // 1. Atualizar o aluguel para concluído
     const updatedRental = {
@@ -116,7 +121,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden">
-        <div className="bg-blue-700 p-8 text-white">
+        <div className="bg-blue-700 p-8 text-white print:hidden">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-md border border-white/30">
@@ -144,7 +149,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </div>
         </div>
 
-        <div className="p-8 grid md:grid-cols-2 gap-10 max-h-[70vh] overflow-y-auto bg-white">
+        <div className="p-8 grid md:grid-cols-2 gap-10 max-h-[70vh] overflow-y-auto bg-white print:hidden">
           <div className="space-y-8">
             <section>
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -310,7 +315,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </div>
         </div>
 
-        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex flex-row items-center justify-between gap-4">
+        <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex flex-row items-center justify-between gap-4 print:hidden">
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl font-bold h-10 px-6 text-xs">
               Fechar
@@ -319,10 +324,17 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
               Salvar Alterações
             </Button>
           </div>
-          <Button variant="outline" className="rounded-xl font-bold h-10 px-6 text-xs border-slate-200 gap-2">
+          <Button 
+            onClick={handlePrint}
+            variant="outline" 
+            className="rounded-xl font-bold h-10 px-6 text-xs border-slate-200 gap-2"
+          >
             <FileText className="h-4 w-4" /> Imprimir Contrato
           </Button>
         </DialogFooter>
+
+        {/* Componente de Contrato Oculto (Apenas para Impressão) */}
+        <RentalContract rental={rental} client={currentClient} />
       </DialogContent>
     </Dialog>
   );

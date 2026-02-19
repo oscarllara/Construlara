@@ -46,3 +46,23 @@
 [data-radix-popper-content-wrapper] {
   z-index: 100 !important;
 }
+
+/* Estilos de Impressão */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-contract, #printable-contract * {
+    visibility: visible;
+  }
+  #printable-contract {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+  }
+  @page {
+    margin: 2cm;
+  }
+}
