@@ -74,7 +74,8 @@ const Navbar = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
     showSuccess("Sessão encerrada.");
-    navigate('/login');
+    // Redireciona para a página inicial (que levará à Loja se não estiver logado)
+    navigate('/');
   };
 
   return (
