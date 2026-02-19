@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Receipt, User, Hammer, Calendar, DollarSign, UserPlus } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, parseISO } from 'date-fns';
 import AddUserDialog from './AddUserDialog';
 import { showSuccess } from '@/utils/toast';
 
@@ -61,26 +61,32 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   useEffect(() => {
     if (!formData.startDate || !formData.endDate || !formData.equipmentId) return;
 
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
-    const totalDays = Math.max(1, differenceInDays(end, start));
+    const start = parseISO(formData.startDate);
+    const end = parseISO(formData.endDate);
+    const totalDays = differenceInDays(end, start) + 1; // Incluindo o dia inicial
     
-    if (differenceInDays(end, start) < 0) return;
+    if (totalDays <= 0) return;
 
     const equipment = equipments.find(e => e.id === formData.equipmentId);
     if (equipment) {
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
-      if (totalDays >= 30) {
+      // Nova Lógica de Preços de Aluguel:
+      // Diária: 1 a 3 dias.
+      // Semanal: 4 a 10 dias.
+      // Quinzenal: 11 a 19 dias.
+      // Mensal: 20 a 30 dias.
+
+      if (totalDays >= 20) {
         displayModality = "Mensal";
         calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
-      } else if (totalDays >= 15) {
+      } else if (totalDays >= 11) {
         displayModality = "Quinzenal";
-        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 12);
-      } else if (totalDays >= 7) {
+        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
+      } else if (totalDays >= 4) {
         displayModality = "Semanal";
-        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 6);
+        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4);
       } else {
         displayModality = "Diária";
         calculatedTotal = equipment.dailyRate * totalDays;
@@ -111,10 +117,18 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const client = clients.find(c => c.id === formData.clientId);
     const equipment = equipments.find(e => e.id === formData.equipmentId);
 
+    const formatDate = (dateStr: string) => {
+      return dateStr.split('-').reverse().join('/');
+    };
+
     onAdd({
       ...formData,
       clientName: client?.name,
+      clientId: client?.id,
       itemName: equipment?.name,
+      equipmentId: equipment?.id,
+      start: formatDate(formData.startDate),
+      end: formatDate(formData.endDate),
       totalValue: parseFloat(formData.totalValue)
     });
     
