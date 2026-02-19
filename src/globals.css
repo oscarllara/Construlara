@@ -47,47 +47,49 @@
   z-index: 100 !important;
 }
 
-/* Estilos de Impressão Refinados para A4 */
+/* Estilos de Impressão Ultra-Limpos para A4 */
 @media print {
   @page {
     size: A4;
-    margin: 1.5cm;
+    margin: 0; /* Remove margens do navegador para controle total */
   }
 
-  /* Esconde absolutamente tudo do site */
+  /* Esconde tudo */
   body * {
     visibility: hidden;
-    overflow: visible !important;
   }
   
-  /* Mostra apenas o contrato */
+  /* Mostra apenas o contrato e garante que ele ignore o posicionamento do modal */
   #printable-contract, #printable-contract * {
     visibility: visible;
   }
 
-  /* Reseta o posicionamento para o topo da folha A4 */
   #printable-contract {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
+    position: fixed !important; /* Fixa no topo absoluto da folha */
+    top: 0 !important;
+    left: 0 !important;
+    width: 210mm !important; /* Largura exata do A4 */
+    height: auto !important;
+    margin: 0 !important;
+    padding: 2cm !important; /* Margem interna de segurança para o texto */
     display: block !important;
     box-shadow: none !important;
     border: none !important;
     background: white !important;
-    color: black !important;
+    z-index: 9999 !important;
   }
 
-  /* Remove cores de fundo forçadas para economizar tinta e garantir contraste */
-  .print-bg-none {
-    background: none !important;
+  /* Remove qualquer overlay ou fundo escuro do modal que possa aparecer */
+  [role="dialog"], [data-state="open"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: static !important;
+    transform: none !important;
   }
 }
 
-/* Custom Scrollbar para listas longas */
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
