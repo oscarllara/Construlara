@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Hammer, Pencil, Hash, DollarSign } from 'lucide-react';
+import { Hammer, Pencil, Hash, DollarSign, Image as ImageIcon } from 'lucide-react';
 import { Equipment } from './EquipmentCard';
 
 interface EditEquipmentDialogProps {
@@ -31,7 +31,8 @@ const EditEquipmentDialog = ({ equipment, open, onOpenChange, onSave }: EditEqui
     dailyRate: "",
     weeklyRate: "",
     biweeklyRate: "",
-    monthlyRate: ""
+    monthlyRate: "",
+    image: ""
   });
 
   useEffect(() => {
@@ -43,7 +44,8 @@ const EditEquipmentDialog = ({ equipment, open, onOpenChange, onSave }: EditEqui
         dailyRate: equipment.dailyRate.toString(),
         weeklyRate: equipment.weeklyRate?.toString() || "",
         biweeklyRate: equipment.biweeklyRate?.toString() || "",
-        monthlyRate: equipment.monthlyRate?.toString() || ""
+        monthlyRate: equipment.monthlyRate?.toString() || "",
+        image: equipment.image || ""
       });
     }
   }, [equipment, open]);
@@ -60,6 +62,7 @@ const EditEquipmentDialog = ({ equipment, open, onOpenChange, onSave }: EditEqui
       weeklyRate: formData.weeklyRate ? parseFloat(formData.weeklyRate) : undefined,
       biweeklyRate: formData.biweeklyRate ? parseFloat(formData.biweeklyRate) : undefined,
       monthlyRate: formData.monthlyRate ? parseFloat(formData.monthlyRate) : undefined,
+      image: formData.image
     });
   };
 
@@ -121,6 +124,19 @@ const EditEquipmentDialog = ({ equipment, open, onOpenChange, onSave }: EditEqui
                   className="pl-12 rounded-2xl border-slate-200 h-12 text-base"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-slate-700 font-bold text-sm">URL da Imagem</Label>
+            <div className="relative">
+              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Input 
+                placeholder="https://exemplo.com/imagem.jpg" 
+                value={formData.image}
+                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                className="pl-12 rounded-2xl border-slate-200 h-12 text-base"
+              />
             </div>
           </div>
 

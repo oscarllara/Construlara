@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon } from 'lucide-react';
+import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon, Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const [imgError, setImgError] = useState(false);
   const [quantity, setQuantity] = useState<number | string>(1);
   const [desiredAmount, setDesiredAmount] = useState<string>("");
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
   
   const hasPromo = product.isPromo && product.promoPrice;
   const currentPrice = hasPromo ? product.promoPrice! : product.price;
@@ -96,9 +97,17 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </div>
       )}
       
-      <div className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0">
+      <div 
+        className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0 cursor-zoom-in"
+        onClick={() => setIsZoomOpen(true)}
+      >
         {!imgError && product.image ? (
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={() => setImgError(true)} />
+          <>
+            <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={() => setImgError(true)} />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <Maximize2 className="text-white opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8" />
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-300">
             <Package className="h-16 w-16 mb-2" />
@@ -181,6 +190,23 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
           </Button>
         </div>
       </CardFooter>
+
+      {/* Modal de Zoom */}
+      <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
+        <DialogContent className="max-w-4xl p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center p-4">
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className="max-w-full max-h-[90vh] object-contain rounded-[2rem] shadow-2xl" 
+            />
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md px-8 py-4 rounded-[2rem] shadow-xl text-center">
+              <h2 className="text-xl font-black text-slate-900">{product.name}</h2>
+              <p className="text-sm font-bold text-blue-600">{product.category}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

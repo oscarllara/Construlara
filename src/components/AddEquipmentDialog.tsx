@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Hammer, PlusCircle, Hash, DollarSign } from 'lucide-react';
+import { Hammer, PlusCircle, Hash, DollarSign, Image as ImageIcon } from 'lucide-react';
 import { Equipment } from './EquipmentCard';
 
 interface AddEquipmentDialogProps {
@@ -30,7 +30,8 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
     dailyRate: "",
     weeklyRate: "",
     biweeklyRate: "",
-    monthlyRate: ""
+    monthlyRate: "",
+    image: ""
   });
 
   const handleSubmit = () => {
@@ -44,6 +45,7 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
       weeklyRate: formData.weeklyRate ? parseFloat(formData.weeklyRate) : undefined,
       biweeklyRate: formData.biweeklyRate ? parseFloat(formData.biweeklyRate) : undefined,
       monthlyRate: formData.monthlyRate ? parseFloat(formData.monthlyRate) : undefined,
+      image: formData.image
     });
     
     setFormData({ 
@@ -53,7 +55,8 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
       dailyRate: "",
       weeklyRate: "",
       biweeklyRate: "",
-      monthlyRate: ""
+      monthlyRate: "",
+      image: ""
     });
   };
 
@@ -115,6 +118,19 @@ const AddEquipmentDialog = ({ open, onOpenChange, onAdd }: AddEquipmentDialogPro
                   className="pl-12 rounded-2xl border-slate-200 h-12 text-base"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-slate-700 font-bold text-sm">URL da Imagem</Label>
+            <div className="relative">
+              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Input 
+                placeholder="https://exemplo.com/imagem.jpg" 
+                value={formData.image}
+                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                className="pl-12 rounded-2xl border-slate-200 h-12 text-base"
+              />
             </div>
           </div>
 

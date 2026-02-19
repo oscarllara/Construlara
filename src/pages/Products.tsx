@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import ProductCard, { Product } from '@/components/ProductCard';
 import Calculators from '@/components/Calculators';
@@ -8,7 +8,7 @@ import AddProductDialog from '@/components/AddProductDialog';
 import AddCategoryDialog from '@/components/AddCategoryDialog';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Calculator as CalcIcon, Plus, PackagePlus } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Plus, PackagePlus, ArrowUpDown } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -34,6 +34,7 @@ const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [showCalculators, setShowCalculators] = useState(false);
+  const [sortBy, setSortBy] = useState<'alpha' | 'popular'>('alpha');
   
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -43,7 +44,6 @@ const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    // Verifica se há uma categoria na URL
     const catParam = searchParams.get('category');
     if (catParam) {
       setSelectedCategory(catParam);
@@ -155,11 +155,42 @@ const ProductsPage = () => {
     }
   };
 
-  const filtered = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "Todas" || p.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Lógica de popularidade baseada em pedidos reais
+  const productPopularity = useMemo(() => {
+    const savedOrders = localStorage.getItem('app_orders');
+    const popularityMap: Record<string, number> = {};
+    
+    if (savedOrders) {
+      const orders = JSON.parse(savedOrders);
+      orders.forEach((order: any) => {
+        order.items.forEach((item: any) => {
+          popularityMap[item.id] = (popularityMap[item.id] || 0) + 1;
+        });
+      });
+    }
+    return popularityMap;
+  }, [products]);
+
+  const filtered = useMemo(() => {
+    let result = products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "Todas" || p.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    // Ordenação
+    result.sort((a, b) => {
+      if (sortBy === 'popular') {
+        const popA = productPopularity[a.id] || 0;
+        const popB = productPopularity[b.id] || 0;
+        if (popA !== popB) return popB - popA;
+      }
+      // Fallback para alfabético
+      return a.name.localeCompare(b.name);
+    });
+
+    return result;
+  }, [products, searchTerm, selectedCategory, sortBy, productPopularity]);
 
   return (
     <AppLayout>
@@ -170,6 +201,14 @@ const ProductsPage = () => {
             <p className="text-slate-500 font-medium">Materiais de construção e linha pet completa</p>
           </div>
           <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              onClick={() => setSortBy(sortBy === 'alpha' ? 'popular' : 'alpha')}
+              className="rounded-2xl border-slate-200 font-bold gap-2 h-12 px-6 bg-white"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              {sortBy === 'alpha' ? 'Ordem Alfabética' : 'Mais Vendidos'}
+            </Button>
             <Button 
               onClick={() => setShowCalculators(!showCalculators)}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-blue-100"

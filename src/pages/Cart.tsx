@@ -6,16 +6,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2, Box, Store } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, MessageCircle, CreditCard, ArrowLeft, Copy, CheckCircle2, Box, Store, PlusCircle, FileText } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const PIX_KEY = "16403481000116";
 
 const CartPage = () => {
   const [cart, setCart] = useState<any[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'whatsapp' | 'store'>('whatsapp');
+  const [isManualOpen, setIsManualOpen] = useState(false);
+  const [manualItem, setManualItem] = useState({ name: "", quantity: "1", notes: "" });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,7 +83,29 @@ const CartPage = () => {
     showSuccess("Item removido do carrinho.");
   };
 
+  const handleAddManualItem = () => {
+    if (!manualItem.name) return;
+    
+    const newItem = {
+      id: `manual-${Date.now()}`,
+      name: manualItem.name,
+      quantity: parseInt(manualItem.quantity) || 1,
+      price: 0,
+      isManual: true,
+      notes: manualItem.notes,
+      image: "",
+      code: "MANUAL",
+      category: "Pedido Manual"
+    };
+    
+    saveCart([...cart, newItem]);
+    setManualItem({ name: "", quantity: "1", notes: "" });
+    setIsManualOpen(false);
+    showSuccess("Item manual adicionado!");
+  };
+
   const total = cart.reduce((acc, item) => {
+    if (item.isManual) return acc;
     const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
     const amount = item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0);
     return acc + (price * amount);
@@ -98,6 +133,9 @@ const CartPage = () => {
       localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
 
       const itemsList = cart.map(item => {
+        if (item.isManual) {
+          return `• [MANUAL] ${item.quantity}x ${item.name} ${item.notes ? `(${item.notes})` : ''} - R$ A combinar`;
+        }
         const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
         const detail = item.isFractional 
           ? `${item.quantity} cx (${(item.totalAmount || 0).toFixed(2)}${item.unitLabel || 'un'})`
@@ -111,7 +149,7 @@ const CartPage = () => {
         `*ID:* ${orderId}\n` +
         `*Data:* ${orderDate}\n\n` +
         `*Itens:*\n${itemsList}\n\n` +
-        `*Total:* R$ ${total.toFixed(2)}\n` +
+        `*Total:* R$ ${total > 0 ? total.toFixed(2) : 'A combinar'}\n` +
         `*Pagamento:* ${methodLabel}\n\n` +
         `Por favor, confirme meu pedido!`;
 
@@ -143,10 +181,61 @@ const CartPage = () => {
           </div>
           <h2 className="text-3xl font-black text-slate-900">Seu carrinho está vazio</h2>
           <p className="text-slate-500 font-medium">Que tal dar uma olhada nos nossos produtos?</p>
-          <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
-            Ir para a Loja
-          </Button>
+          <div className="flex justify-center gap-4">
+            <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold px-8 h-12">
+              Ir para a Loja
+            </Button>
+            <Button variant="outline" onClick={() => setIsManualOpen(true)} className="rounded-2xl font-bold px-8 h-12 border-slate-200">
+              Pedido Manual
+            </Button>
+          </div>
         </div>
+
+        <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
+          <DialogContent className="sm:max-w-[500px] rounded-[3rem] p-8 border-none shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                <PlusCircle className="h-7 w-7 text-blue-600" /> Pedido Manual
+              </DialogTitle>
+              <DialogDescription className="font-medium">
+                Adicione um item que não encontrou no catálogo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="font-bold">Nome do Produto/Material</Label>
+                <Input 
+                  placeholder="Ex: Areia Lavada (m³)" 
+                  value={manualItem.name}
+                  onChange={(e) => setManualItem({...manualItem, name: e.target.value})}
+                  className="rounded-xl h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Quantidade</Label>
+                <Input 
+                  type="number" 
+                  value={manualItem.quantity}
+                  onChange={(e) => setManualItem({...manualItem, quantity: e.target.value})}
+                  className="rounded-xl h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Observações (Opcional)</Label>
+                <Textarea 
+                  placeholder="Detalhes como cor, marca ou especificações..." 
+                  value={manualItem.notes}
+                  onChange={(e) => setManualItem({...manualItem, notes: e.target.value})}
+                  className="rounded-xl min-h-[100px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsManualOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+              <Button onClick={handleAddManualItem} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold px-8">Adicionar ao Carrinho</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     );
   }
@@ -158,7 +247,12 @@ const CartPage = () => {
           <Button variant="ghost" onClick={() => navigate('/')} className="rounded-xl gap-2 font-bold text-slate-500">
             <ArrowLeft className="h-4 w-4" /> Continuar Comprando
           </Button>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Meu Carrinho</h2>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => setIsManualOpen(true)} className="rounded-xl gap-2 font-bold border-slate-200 h-10">
+              <PlusCircle className="h-4 w-4" /> Item Manual
+            </Button>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Meu Carrinho</h2>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-10">
@@ -166,8 +260,12 @@ const CartPage = () => {
             {cart.map((item) => (
               <Card key={item.id} className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden group">
                 <div className="flex items-center p-4 gap-6">
-                  <div className="h-24 w-24 rounded-2xl overflow-hidden bg-slate-100 shrink-0">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  <div className="h-24 w-24 rounded-2xl overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <FileText className="h-10 w-10 text-slate-300" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <h4 className="font-black text-slate-900">{item.name}</h4>
@@ -178,6 +276,11 @@ const CartPage = () => {
                       {item.isFractional && (
                         <Badge className="bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase flex items-center gap-1">
                           <Box className="h-3 w-3" /> Venda por Caixa
+                        </Badge>
+                      )}
+                      {item.isManual && (
+                        <Badge className="bg-orange-50 text-orange-700 border-none text-[10px] font-black uppercase">
+                          Item Manual
                         </Badge>
                       )}
                     </div>
@@ -198,17 +301,19 @@ const CartPage = () => {
                         </Button>
                       </div>
                       
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-400 uppercase">Total {item.unitLabel || 'un'}</span>
-                        <span className="font-black text-slate-900">
-                          {item.isFractional ? (item.totalAmount || 0).toFixed(2) : (item.quantity || 0)} {item.unitLabel || 'un'}
-                        </span>
-                      </div>
+                      {!item.isManual && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-400 uppercase">Total {item.unitLabel || 'un'}</span>
+                          <span className="font-black text-slate-900">
+                            {item.isFractional ? (item.totalAmount || 0).toFixed(2) : (item.quantity || 0)} {item.unitLabel || 'un'}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex flex-col ml-auto pr-4">
                         <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
                         <span className="font-black text-blue-700">
-                          R$ {((item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}
+                          {item.isManual ? "A combinar" : `R$ ${((item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}`}
                         </span>
                       </div>
                     </div>
@@ -243,7 +348,9 @@ const CartPage = () => {
                 </div>
                 <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
                   <span className="font-black text-slate-900">Total</span>
-                  <span className="text-3xl font-black text-blue-700">R$ {total.toFixed(2)}</span>
+                  <span className="text-3xl font-black text-blue-700">
+                    {total > 0 ? `R$ ${total.toFixed(2)}` : "A combinar"}
+                  </span>
                 </div>
               </div>
 
@@ -308,6 +415,52 @@ const CartPage = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-[3rem] p-8 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black flex items-center gap-3">
+              <PlusCircle className="h-7 w-7 text-blue-600" /> Pedido Manual
+            </DialogTitle>
+            <DialogDescription className="font-medium">
+              Adicione um item que não encontrou no catálogo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="font-bold">Nome do Produto/Material</Label>
+              <Input 
+                placeholder="Ex: Areia Lavada (m³)" 
+                value={manualItem.name}
+                onChange={(e) => setManualItem({...manualItem, name: e.target.value})}
+                className="rounded-xl h-12"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Quantidade</Label>
+              <Input 
+                type="number" 
+                value={manualItem.quantity}
+                onChange={(e) => setManualItem({...manualItem, quantity: e.target.value})}
+                className="rounded-xl h-12"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Observações (Opcional)</Label>
+              <Textarea 
+                placeholder="Detalhes como cor, marca ou especificações..." 
+                value={manualItem.notes}
+                onChange={(e) => setManualItem({...manualItem, notes: e.target.value})}
+                className="rounded-xl min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsManualOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+            <Button onClick={handleAddManualItem} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold px-8">Adicionar ao Carrinho</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

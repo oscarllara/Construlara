@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw, Pencil } from 'lucide-react';
+import React, { useState } from 'react';
+import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw, Pencil, Package } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ export interface Equipment {
   monthlyRate?: number;
   status: 'available' | 'rented' | 'maintenance';
   lastClient?: string;
+  image?: string;
 }
 
 interface EquipmentCardProps {
@@ -31,15 +32,15 @@ interface EquipmentCardProps {
 }
 
 const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onViewContract, onReturn, onEdit }: EquipmentCardProps) => {
+  const [imgError, setImgError] = useState(false);
   const isRented = equipment.status === 'rented';
   const isMaintenance = equipment.status === 'maintenance';
 
   return (
     <Card className={cn(
-      "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2rem] relative group",
+      "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2rem] relative group flex flex-col h-full",
       isRented ? "bg-red-50/30" : isMaintenance ? "bg-slate-50" : "bg-white"
     )}>
-      {/* Botão de Edição Flutuante */}
       <Button 
         variant="ghost" 
         size="icon" 
@@ -49,14 +50,24 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
         <Pencil className="h-4 w-4" />
       </Button>
 
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div className={cn(
-            "p-3 rounded-2xl shadow-sm",
-            isRented ? "bg-red-100 text-red-600" : isMaintenance ? "bg-slate-200 text-slate-600" : "bg-blue-100 text-blue-600"
-          )}>
-            <Hammer className="h-5 w-5" />
+      <div className="aspect-video overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0">
+        {!imgError && equipment.image ? (
+          <img 
+            src={equipment.image} 
+            alt={equipment.name} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+            onError={() => setImgError(true)} 
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-slate-300">
+            <Hammer className="h-10 w-10 mb-2" />
+            <span className="text-[8px] font-black uppercase">Sem Foto</span>
           </div>
+        )}
+      </div>
+
+      <CardHeader className="pb-2 pt-4">
+        <div className="flex justify-between items-start">
           <Badge variant="outline" className={cn(
             "rounded-full px-4 py-1 border-none font-bold text-[10px] uppercase tracking-widest",
             isRented ? "bg-red-600 text-white" : isMaintenance ? "bg-slate-500 text-white" : "bg-blue-600 text-white"
@@ -64,14 +75,14 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
             {isRented ? "Alugado" : isMaintenance ? "Manutenção" : "Disponível"}
           </Badge>
         </div>
-        <CardTitle className="text-xl font-black mt-4 text-slate-900">{equipment.name}</CardTitle>
+        <CardTitle className="text-lg font-black mt-2 text-slate-900 line-clamp-1">{equipment.name}</CardTitle>
         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <Tag className="h-3 w-3" />
           {equipment.category} • {equipment.serialNumber}
         </div>
       </CardHeader>
       
-      <CardContent className="pb-4 space-y-3">
+      <CardContent className="pb-4 space-y-3 flex-1">
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-slate-50 p-2 rounded-xl text-center">
             <p className="text-[8px] font-bold text-slate-400 uppercase">Diária</p>
@@ -86,12 +97,12 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
         {isRented && (
           <div className="pt-2 border-t border-red-100">
             <p className="text-[10px] font-bold text-slate-400 uppercase">Cliente atual</p>
-            <p className="text-sm font-black text-red-600">{equipment.lastClient || "Não informado"}</p>
+            <p className="text-sm font-black text-red-600 truncate">{equipment.lastClient || "Não informado"}</p>
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="pt-0 gap-2">
+      <CardFooter className="pt-0 gap-2 pb-6">
         {!isRented && !isMaintenance && (
           <>
             <Button 
