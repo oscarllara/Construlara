@@ -5,7 +5,7 @@ import { Hammer, Tag, ArrowUpRight, Wrench, FileText, CheckCircle2, RotateCcw, P
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { useNavigate } from 'react-router-dom';
 
 export interface Equipment {
@@ -38,7 +38,9 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
   
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || 'Visitante';
-  const canSeePrice = isLoggedIn && userRole !== 'Cliente';
+  
+  // Preços agora são visíveis para todos
+  const canSeePrice = true;
   const canEdit = isLoggedIn && ['Gestor', 'Vendas'].includes(userRole);
 
   const isRented = equipment.status === 'rented';

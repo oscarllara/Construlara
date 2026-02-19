@@ -15,7 +15,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Calculators from './Calculators';
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { useNavigate } from 'react-router-dom';
 
 export interface Product {
@@ -49,7 +49,9 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || 'Visitante';
-  const canSeePrice = isLoggedIn && userRole !== 'Cliente';
+  
+  // Preços agora são visíveis para todos
+  const canSeePrice = true; 
   const canEdit = isLoggedIn && ['Gestor', 'Vendas'].includes(userRole);
 
   const hasPromo = product.isPromo && product.promoPrice;
