@@ -191,18 +191,23 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </div>
       </CardFooter>
 
-      {/* Modal de Zoom */}
+      {/* Modal de Zoom Padronizado */}
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-        <DialogContent className="max-w-4xl p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
-          <div className="relative w-full h-full flex items-center justify-center p-4">
-            <img 
-              src={product.image} 
-              alt={product.name} 
-              className="max-w-full max-h-[90vh] object-contain rounded-[2rem] shadow-2xl" 
-            />
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md px-8 py-4 rounded-[2rem] shadow-xl text-center">
-              <h2 className="text-xl font-black text-slate-900">{product.name}</h2>
-              <p className="text-sm font-bold text-blue-600">{product.category}</p>
+        <DialogContent className="max-w-[95vw] md:max-w-[700px] p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
+          <div className="relative w-full flex flex-col items-center justify-center p-4">
+            <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden w-full aspect-square max-w-[600px] flex items-center justify-center border-8 border-white">
+              <img 
+                src={product.image} 
+                alt={product.name} 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <div className="mt-6 bg-white/90 backdrop-blur-md px-10 py-5 rounded-[2.5rem] shadow-xl text-center border border-white/50 max-w-[90%]">
+              <h2 className="text-2xl font-black text-slate-900 leading-tight">{product.name}</h2>
+              <div className="flex items-center justify-center gap-3 mt-2">
+                <Badge className="bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase px-3 py-1">{product.category}</Badge>
+                <span className="text-lg font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         </DialogContent>
