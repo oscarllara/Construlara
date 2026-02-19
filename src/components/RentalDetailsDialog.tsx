@@ -116,21 +116,21 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden">
-        <div className="bg-slate-900 p-8 text-white">
+        <div className="bg-blue-700 p-8 text-white">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+              <div className="h-14 w-14 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-md border border-white/30">
                 <FileText className="h-8 w-8 text-white" />
               </div>
               <div>
                 <h2 className="text-3xl font-black tracking-tighter">DETALHES DO CONTRATO</h2>
-                <p className="text-blue-400 font-bold text-xs uppercase tracking-widest">Nº {rental.id.toUpperCase()}</p>
+                <p className="text-blue-100 font-bold text-xs uppercase tracking-widest">Nº {rental.id.toUpperCase()}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Status Atual</p>
+              <p className="text-[10px] font-bold text-blue-100 uppercase mb-1">Status Atual</p>
               <Badge className={cn(
-                "rounded-xl border-none font-bold px-4 py-2 text-sm",
+                "rounded-xl border-none font-bold px-4 py-2 text-sm shadow-lg",
                 status === 'active' ? "bg-blue-500 text-white" :
                 status === 'overdue' ? "bg-red-500 text-white" :
                 status === 'completed' ? "bg-emerald-500 text-white" :
