@@ -50,18 +50,19 @@ const EquipmentCard = ({ equipment, onRent, onMaintenance, onFinishRepair, onVie
         <Pencil className="h-4 w-4" />
       </Button>
 
-      <div className="aspect-video overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0">
+      {/* Container da Imagem Ajustado */}
+      <div className="aspect-video overflow-hidden bg-white relative flex items-center justify-center shrink-0 p-4 border-b border-slate-50">
         {!imgError && equipment.image ? (
           <img 
             src={equipment.image} 
             alt={equipment.name} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" 
             onError={() => setImgError(true)} 
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-slate-300">
-            <Hammer className="h-10 w-10 mb-2" />
-            <span className="text-[8px] font-black uppercase">Sem Foto</span>
+          <div className="flex flex-col items-center justify-center text-slate-200">
+            <Hammer className="h-12 w-12 mb-2" />
+            <span className="text-[8px] font-black uppercase tracking-widest">Sem Foto</span>
           </div>
         )}
       </div>
