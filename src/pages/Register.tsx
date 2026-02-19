@@ -82,10 +82,22 @@ const Register = () => {
       lastAccess: 'Recém-chegado'
     };
     
+    // Salva o novo usuário
     localStorage.setItem('app_users', JSON.stringify([newUser, ...currentUsers]));
 
-    showSuccess(`Conta de ${formData.role} criada com sucesso!`);
-    navigate('/login');
+    // Login Automático
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userRole', formData.role);
+    localStorage.setItem('userEmail', formData.email);
+
+    showSuccess(`Bem-vindo, ${formData.name}! Sua conta foi criada com sucesso.`);
+    
+    // Redirecionamento inteligente
+    if (formData.role === 'Cliente') {
+      navigate('/loja');
+    } else {
+      navigate('/');
+    }
   };
 
   return (
