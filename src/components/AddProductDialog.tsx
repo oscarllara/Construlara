@@ -225,11 +225,19 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <Label className="text-xs font-bold">Ativar Oferta</Label>
-              <Switch checked={formData.isPromo} onCheckedChange={(v) => setFormData({...formData, isPromo: v})} />
+              <Switch 
+                checked={formData.isPromo} 
+                onCheckedChange={(v) => setFormData({...formData, isPromo: v})}
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-rose-500"
+              />
             </div>
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <Label className="text-xs font-bold">Destaque</Label>
-              <Switch checked={formData.isFeatured} onCheckedChange={(v) => setFormData({...formData, isFeatured: v})} />
+              <Switch 
+                checked={formData.isFeatured} 
+                onCheckedChange={(v) => setFormData({...formData, isFeatured: v})}
+                className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-rose-500"
+              />
             </div>
           </div>
         </div>

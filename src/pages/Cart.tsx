@@ -49,6 +49,21 @@ const CartPage = () => {
     saveCart(newCart);
   };
 
+  const handleManualQuantity = (id: string, val: string) => {
+    const num = parseInt(val);
+    if (isNaN(num)) return;
+    
+    const newCart = cart.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, num);
+        const newTotalAmount = item.isFractional ? newQty * (item.packageSize || 1) : newQty;
+        return { ...item, quantity: newQty, totalAmount: newTotalAmount };
+      }
+      return item;
+    });
+    saveCart(newCart);
+  };
+
   const removeItem = (id: string) => {
     const newCart = cart.filter(item => item.id !== id);
     saveCart(newCart);
@@ -66,21 +81,11 @@ const CartPage = () => {
 
     const orderId = `ORD-${Date.now()}`;
     const orderDate = new Date().toLocaleString('pt-BR');
-    // Padronizando o e-mail para evitar erros de filtragem
-    const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
+    const userEmail = localStorage.getItem('userEmail') || '';
     
     try {
       const savedOrders = localStorage.getItem('app_orders');
-      let currentOrders = [];
-      if (savedOrders) {
-        try {
-          const parsed = JSON.parse(savedOrders);
-          currentOrders = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-          currentOrders = [];
-        }
-      }
-
+      const currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
       const newOrder = {
         id: orderId,
         date: orderDate,
@@ -90,7 +95,6 @@ const CartPage = () => {
         paymentMethod: paymentMethod,
         status: 'Pendente'
       };
-      
       localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
 
       const itemsList = cart.map(item => {
@@ -119,11 +123,7 @@ const CartPage = () => {
       window.dispatchEvent(new Event('cart-updated'));
       window.dispatchEvent(new Event('order-placed'));
       showSuccess("Pedido registrado com sucesso!");
-      
-      // Pequeno delay para garantir que o localStorage foi processado antes de navegar
-      setTimeout(() => {
-        navigate('/perfil');
-      }, 100);
+      navigate('/perfil');
     } catch (e) {
       showError("Erro ao processar pedido. Tente novamente.");
     }
@@ -187,10 +187,12 @@ const CartPage = () => {
                         <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, -1)} className="h-8 w-8 rounded-lg">
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <div className="px-3 text-center">
-                          <span className="block font-black text-sm leading-none">{item.quantity || 0}</span>
-                          <span className="text-[8px] font-bold text-slate-400 uppercase">{item.isFractional ? 'caixas' : 'un'}</span>
-                        </div>
+                        <Input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => handleManualQuantity(item.id, e.target.value)}
+                          className="w-12 h-8 text-center font-black text-sm border-none bg-transparent focus-visible:ring-0 p-0"
+                        />
                         <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, 1)} className="h-8 w-8 rounded-lg">
                           <Plus className="h-3 w-3" />
                         </Button>

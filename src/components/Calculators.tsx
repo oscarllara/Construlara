@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Plus, Trash2, Droplets, Ruler, Layers } from 'lucide-react';
+import { Calculator, Plus, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Calculators = () => {
+  const navigate = useNavigate();
+  
   // Piso
   const [floorDim, setFloorDim] = useState({ w: "", l: "" });
   
@@ -32,10 +35,13 @@ const Calculators = () => {
   const openingsArea = openings.reduce((acc, o) => acc + (Number(o.w) * Number(o.h)), 0);
   const finalWallArea = Math.max(0, wallArea - openingsArea);
   
-  // Argamassa: Média de 5kg/m2 simples e 8.5kg/m2 dupla
   const consumption = applicationType === "simple" ? 5 : 8.5;
   const totalMortarKg = Number(mortarArea) * consumption;
   const bags20kg = Math.ceil(totalMortarKg / 20);
+
+  const goToCategory = (category: string) => {
+    navigate(`/?category=${encodeURIComponent(category)}`);
+  };
 
   return (
     <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden">
@@ -64,16 +70,22 @@ const Calculators = () => {
                 <Input type="number" value={floorDim.l} onChange={e => setFloorDim({...floorDim, l: e.target.value})} className="rounded-xl h-12" />
               </div>
             </div>
-            <div className="bg-blue-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4">
+            <button 
+              onClick={() => goToCategory("Pisos e revestimentos")}
+              className="w-full bg-blue-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-blue-100 transition-all group text-left"
+            >
               <div>
                 <p className="text-[10px] font-black text-blue-400 uppercase">Área Útil</p>
                 <p className="text-2xl font-black text-slate-900">{floorArea.toFixed(2)} m²</p>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-blue-600 uppercase">Total (+10% Quebra)</p>
-                <p className="text-2xl font-black text-blue-700">{(floorArea * 1.1).toFixed(2)} m²</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-blue-600 uppercase">Total (+10%)</p>
+                  <p className="text-2xl font-black text-blue-700">{(floorArea * 1.1).toFixed(2)} m²</p>
+                </div>
+                <ArrowRight className="h-6 w-6 text-blue-400 group-hover:translate-x-2 transition-transform" />
               </div>
-            </div>
+            </button>
           </TabsContent>
 
           <TabsContent value="parede" className="space-y-6">
@@ -117,7 +129,7 @@ const Calculators = () => {
                 <p className="text-2xl font-black text-slate-900">{finalWallArea.toFixed(2)} m²</p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-emerald-600 uppercase">Total (+10% Quebra)</p>
+                <p className="text-[10px] font-black text-emerald-600 uppercase">Total (+10%)</p>
                 <p className="text-2xl font-black text-emerald-700">{(finalWallArea * 1.1).toFixed(2)} m²</p>
               </div>
             </div>
@@ -156,19 +168,22 @@ const Calculators = () => {
               </div>
             </div>
 
-            <div className="bg-orange-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4">
+            <button 
+              onClick={() => goToCategory("Material de construção")}
+              className="w-full bg-orange-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-orange-100 transition-all group text-left"
+            >
               <div>
                 <p className="text-[10px] font-black text-orange-400 uppercase">Total Estimado</p>
                 <p className="text-2xl font-black text-slate-900">{totalMortarKg.toFixed(1)} kg</p>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-orange-600 uppercase">Sacos de 20kg</p>
-                <p className="text-2xl font-black text-orange-700">{bags20kg} sacos</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-orange-600 uppercase">Sacos de 20kg</p>
+                  <p className="text-2xl font-black text-orange-700">{bags20kg} sacos</p>
+                </div>
+                <ArrowRight className="h-6 w-6 text-orange-400 group-hover:translate-x-2 transition-transform" />
               </div>
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium italic">
-              * Cálculo baseado em consumo médio de 5kg/m² (simples) e 8.5kg/m² (dupla).
-            </p>
+            </button>
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -72,21 +72,15 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
-      // Nova Lógica de Preços:
-      // 1-4 dias: Diária
-      // 5-10 dias: Semanal
-      // 11-19 dias: Quinzenal
-      // 20-30 dias: Mensal
-      
-      if (totalDays >= 20) {
+      if (totalDays >= 30) {
         displayModality = "Mensal";
         calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
-      } else if (totalDays >= 11) {
+      } else if (totalDays >= 15) {
         displayModality = "Quinzenal";
-        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
-      } else if (totalDays >= 5) {
+        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 12);
+      } else if (totalDays >= 7) {
         displayModality = "Semanal";
-        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 5);
+        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 6);
       } else {
         displayModality = "Diária";
         calculatedTotal = equipment.dailyRate * totalDays;
