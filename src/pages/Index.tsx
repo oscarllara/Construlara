@@ -36,7 +36,6 @@ const Index = () => {
     const newRental = { id: `r-${Date.now()}`, ...data, status: 'active' };
     localStorage.setItem('app_rentals', JSON.stringify([newRental, ...currentRentals]));
     
-    // Atualizar status do equipamento
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       const allEquip = JSON.parse(savedEquip);
@@ -53,7 +52,6 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
-        {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 rounded-[3rem] p-8 md:p-16 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-4 border-white/10">
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 text-center md:text-left space-y-6">
@@ -61,10 +59,13 @@ const Index = () => {
                 <Sparkles className="h-3.5 w-3.5" /> Sistema Oficial
               </div>
               
-              <h1 className="text-5xl md:text-7xl font-black text-white leading-tight tracking-tighter">
-                Olá! Eu sou o <br />
-                <span className="text-red-500 drop-shadow-[0_2px_2px_rgba(255,255,255,0.8)] filter">Beto</span>.
-              </h1>
+              <div className="space-y-2">
+                <h1 className="text-5xl md:text-7xl font-black text-white leading-tight tracking-tighter">
+                  Olá! Eu sou o <br />
+                  <span className="text-red-500 drop-shadow-[0_2px_2px_rgba(255,255,255,0.8)] filter">Beto</span>.
+                </h1>
+                <p className="text-blue-300 text-lg font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
+              </div>
               
               <p className="text-blue-100 text-xl max-w-md font-bold leading-relaxed">
                 Seu assistente inteligente para gestão de locações na <span className="text-white underline decoration-red-500 decoration-4 underline-offset-4">Construlara</span>.
@@ -78,7 +79,7 @@ const Index = () => {
                   Novo Aluguel <ArrowRight className="h-6 w-6" />
                 </button>
                 <button 
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/loja')}
                   className="bg-white text-blue-700 px-10 py-5 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl hover:-translate-y-1 active:scale-95 text-lg flex items-center gap-3"
                 >
                   <ShoppingBag className="h-6 w-6" /> Ir para a Loja
@@ -98,7 +99,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Estatísticas Rápidas */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, i) => (
             <Card key={i} onClick={() => navigate(stat.path)} className="border-none shadow-sm rounded-[2.5rem] hover:shadow-xl hover:-translate-y-2 transition-all cursor-pointer group bg-white">
@@ -116,7 +116,6 @@ const Index = () => {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* Atividades Recentes */}
           <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">Atividades Recentes</h2>
@@ -143,7 +142,6 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Ações Rápidas */}
           <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-200/50 shadow-inner space-y-8 relative overflow-hidden">
             <div className="relative z-10">
               <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-8">Ações Rápidas</h2>
@@ -159,7 +157,7 @@ const Index = () => {
                   <p className="text-xs text-slate-500 group-hover:text-blue-100 font-bold">Cadastrar ferramenta</p>
                 </button>
                 <button 
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/loja')}
                   className="bg-blue-700 hover:bg-blue-800 p-8 rounded-[2.5rem] text-left transition-all group shadow-2xl hover:-translate-y-1 border-none"
                 >
                   <div className="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">

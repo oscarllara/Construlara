@@ -155,7 +155,6 @@ const ProductsPage = () => {
     }
   };
 
-  // Lógica de popularidade baseada em pedidos reais
   const productPopularity = useMemo(() => {
     const savedOrders = localStorage.getItem('app_orders');
     const popularityMap: Record<string, number> = {};
@@ -178,14 +177,12 @@ const ProductsPage = () => {
       return matchesSearch && matchesCategory;
     });
 
-    // Ordenação
     result.sort((a, b) => {
       if (sortBy === 'popular') {
         const popA = productPopularity[a.id] || 0;
         const popB = productPopularity[b.id] || 0;
         if (popA !== popB) return popB - popA;
       }
-      // Fallback para alfabético
       return a.name.localeCompare(b.name);
     });
 
@@ -198,7 +195,7 @@ const ProductsPage = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Loja Construlara</h2>
-            <p className="text-slate-500 font-medium">Materiais de construção e linha pet completa</p>
+            <p className="text-blue-600 font-black italic text-sm mt-1">"Um passo a frente em sua obra!"</p>
           </div>
           <div className="flex gap-3">
             <Button 

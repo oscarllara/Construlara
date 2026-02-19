@@ -36,7 +36,6 @@ const Login = () => {
       localStorage.setItem('userEmail', email);
       showSuccess(`Bem-vindo de volta, ${role}!`);
       
-      // Redireciona para a Dashboard (/) se for Gestor/Vendas/Entregador, ou Loja se for Cliente
       if (role === 'Cliente') {
         navigate('/loja');
       } else {
@@ -61,7 +60,8 @@ const Login = () => {
           </div>
           <div className="space-y-1">
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter">CONSTRULARA</h1>
-            <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Gestão Inteligente de Locações</p>
+            <p className="text-blue-600 text-sm font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest pt-1">Gestão Inteligente de Locações</p>
           </div>
         </div>
 
