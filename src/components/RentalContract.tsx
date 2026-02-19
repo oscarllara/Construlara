@@ -2,19 +2,27 @@
 
 import React from 'react';
 import { UserAccount } from './UserTable';
+import { cn } from '@/lib/utils';
 
 interface RentalContractProps {
   rental: any;
   client?: UserAccount;
+  className?: string;
 }
 
-const RentalContract = ({ rental, client }: RentalContractProps) => {
+const RentalContract = ({ rental, client, className }: RentalContractProps) => {
   if (!rental) return null;
 
   const today = new Date().toLocaleDateString('pt-BR');
 
   return (
-    <div id="printable-contract" className="hidden print:block p-12 text-slate-900 bg-white font-serif leading-relaxed text-sm">
+    <div 
+      id="printable-contract" 
+      className={cn(
+        "bg-white text-slate-900 font-serif leading-relaxed text-[12px] sm:text-sm p-8 sm:p-16 shadow-2xl mx-auto max-w-[800px] border border-slate-100 print:shadow-none print:border-none print:p-0 print:max-w-none",
+        className
+      )}
+    >
       {/* Cabeçalho */}
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
         <div className="space-y-1">

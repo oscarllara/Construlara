@@ -47,33 +47,49 @@
   z-index: 100 !important;
 }
 
-/* Estilos de Impressão Corrigidos */
+/* Estilos de Impressão Refinados */
 @media print {
-  /* Esconde a interface do app */
-  body {
+  /* Esconde tudo por padrão */
+  body * {
     visibility: hidden;
-    background: white !important;
   }
   
-  /* Mostra apenas o container do contrato */
-  #printable-contract {
+  /* Mostra apenas o contrato e seus filhos */
+  #printable-contract, #printable-contract * {
     visibility: visible;
+  }
+
+  /* Posiciona o contrato no topo da página impressa */
+  #printable-contract {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
+    margin: 0;
+    padding: 0;
     display: block !important;
-    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
-  /* Garante que todos os textos dentro do contrato sejam visíveis */
-  #printable-contract * {
-    visibility: visible;
-  }
-
-  /* Remove elementos indesejados como cabeçalhos/rodapés do navegador */
+  /* Remove margens extras do navegador */
   @page {
-    margin: 1cm;
+    margin: 1.5cm;
     size: auto;
   }
+}
+
+/* Custom Scrollbar para listas longas */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
 }
