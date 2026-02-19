@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Plus, Trash2, ArrowRight, Layers, Grid3X3 } from 'lucide-react';
+import { Calculator, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const Calculators = () => {
   const navigate = useNavigate();
@@ -38,9 +39,7 @@ const Calculators = () => {
   const bags20kg = Math.ceil(totalMortarKg / 20);
 
   const goToCategory = (category: string) => {
-    // Fecha qualquer modal se necessário e navega
     navigate(`/?category=${encodeURIComponent(category)}`);
-    // Força o scroll para o topo para ver os produtos
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
