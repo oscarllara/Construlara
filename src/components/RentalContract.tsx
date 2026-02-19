@@ -17,69 +17,76 @@ const RentalContract = ({ rental, client }: RentalContractProps) => {
     <div id="printable-contract" className="hidden print:block p-12 text-slate-900 bg-white font-serif leading-relaxed text-sm">
       {/* Cabeçalho */}
       <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
-        <div>
+        <div className="space-y-1">
           <h1 className="text-2xl font-bold uppercase">CONSTRULARA RDM</h1>
-          <p className="font-bold">Locação de Equipamentos e Materiais de Construção</p>
+          <p className="font-bold text-base">Locação de Equipamentos e Materiais de Construção</p>
           <p>CNPJ: 16.403.481/0001-16</p>
           <p>Tel: (32) 3374-1135 | WhatsApp: (32) 99962-5979</p>
           <p>São João del-Rei - MG</p>
         </div>
-        <div className="text-right">
-          <p className="font-bold">CONTRATO DE LOCAÇÃO</p>
-          <p className="text-lg font-bold">Nº {rental.id.toUpperCase()}</p>
-          <p>Data de Emissão: {today}</p>
+        <div className="text-right space-y-1">
+          <p className="font-bold text-lg">CONTRATO DE LOCAÇÃO</p>
+          <p className="text-xl font-bold text-blue-800">Nº {rental.id.toUpperCase()}</p>
+          <p className="text-xs">Data de Emissão: {today}</p>
         </div>
       </div>
 
-      {/* Partes */}
-      <div className="space-y-6 mb-8">
+      {/* Conteúdo do Contrato */}
+      <div className="space-y-8">
         <section>
-          <h2 className="font-bold border-b border-slate-300 mb-2 uppercase">1. DAS PARTES</h2>
-          <p><strong>LOCADOR:</strong> CONSTRULARA RDM, com sede em São João del-Rei/MG.</p>
-          <p><strong>LOCATÁRIO:</strong> {rental.client || 'Não informado'} {client?.cpf ? `| CPF: ${client.cpf}` : ''}</p>
-          <p><strong>ENDEREÇO:</strong> {client?.address || 'Não informado'}, {client?.neighborhood || ''} - {client?.city || ''}/{client?.state || ''}</p>
-          <p><strong>CONTATO:</strong> {client?.whatsapp || rental.whatsapp || 'Não informado'}</p>
+          <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">1. IDENTIFICAÇÃO DAS PARTES</h2>
+          <div className="grid grid-cols-1 gap-2">
+            <p><strong>LOCADOR:</strong> CONSTRULARA RDM, estabelecida em São João del-Rei/MG.</p>
+            <p><strong>LOCATÁRIO:</strong> {rental.client || 'Não informado'}</p>
+            <p><strong>CPF/CNPJ:</strong> {client?.cpf || '---'}</p>
+            <p><strong>ENDEREÇO:</strong> {client?.address || '---'}, {client?.neighborhood || ''} - {client?.city || ''}/{client?.state || ''}</p>
+            <p><strong>CONTATO:</strong> {client?.whatsapp || rental.whatsapp || '---'}</p>
+          </div>
         </section>
 
         <section>
-          <h2 className="font-bold border-b border-slate-300 mb-2 uppercase">2. DO OBJETO E PRAZO</h2>
-          <p>O presente contrato tem como objeto a locação do equipamento: <strong>{rental.item}</strong>.</p>
-          <p><strong>DATA DE INÍCIO:</strong> {rental.start}</p>
-          <p><strong>PREVISÃO DE DEVOLUÇÃO:</strong> {rental.end}</p>
-          <p><strong>MODALIDADE:</strong> {rental.modality}</p>
+          <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">2. OBJETO E PRAZO DA LOCAÇÃO</h2>
+          <div className="grid grid-cols-1 gap-2">
+            <p>O LOCADOR cede ao LOCATÁRIO o uso do equipamento: <strong>{rental.item}</strong>.</p>
+            <p><strong>DATA DE INÍCIO:</strong> {rental.start}</p>
+            <p><strong>PREVISÃO DE DEVOLUÇÃO:</strong> {rental.end}</p>
+            <p><strong>MODALIDADE DE COBRANÇA:</strong> {rental.modality}</p>
+          </div>
         </section>
 
         <section>
-          <h2 className="font-bold border-b border-slate-300 mb-2 uppercase">3. VALORES E PAGAMENTO</h2>
-          <p>O valor total da locação é de <strong>R$ {rental.total?.toFixed(2)}</strong>.</p>
-          <p>O pagamento deverá ser realizado conforme acordado no ato da entrega ou retirada do equipamento.</p>
+          <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">3. VALORES E CONDIÇÕES FINANCEIRAS</h2>
+          <p>O valor total estimado para o período contratado é de <strong>R$ {rental.total?.toFixed(2)}</strong>.</p>
+          <p className="text-xs italic mt-2">Nota: Valores adicionais podem ser aplicados em caso de atraso na devolução ou danos ao equipamento.</p>
         </section>
 
         <section>
-          <h2 className="font-bold border-b border-slate-300 mb-2 uppercase">4. CLÁUSULAS E CONDIÇÕES</h2>
-          <div className="space-y-2 text-xs text-justify">
-            <p><strong>4.1. RESPONSABILIDADE:</strong> O LOCATÁRIO declara receber o equipamento em perfeitas condições de uso e funcionamento, obrigando-se a zelar pela sua conservação e segurança.</p>
-            <p><strong>4.2. MANUTENÇÃO:</strong> Danos causados por uso indevido, negligência ou falta de lubrificação serão de inteira responsabilidade do LOCATÁRIO, que arcará com os custos de reparo.</p>
-            <p><strong>4.3. DEVOLUÇÃO:</strong> O equipamento deverá ser devolvido limpo e na data aprazada. O atraso implicará na cobrança de novas diárias proporcionais.</p>
-            <p><strong>4.4. EXTRAVIO:</strong> Em caso de furto, roubo ou perda total, o LOCATÁRIO obriga-se a ressarcir o LOCADOR pelo valor de mercado de um equipamento novo equivalente.</p>
+          <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">4. TERMOS E RESPONSABILIDADES</h2>
+          <div className="space-y-3 text-[11px] text-justify leading-snug">
+            <p><strong>4.1. ESTADO DO BEM:</strong> O LOCATÁRIO confirma que o equipamento foi entregue em perfeitas condições de uso. Qualquer avaria deve ser comunicada imediatamente.</p>
+            <p><strong>4.2. USO E MANUTENÇÃO:</strong> O uso deve seguir as normas técnicas. Danos por negligência, falta de lubrificação ou uso incorreto serão cobrados do LOCATÁRIO.</p>
+            <p><strong>4.3. DEVOLUÇÃO:</strong> O item deve retornar limpo. Atrasos geram cobrança de novas diárias automaticamente.</p>
+            <p><strong>4.4. SEGURANÇA:</strong> O LOCADOR não se responsabiliza por acidentes decorrentes do uso do equipamento por pessoas não capacitadas.</p>
           </div>
         </section>
       </div>
 
       {/* Assinaturas */}
-      <div className="mt-20 grid grid-cols-2 gap-20">
-        <div className="text-center border-t border-slate-900 pt-4">
-          <p className="font-bold">CONSTRULARA RDM</p>
-          <p className="text-xs">LOCADOR</p>
+      <div className="mt-24 grid grid-cols-2 gap-16">
+        <div className="text-center space-y-1">
+          <div className="border-t border-slate-900 pt-2"></div>
+          <p className="font-bold text-xs">CONSTRULARA RDM</p>
+          <p className="text-[10px] uppercase">Locador</p>
         </div>
-        <div className="text-center border-t border-slate-900 pt-4">
-          <p className="font-bold">{rental.client}</p>
-          <p className="text-xs">LOCATÁRIO</p>
+        <div className="text-center space-y-1">
+          <div className="border-t border-slate-900 pt-2"></div>
+          <p className="font-bold text-xs">{rental.client}</p>
+          <p className="text-[10px] uppercase">Locatário</p>
         </div>
       </div>
 
-      <div className="mt-12 text-center text-[10px] text-slate-400">
-        Documento gerado eletronicamente pelo Sistema de Gestão Construlara.
+      <div className="mt-16 text-center text-[9px] text-slate-400 border-t border-slate-100 pt-4">
+        Este documento é um registro digital gerado pelo Sistema Construlara em {today} às {new Date().toLocaleTimeString()}.
       </div>
     </div>
   );
