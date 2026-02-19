@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import { 
   Hammer, Receipt, DollarSign, TrendingUp, 
-  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2, ShoppingBag, ArrowRight, SearchX
+  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2, ShoppingBag, ArrowRight, SearchX, ArrowLeft
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Equipment } from '@/components/EquipmentCard';
@@ -64,29 +64,41 @@ const ReportsPage = () => {
       : rentals;
 
     return (
-      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-black text-slate-900">
-            {activeDetail === 'received' ? 'Valores Recebidos' : activeDetail === 'toReceive' ? 'Valores a Receber' : 'Todos os Contratos'}
-          </h3>
-          <Button variant="ghost" onClick={() => setActiveDetail(null)} className="text-xs font-bold">Voltar ao Resumo</Button>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setActiveDetail(null)} 
+              className="rounded-xl hover:bg-slate-100"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h3 className="text-2xl font-black text-slate-900">
+              {activeDetail === 'received' ? 'Valores Recebidos' : activeDetail === 'toReceive' ? 'Valores a Receber' : 'Todos os Contratos'}
+            </h3>
+          </div>
+          <Badge className="bg-blue-50 text-blue-700 border-none px-4 py-2 rounded-xl font-bold">
+            {list.length} registros
+          </Badge>
         </div>
         <div className="grid gap-3">
           {list.map((r: any) => (
-            <div key={r.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between hover:shadow-md transition-all">
+            <div key={r.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:shadow-md transition-all">
               <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center">
-                  <Receipt className="h-5 w-5 text-slate-400" />
+                <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center">
+                  <Receipt className="h-6 w-6 text-slate-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-slate-900">{r.client}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">{r.item} • {r.end}</p>
+                  <p className="text-base font-black text-slate-900">{r.client}</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase">{r.item} • {r.end}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-black text-blue-700">R$ {r.total?.toFixed(2)}</p>
+                <p className="text-lg font-black text-blue-700">R$ {r.total?.toFixed(2)}</p>
                 <Badge className={cn(
-                  "text-[8px] font-black uppercase",
+                  "text-[10px] font-black uppercase rounded-lg",
                   r.status === 'completed' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
                 )}>{r.status}</Badge>
               </div>

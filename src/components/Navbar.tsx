@@ -75,7 +75,7 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
       <div className="container flex h-24 items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center group">
+          <Link to="/dashboard" className="flex items-center group">
             <div className="h-24 w-64 flex items-center justify-start transition-transform group-hover:scale-105">
               <img src="/logoconstrulara.png" alt="Construlara Logo" className="h-full w-full object-contain object-left" />
             </div>
