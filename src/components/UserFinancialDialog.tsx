@@ -25,35 +25,46 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
   const financialData = useMemo(() => {
     if (!user) return { pending: [], received: [], totals: { shop: 0, rental: 0 } };
 
-    const savedOrders = localStorage.getItem('app_orders');
-    const savedRentals = localStorage.getItem('app_rentals');
-    
-    const orders = savedOrders ? JSON.parse(savedOrders) : [];
-    const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+    try {
+      const savedOrders = localStorage.getItem('app_orders');
+      const savedRentals = localStorage.getItem('app_rentals');
+      
+      const orders = savedOrders ? JSON.parse(savedOrders) : [];
+      const rentals = savedRentals ? JSON.parse(savedRentals) : [];
 
-    const userOrders = orders.filter((o: any) => o.userEmail.toLowerCase() === user.email.toLowerCase());
-    const userRentals = rentals.filter((r: any) => r.clientId === user.id || r.client === user.name);
+      if (!Array.isArray(orders) || !Array.isArray(rentals)) {
+        return { pending: [], received: [], totals: { shop: 0, rental: 0 } };
+      }
 
-    const pendingOrders = userOrders.filter((o: any) => o.status !== 'Entregue' && o.status !== 'Pago');
-    const receivedOrders = userOrders.filter((o: any) => o.status === 'Entregue' || o.status === 'Pago');
+      const userEmail = (user.email || "").toLowerCase();
 
-    const pendingRentals = userRentals.filter((r: any) => r.status !== 'completed');
-    const receivedRentals = userRentals.filter((r: any) => r.status === 'completed');
+      const userOrders = orders.filter((o: any) => o && (o.userEmail || "").toLowerCase() === userEmail);
+      const userRentals = rentals.filter((r: any) => r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()));
 
-    const totalShop = pendingOrders.reduce((acc: number, o: any) => acc + (o.total || 0), 0);
-    const totalRental = pendingRentals.reduce((acc: number, r: any) => acc + (r.total || 0), 0);
+      const pendingOrders = userOrders.filter((o: any) => o.status !== 'Entregue' && o.status !== 'Pago');
+      const receivedOrders = userOrders.filter((o: any) => o.status === 'Entregue' || o.status === 'Pago');
 
-    return {
-      pending: [
-        ...pendingOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
-        ...pendingRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
-      ],
-      received: [
-        ...receivedOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
-        ...receivedRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
-      ],
-      totals: { shop: totalShop, rental: totalRental }
-    };
+      const pendingRentals = userRentals.filter((r: any) => r.status !== 'completed');
+      const receivedRentals = userRentals.filter((r: any) => r.status === 'completed');
+
+      const totalShop = pendingOrders.reduce((acc: number, o: any) => acc + (Number(o.total) || 0), 0);
+      const totalRental = pendingRentals.reduce((acc: number, r: any) => acc + (Number(r.total) || 0), 0);
+
+      return {
+        pending: [
+          ...pendingOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
+          ...pendingRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
+        ],
+        received: [
+          ...receivedOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
+          ...receivedRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
+        ],
+        totals: { shop: totalShop, rental: totalRental }
+      };
+    } catch (e) {
+      console.error("Erro ao processar dados financeiros:", e);
+      return { pending: [], received: [], totals: { shop: 0, rental: 0 } };
+    }
   }, [user, open]);
 
   if (!user) return null;
@@ -134,7 +145,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-lg font-black text-red-600">R$ {(item.total || 0).toFixed(2)}</p>
+                          <p className="text-lg font-black text-red-600">R$ {(Number(item.total) || 0).toFixed(2)}</p>
                           <Badge className="bg-red-50 text-red-700 border-none text-[8px] font-black uppercase">Pendente</Badge>
                         </div>
                         <Button 
@@ -170,7 +181,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-base font-black text-slate-900">R$ {(item.total || 0).toFixed(2)}</p>
+                        <p className="text-base font-black text-slate-900">R$ {(Number(item.total) || 0).toFixed(2)}</p>
                         <Badge className="bg-emerald-100 text-emerald-700 border-none text-[8px] font-black uppercase">Recebido</Badge>
                       </div>
                     </div>

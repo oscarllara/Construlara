@@ -26,41 +26,48 @@ const ReportsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedEquip = localStorage.getItem('app_equipments');
-    if (savedEquip) setEquipments(JSON.parse(savedEquip));
+    try {
+      const savedEquip = localStorage.getItem('app_equipments');
+      if (savedEquip) setEquipments(JSON.parse(savedEquip));
 
-    const savedRentals = localStorage.getItem('app_rentals');
-    if (savedRentals) setRentals(JSON.parse(savedRentals));
+      const savedRentals = localStorage.getItem('app_rentals');
+      if (savedRentals) setRentals(JSON.parse(savedRentals));
 
-    const savedOrders = localStorage.getItem('app_orders');
-    if (savedOrders) setOrders(JSON.parse(savedOrders));
+      const savedOrders = localStorage.getItem('app_orders');
+      if (savedOrders) setOrders(JSON.parse(savedOrders));
+    } catch (e) {
+      console.error("Erro ao carregar dados dos relatórios:", e);
+    }
   }, []);
 
   // Estatísticas de Inventário
   const equipmentStats = useMemo(() => [
-    { name: 'Disponíveis', value: equipments.filter(e => e.status === 'available').length, color: '#2563eb' },
-    { name: 'Alugados', value: equipments.filter(e => e.status === 'rented').length, color: '#dc2626' },
-    { name: 'Manutenção', value: equipments.filter(e => e.status === 'maintenance').length, color: '#64748b' },
+    { name: 'Disponíveis', value: (equipments || []).filter(e => e && e.status === 'available').length, color: '#2563eb' },
+    { name: 'Alugados', value: (equipments || []).filter(e => e && e.status === 'rented').length, color: '#dc2626' },
+    { name: 'Manutenção', value: (equipments || []).filter(e => e && e.status === 'maintenance').length, color: '#64748b' },
   ], [equipments]);
 
   // Estatísticas Financeiras Consolidadas
   const financialStats = useMemo(() => {
+    const safeRentals = Array.isArray(rentals) ? rentals : [];
+    const safeOrders = Array.isArray(orders) ? orders : [];
+
     // Receita de Aluguéis
-    const rentalsReceived = rentals
-      .filter(r => r.status === 'completed')
+    const rentalsReceived = safeRentals
+      .filter(r => r && r.status === 'completed')
       .reduce((acc, r) => acc + (Number(r.total) || 0), 0);
     
-    const rentalsToReceive = rentals
-      .filter(r => r.status === 'active' || r.status === 'overdue')
+    const rentalsToReceive = safeRentals
+      .filter(r => r && (r.status === 'active' || r.status === 'overdue'))
       .reduce((acc, r) => acc + (Number(r.total) || 0), 0);
 
     // Receita de Vendas (Pedidos)
-    const salesReceived = orders
-      .filter(o => o.status === 'Entregue')
+    const salesReceived = safeOrders
+      .filter(o => o && (o.status === 'Entregue' || o.status === 'Pago'))
       .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
     
-    const salesToReceive = orders
-      .filter(o => o.status !== 'Entregue')
+    const salesToReceive = safeOrders
+      .filter(o => o && o.status !== 'Entregue' && o.status !== 'Pago')
       .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
 
     return { 
@@ -75,33 +82,36 @@ const ReportsPage = () => {
   }, [rentals, orders]);
 
   // Estatísticas de Pedidos
-  const orderStats = useMemo(() => [
-    { name: 'Entregues', value: orders.filter(o => o.status === 'Entregue').length, color: '#10b981' },
-    { name: 'Pendentes', value: orders.filter(o => o.status !== 'Entregue').length, color: '#f59e0b' },
-  ], [orders]);
+  const orderStats = useMemo(() => {
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    return [
+      { name: 'Entregues', value: safeOrders.filter(o => o && (o.status === 'Entregue' || o.status === 'Pago')).length, color: '#10b981' },
+      { name: 'Pendentes', value: safeOrders.filter(o => o && o.status !== 'Entregue' && o.status !== 'Pago').length, color: '#f59e0b' },
+    ];
+  }, [orders]);
 
   const renderFinancialDetail = () => {
-    // Combinar rentals e orders para exibição na lista de detalhes financeiros
-    const rentalEntries = rentals.map(r => ({
+    const safeRentals = Array.isArray(rentals) ? rentals : [];
+    const safeOrders = Array.isArray(orders) ? orders : [];
+
+    const rentalEntries = safeRentals.filter(r => r).map(r => ({
       id: r.id,
-      client: r.client,
-      description: r.item,
-      date: r.end,
+      client: r.client || 'Cliente não identificado',
+      description: r.item || 'Item não especificado',
+      date: r.end || r.start || '---',
       value: Number(r.total) || 0,
       type: 'Aluguel',
-      status: r.status === 'completed' ? 'Recebido' : 'Pendente',
-      originalStatus: r.status
+      status: r.status === 'completed' ? 'Recebido' : 'Pendente'
     }));
 
-    const orderEntries = orders.map(o => ({
+    const orderEntries = safeOrders.filter(o => o).map(o => ({
       id: o.id,
-      client: o.userEmail.split('@')[0],
+      client: (o.userEmail || 'Desconhecido').split('@')[0],
       description: `Pedido ${o.id}`,
-      date: o.date,
+      date: o.date || '---',
       value: Number(o.total) || 0,
       type: 'Venda',
-      status: o.status === 'Entregue' ? 'Recebido' : 'Pendente',
-      originalStatus: o.status
+      status: (o.status === 'Entregue' || o.status === 'Pago') ? 'Recebido' : 'Pendente'
     }));
 
     const allEntries = [...rentalEntries, ...orderEntries];
@@ -267,7 +277,7 @@ const ReportsPage = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-black text-slate-900">Estado dos Aluguéis</h3>
                 <div className="grid gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                  {rentals.map(r => (
+                  {(rentals || []).filter(r => r).map(r => (
                     <div 
                       key={r.id} 
                       onClick={() => navigate('/alugueis')}
@@ -282,7 +292,7 @@ const ReportsPage = () => {
                         </div>
                         <div>
                           <p className="text-sm font-black text-slate-900">{r.item}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">{r.client} • R$ {Number(r.total).toFixed(2)}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">{r.client} • R$ {Number(r.total || 0).toFixed(2)}</p>
                         </div>
                       </div>
                       <Badge className={cn(
@@ -315,13 +325,13 @@ const ReportsPage = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-black text-slate-900">Histórico de Vendas Recentes</h3>
                 <div className="grid gap-3">
-                  {orders.length === 0 ? (
+                  {(orders || []).length === 0 ? (
                     <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
                       <SearchX className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-xs font-bold text-slate-400">Nenhuma venda registrada.</p>
                     </div>
                   ) : (
-                    orders.map(o => (
+                    orders.filter(o => o).map(o => (
                       <div 
                         key={o.id} 
                         onClick={() => navigate('/perfil')}
@@ -337,7 +347,7 @@ const ReportsPage = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-black text-emerald-700">R$ {Number(o.total).toFixed(2)}</p>
+                          <p className="text-sm font-black text-emerald-700">R$ {Number(o.total || 0).toFixed(2)}</p>
                           <Badge className="text-[8px] font-black uppercase bg-slate-50 text-slate-600">{o.status}</Badge>
                         </div>
                       </div>

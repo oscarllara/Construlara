@@ -23,28 +23,31 @@ const Index = () => {
 
   useEffect(() => {
     const loadStats = () => {
-      // Carregar Equipamentos
-      const savedEquip = localStorage.getItem('app_equipments');
-      const equipments = savedEquip ? JSON.parse(savedEquip) : [];
-      
-      // Carregar Aluguéis
-      const savedRentals = localStorage.getItem('app_rentals');
-      const rentals = savedRentals ? JSON.parse(savedRentals) : [];
-      
-      // Carregar Usuários
-      const savedUsers = localStorage.getItem('app_users');
-      const users = savedUsers ? JSON.parse(savedUsers) : [];
+      try {
+        // Carregar Equipamentos
+        const savedEquip = localStorage.getItem('app_equipments');
+        const equipments = savedEquip ? JSON.parse(savedEquip) : [];
+        
+        // Carregar Aluguéis
+        const savedRentals = localStorage.getItem('app_rentals');
+        const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+        
+        // Carregar Usuários
+        const savedUsers = localStorage.getItem('app_users');
+        const users = savedUsers ? JSON.parse(savedUsers) : [];
 
-      setCounts({
-        equipments: equipments.length,
-        activeRentals: rentals.filter((r: any) => r.status === 'active').length,
-        clients: users.length,
-        overdue: rentals.filter((r: any) => r.status === 'overdue').length
-      });
+        setCounts({
+          equipments: Array.isArray(equipments) ? equipments.length : 0,
+          activeRentals: Array.isArray(rentals) ? rentals.filter((r: any) => r && r.status === 'active').length : 0,
+          clients: Array.isArray(users) ? users.length : 0,
+          overdue: Array.isArray(rentals) ? rentals.filter((r: any) => r && r.status === 'overdue').length : 0
+        });
+      } catch (e) {
+        console.error("Erro ao carregar estatísticas:", e);
+      }
     };
 
     loadStats();
-    // Listener para atualizações se o usuário mudar de aba ou registrar algo novo
     window.addEventListener('storage', loadStats);
     return () => window.removeEventListener('storage', loadStats);
   }, []);
