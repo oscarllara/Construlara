@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import UserTable, { UserAccount } from '@/components/UserTable';
 import AddUserDialog from '@/components/AddUserDialog';
@@ -8,8 +8,9 @@ import EditUserDialog from '@/components/EditUserDialog';
 import UserFinancialDialog from '@/components/UserFinancialDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX } from 'lucide-react';
+import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX, X } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
+import { cn } from '@/lib/utils';
 
 const INITIAL_USERS: UserAccount[] = [
   { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '(11) 99999-9999', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
@@ -20,6 +21,7 @@ const INITIAL_USERS: UserAccount[] = [
 const UsersPage = () => {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<'all' | 'debt' | 'clean'>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
@@ -43,6 +45,41 @@ const UsersPage = () => {
     setUsers(newUsers);
     localStorage.setItem('app_users', JSON.stringify(newUsers));
   };
+
+  // Lógica de cálculo de débito para os filtros
+  const usersWithDebtInfo = useMemo(() => {
+    const savedOrders = localStorage.getItem('app_orders');
+    const savedRentals = localStorage.getItem('app_rentals');
+    const orders = savedOrders ? JSON.parse(savedOrders) : [];
+    const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+
+    return users.map(user => {
+      const email = (user.email || "").toLowerCase();
+      const name = (user.name || "").toLowerCase();
+
+      const pOrders = orders.filter((o: any) => 
+        o && (o.userEmail || "").toLowerCase() === email && 
+        o.status !== 'Entregue' && o.status !== 'Pago'
+      );
+      
+      const pRentals = rentals.filter((r: any) => 
+        r && (r.clientId === user.id || (r.client || "").toLowerCase() === name) && 
+        r.status !== 'completed'
+      );
+
+      const debtTotal = pOrders.reduce((acc: number, o: any) => acc + (Number(o.total) || 0), 0) +
+                        pRentals.reduce((acc: number, r: any) => acc + (Number(r.total) || 0), 0);
+
+      return { ...user, debtTotal };
+    });
+  }, [users]);
+
+  const stats = useMemo(() => {
+    const total = users.length;
+    const withDebt = usersWithDebtInfo.filter(u => u.debtTotal > 0).length;
+    const clean = total - withDebt;
+    return { total, withDebt, clean };
+  }, [usersWithDebtInfo]);
 
   const handleToggleStatus = (id: string) => {
     const newUsers = users.map(user => {
@@ -112,29 +149,27 @@ const UsersPage = () => {
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals) {
         const rentals = JSON.parse(savedRentals);
-        const newRentals = rentals.map((r: any) => {
-          if (r.id === id) {
-            // Se o item ainda está alugado (active/overdue), ao pagar ele marca como concluído
-            // mas o equipamento deve ser liberado separadamente na devolução ou aqui?
-            // Para finanças, apenas marcamos como completed para indicar que o ciclo financeiro fechou.
-            return { ...r, status: 'completed' };
-          }
-          return r;
-        });
+        const newRentals = rentals.map((r: any) => r.id === id ? { ...r, status: 'completed' } : r);
         localStorage.setItem('app_rentals', JSON.stringify(newRentals));
       }
     }
     
-    // Forçar atualização da UI
-    setSelectedUser(prev => prev ? { ...prev } : null);
-    showSuccess("Recebimento registrado com sucesso!");
-    window.dispatchEvent(new Event('order-placed')); // Atualiza dashboards e relatórios
+    // Atualiza localmente sem recarregar tudo
+    setUsers([...users]); 
+    showSuccess("Recebimento registrado.");
+    window.dispatchEvent(new Event('order-placed'));
   };
 
-  const filteredUsers = (users || []).filter(user => {
-    const search = searchTerm.toLowerCase();
-    return user.name.toLowerCase().includes(search) || user.email.toLowerCase().includes(search);
-  });
+  const filteredUsers = useMemo(() => {
+    return usersWithDebtInfo.filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (filterType === 'debt') return matchesSearch && user.debtTotal > 0;
+      if (filterType === 'clean') return matchesSearch && user.debtTotal === 0;
+      return matchesSearch;
+    });
+  }, [usersWithDebtInfo, searchTerm, filterType]);
 
   return (
     <AppLayout>
@@ -146,7 +181,7 @@ const UsersPage = () => {
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold gap-2 h-12 px-6"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-indigo-100"
           >
             <UserPlus className="h-5 w-5" />
             Novo Usuário
@@ -154,44 +189,75 @@ const UsersPage = () => {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="h-12 w-12 bg-indigo-100 rounded-2xl flex items-center justify-center">
-              <UsersIcon className="h-6 w-6 text-indigo-600" />
+          <button 
+            onClick={() => setFilterType('all')}
+            className={cn(
+              "text-left p-6 rounded-[2.5rem] border transition-all flex items-center gap-4 group",
+              filterType === 'all' ? "bg-indigo-600 border-indigo-600 shadow-xl shadow-indigo-100" : "bg-white border-slate-100 hover:border-indigo-200 shadow-sm"
+            )}
+          >
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-colors", filterType === 'all' ? "bg-white/20" : "bg-indigo-100")}>
+              <UsersIcon className={cn("h-6 w-6", filterType === 'all' ? "text-white" : "text-indigo-600")} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Usuários</p>
-              <p className="text-2xl font-black text-slate-900">{users.length}</p>
+              <p className={cn("text-[10px] font-black uppercase tracking-widest", filterType === 'all' ? "text-indigo-200" : "text-slate-400")}>Total Usuários</p>
+              <p className={cn("text-2xl font-black", filterType === 'all' ? "text-white" : "text-slate-900")}>{stats.total}</p>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
-              <ShieldCheck className="h-6 w-6 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Em Dia</p>
-              <p className="text-2xl font-black text-slate-900">32</p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="h-12 w-12 bg-rose-100 rounded-2xl flex items-center justify-center">
-              <UserX className="h-6 w-6 text-rose-600" />
+          </button>
+
+          <button 
+            onClick={() => setFilterType('clean')}
+            className={cn(
+              "text-left p-6 rounded-[2.5rem] border transition-all flex items-center gap-4 group",
+              filterType === 'clean' ? "bg-emerald-600 border-emerald-600 shadow-xl shadow-emerald-100" : "bg-white border-slate-100 hover:border-emerald-200 shadow-sm"
+            )}
+          >
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-colors", filterType === 'clean' ? "bg-white/20" : "bg-emerald-100")}>
+              <ShieldCheck className={cn("h-6 w-6", filterType === 'clean' ? "text-white" : "text-emerald-600")} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Com Débito</p>
-              <p className="text-2xl font-black text-slate-900">08</p>
+              <p className={cn("text-[10px] font-black uppercase tracking-widest", filterType === 'clean' ? "text-emerald-200" : "text-slate-400")}>Em Dia</p>
+              <p className={cn("text-2xl font-black", filterType === 'clean' ? "text-white" : "text-slate-900")}>{stats.clean}</p>
             </div>
-          </div>
+          </button>
+
+          <button 
+            onClick={() => setFilterType('debt')}
+            className={cn(
+              "text-left p-6 rounded-[2.5rem] border transition-all flex items-center gap-4 group",
+              filterType === 'debt' ? "bg-rose-600 border-rose-600 shadow-xl shadow-rose-100" : "bg-white border-slate-100 hover:border-rose-200 shadow-sm"
+            )}
+          >
+            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-colors", filterType === 'debt' ? "bg-white/20" : "bg-rose-100")}>
+              <UserX className={cn("h-6 w-6", filterType === 'debt' ? "text-white" : "text-rose-600")} />
+            </div>
+            <div>
+              <p className={cn("text-[10px] font-black uppercase tracking-widest", filterType === 'debt' ? "text-rose-200" : "text-slate-400")}>Com Débito</p>
+              <p className={cn("text-2xl font-black", filterType === 'debt' ? "text-white" : "text-slate-900")}>{stats.withDebt}</p>
+            </div>
+          </button>
         </div>
 
         <div className="space-y-4">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="Buscar usuário..." 
-              className="pl-12 rounded-2xl border-slate-200 h-12"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input 
+                placeholder="Buscar usuário..." 
+                className="pl-12 rounded-2xl border-slate-200 h-12 shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {filterType !== 'all' && (
+              <Button 
+                variant="ghost" 
+                onClick={() => setFilterType('all')}
+                className="rounded-xl font-bold text-slate-400 hover:text-rose-600 gap-2"
+              >
+                <X className="h-4 w-4" /> Limpar Filtro
+              </Button>
+            )}
           </div>
 
           <UserTable 
