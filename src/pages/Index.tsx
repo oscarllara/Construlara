@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Hammer, Receipt, Users, AlertCircle, TrendingUp, ArrowRight, Sparkles, ShoppingBag, Store } from 'lucide-react';
@@ -13,19 +13,56 @@ const Index = () => {
   const navigate = useNavigate();
   const [isAddEquipOpen, setIsAddEquipOpen] = useState(false);
   const [isAddRentalOpen, setIsAddRentalOpen] = useState(false);
+  
+  const [counts, setCounts] = useState({
+    equipments: 0,
+    activeRentals: 0,
+    clients: 0,
+    overdue: 0
+  });
+
+  useEffect(() => {
+    const loadStats = () => {
+      // Carregar Equipamentos
+      const savedEquip = localStorage.getItem('app_equipments');
+      const equipments = savedEquip ? JSON.parse(savedEquip) : [];
+      
+      // Carregar Aluguéis
+      const savedRentals = localStorage.getItem('app_rentals');
+      const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+      
+      // Carregar Usuários
+      const savedUsers = localStorage.getItem('app_users');
+      const users = savedUsers ? JSON.parse(savedUsers) : [];
+
+      setCounts({
+        equipments: equipments.length,
+        activeRentals: rentals.filter((r: any) => r.status === 'active').length,
+        clients: users.length,
+        overdue: rentals.filter((r: any) => r.status === 'overdue').length
+      });
+    };
+
+    loadStats();
+    // Listener para atualizações se o usuário mudar de aba ou registrar algo novo
+    window.addEventListener('storage', loadStats);
+    return () => window.removeEventListener('storage', loadStats);
+  }, []);
 
   const stats = [
-    { title: "Equipamentos", value: "124", icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos" },
-    { title: "Aluguéis Ativos", value: "18", icon: Receipt, color: "text-emerald-600", bg: "bg-emerald-50", path: "/alugueis" },
-    { title: "Clientes", value: "85", icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", path: "/usuarios" },
-    { title: "Atrasados", value: "3", icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-50", path: "/alugueis" },
+    { title: "Equipamentos", value: counts.equipments.toString(), icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos" },
+    { title: "Aluguéis Ativos", value: counts.activeRentals.toString(), icon: Receipt, color: "text-emerald-600", bg: "bg-emerald-50", path: "/alugueis" },
+    { title: "Clientes", value: counts.clients.toString(), icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", path: "/usuarios" },
+    { title: "Atrasados", value: counts.overdue.toString(), icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-50", path: "/alugueis" },
   ];
 
   const handleAddEquipment = (data: any) => {
     const saved = localStorage.getItem('app_equipments');
     const current = saved ? JSON.parse(saved) : [];
     const newItem = { id: `e-${Date.now()}`, ...data, status: 'available' };
-    localStorage.setItem('app_equipments', JSON.stringify([newItem, ...current]));
+    const updated = [newItem, ...current];
+    localStorage.setItem('app_equipments', JSON.stringify(updated));
+    setCounts(prev => ({ ...prev, equipments: updated.length }));
     setIsAddEquipOpen(false);
     showSuccess(`${data.name} cadastrado com sucesso!`);
   };
@@ -34,7 +71,8 @@ const Index = () => {
     const savedRentals = localStorage.getItem('app_rentals');
     const currentRentals = savedRentals ? JSON.parse(savedRentals) : [];
     const newRental = { id: `r-${Date.now()}`, ...data, status: 'active' };
-    localStorage.setItem('app_rentals', JSON.stringify([newRental, ...currentRentals]));
+    const updatedRentals = [newRental, ...currentRentals];
+    localStorage.setItem('app_rentals', JSON.stringify(updatedRentals));
     
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
@@ -45,6 +83,7 @@ const Index = () => {
       localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
     }
 
+    setCounts(prev => ({ ...prev, activeRentals: updatedRentals.filter((r: any) => r.status === 'active').length }));
     setIsAddRentalOpen(false);
     showSuccess(`Contrato gerado para ${data.clientName}!`);
   };
