@@ -18,12 +18,15 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { showSuccess } from '@/utils/toast';
+import PaymentActionDialog from '@/components/PaymentActionDialog';
 
 const ReportsPage = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [rentals, setRentals] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [activeDetail, setActiveDetail] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const loadData = () => {
@@ -47,35 +50,31 @@ const ReportsPage = () => {
     return () => window.removeEventListener('order-placed', loadData);
   }, []);
 
-  // Estatísticas de Inventário
   const equipmentStats = useMemo(() => [
     { name: 'Disponíveis', value: (equipments || []).filter(e => e && e.status === 'available').length, color: '#2563eb' },
     { name: 'Alugados', value: (equipments || []).filter(e => e && e.status === 'rented').length, color: '#dc2626' },
     { name: 'Manutenção', value: (equipments || []).filter(e => e && e.status === 'maintenance').length, color: '#64748b' },
   ], [equipments]);
 
-  // Estatísticas Financeiras Consolidadas
   const financialStats = useMemo(() => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
 
-    // Receita de Aluguéis
     const rentalsReceived = safeRentals
       .filter(r => r && r.status === 'completed')
       .reduce((acc, r) => acc + (Number(r.total) || 0), 0);
     
     const rentalsToReceive = safeRentals
       .filter(r => r && (r.status === 'active' || r.status === 'overdue'))
-      .reduce((acc, r) => acc + (Number(r.total) || 0), 0);
+      .reduce((acc, r) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
 
-    // Receita de Vendas (Pedidos)
     const salesReceived = safeOrders
       .filter(o => o && (o.status === 'Entregue' || o.status === 'Pago'))
       .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
     
     const salesToReceive = safeOrders
       .filter(o => o && o.status !== 'Entregue' && o.status !== 'Pago')
-      .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+      .reduce((acc, o) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0);
 
     return { 
       rentalsReceived, 
@@ -88,7 +87,6 @@ const ReportsPage = () => {
     };
   }, [rentals, orders]);
 
-  // Estatísticas de Pedidos
   const orderStats = useMemo(() => {
     const safeOrders = Array.isArray(orders) ? orders : [];
     return [
@@ -97,24 +95,56 @@ const ReportsPage = () => {
     ];
   }, [orders]);
 
-  const handleProcessPayment = (type: 'order' | 'rental', id: string) => {
-    if (type === 'order') {
+  const handleOpenPayment = (item: any) => {
+    setSelectedItem(item);
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleConfirmPayment = (amountToPay: number) => {
+    if (!selectedItem) return;
+
+    if (selectedItem.type === 'Venda') {
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders) {
         const currentOrders = JSON.parse(savedOrders);
-        const updated = currentOrders.map((o: any) => o.id === id ? { ...o, status: 'Pago' } : o);
+        const updated = currentOrders.map((o: any) => {
+          if (o.id === selectedItem.id) {
+            const currentPaid = Number(o.paidAmount || 0);
+            const total = Number(o.total || 0);
+            const nextPaid = currentPaid + amountToPay;
+            return { 
+              ...o, 
+              paidAmount: nextPaid,
+              status: nextPaid >= total - 0.01 ? 'Pago' : o.status 
+            };
+          }
+          return o;
+        });
         localStorage.setItem('app_orders', JSON.stringify(updated));
       }
     } else {
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals) {
         const currentRentals = JSON.parse(savedRentals);
-        const updated = currentRentals.map((r: any) => r.id === id ? { ...r, status: 'completed' } : r);
+        const updated = currentRentals.map((r: any) => {
+          if (r.id === selectedItem.id) {
+            const currentPaid = Number(r.paidAmount || 0);
+            const total = Number(r.total || 0);
+            const nextPaid = currentPaid + amountToPay;
+            return { 
+              ...r, 
+              paidAmount: nextPaid,
+              status: nextPaid >= total - 0.01 ? 'completed' : r.status 
+            };
+          }
+          return r;
+        });
         localStorage.setItem('app_rentals', JSON.stringify(updated));
       }
     }
     
-    showSuccess("Recebimento efetuado com sucesso!");
+    showSuccess("Recebimento registrado!");
+    setIsPaymentDialogOpen(false);
     loadData();
     window.dispatchEvent(new Event('order-placed'));
   };
@@ -128,7 +158,8 @@ const ReportsPage = () => {
       client: r.client || 'Cliente não identificado',
       description: r.item || 'Item não especificado',
       date: r.end || r.start || '---',
-      value: Number(r.total) || 0,
+      total: Number(r.total) || 0,
+      paidAmount: Number(r.paidAmount) || 0,
       type: 'Aluguel' as const,
       status: r.status === 'completed' ? 'Recebido' : 'Pendente'
     }));
@@ -138,7 +169,8 @@ const ReportsPage = () => {
       client: (o.userEmail || 'Desconhecido').split('@')[0],
       description: `Pedido ${o.id}`,
       date: o.date || '---',
-      value: Number(o.total) || 0,
+      total: Number(o.total) || 0,
+      paidAmount: Number(o.paidAmount) || 0,
       type: 'Venda' as const,
       status: (o.status === 'Entregue' || o.status === 'Pago') ? 'Recebido' : 'Pendente'
     }));
@@ -172,42 +204,48 @@ const ReportsPage = () => {
           </Badge>
         </div>
         <div className="grid gap-3">
-          {list.map((entry: any) => (
-            <div key={entry.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  "h-12 w-12 rounded-2xl flex items-center justify-center",
-                  entry.type === 'Aluguel' ? "bg-blue-50" : "bg-emerald-50"
-                )}>
-                  {entry.type === 'Aluguel' ? <Receipt className="h-6 w-6 text-blue-600" /> : <ShoppingBag className="h-6 w-6 text-emerald-600" />}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-base font-black text-slate-900">{entry.client}</p>
-                    <Badge variant="outline" className="text-[9px] font-black uppercase rounded-lg px-2 h-4">{entry.type}</Badge>
+          {list.map((entry: any) => {
+            const remaining = entry.total - entry.paidAmount;
+            return (
+              <div key={entry.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:shadow-md transition-all">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "h-12 w-12 rounded-2xl flex items-center justify-center",
+                    entry.type === 'Aluguel' ? "bg-blue-50" : "bg-emerald-50"
+                  )}>
+                    {entry.type === 'Aluguel' ? <Receipt className="h-6 w-6 text-blue-600" /> : <ShoppingBag className="h-6 w-6 text-emerald-600" />}
                   </div>
-                  <p className="text-xs font-bold text-slate-400 uppercase">{entry.description} • {entry.date}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-black text-slate-900">{entry.client}</p>
+                      <Badge variant="outline" className="text-[9px] font-black uppercase rounded-lg px-2 h-4">{entry.type}</Badge>
+                    </div>
+                    <p className="text-xs font-bold text-slate-400 uppercase">{entry.description} • {entry.date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-lg font-black text-blue-700">R$ {remaining.toFixed(2)}</p>
+                    {entry.paidAmount > 0 && entry.status !== 'Recebido' && (
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Restante de R$ {entry.total.toFixed(2)}</p>
+                    )}
+                    <Badge className={cn(
+                      "text-[10px] font-black uppercase rounded-lg",
+                      entry.status === 'Recebido' ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700"
+                    )}>{entry.status}</Badge>
+                  </div>
+                  {entry.status === 'Pendente' && (
+                    <Button 
+                      onClick={() => handleOpenPayment(entry)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-10 px-4 text-xs gap-2"
+                    >
+                      <CheckCircle2 className="h-4 w-4" /> Receber
+                    </Button>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <p className="text-lg font-black text-blue-700">R$ {entry.value.toFixed(2)}</p>
-                  <Badge className={cn(
-                    "text-[10px] font-black uppercase rounded-lg",
-                    entry.status === 'Recebido' ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700"
-                  )}>{entry.status}</Badge>
-                </div>
-                {entry.status === 'Pendente' && (
-                  <Button 
-                    onClick={() => handleProcessPayment(entry.type === 'Aluguel' ? 'rental' : 'order', entry.id)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-10 px-4 text-xs gap-2"
-                  >
-                    <CheckCircle2 className="h-4 w-4" /> Receber
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -398,6 +436,19 @@ const ReportsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <PaymentActionDialog 
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        item={selectedItem ? {
+          id: selectedItem.id,
+          total: selectedItem.total,
+          paidAmount: selectedItem.paidAmount,
+          client: selectedItem.client,
+          description: selectedItem.description
+        } : null}
+        onConfirm={handleConfirmPayment}
+      />
     </AppLayout>
   );
 };

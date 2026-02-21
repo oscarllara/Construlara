@@ -46,7 +46,6 @@ const UsersPage = () => {
     localStorage.setItem('app_users', JSON.stringify(newUsers));
   };
 
-  // Lógica de cálculo de débito para os filtros
   const usersWithDebtInfo = useMemo(() => {
     const savedOrders = localStorage.getItem('app_orders');
     const savedRentals = localStorage.getItem('app_rentals');
@@ -67,8 +66,8 @@ const UsersPage = () => {
         r.status !== 'completed'
       );
 
-      const debtTotal = pOrders.reduce((acc: number, o: any) => acc + (Number(o.total) || 0), 0) +
-                        pRentals.reduce((acc: number, r: any) => acc + (Number(r.total) || 0), 0);
+      const debtTotal = pOrders.reduce((acc: number, o: any) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0) +
+                        pRentals.reduce((acc: number, r: any) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
 
       return { ...user, debtTotal };
     });
@@ -76,7 +75,7 @@ const UsersPage = () => {
 
   const stats = useMemo(() => {
     const total = users.length;
-    const withDebt = usersWithDebtInfo.filter(u => u.debtTotal > 0).length;
+    const withDebt = usersWithDebtInfo.filter(u => u.debtTotal > 0.01).length;
     const clean = total - withDebt;
     return { total, withDebt, clean };
   }, [usersWithDebtInfo]);
@@ -137,26 +136,51 @@ const UsersPage = () => {
     setIsFinanceOpen(true);
   };
 
-  const handleMarkAsPaid = (type: 'order' | 'rental', id: string) => {
+  const handleMarkAsPaid = (type: 'order' | 'rental', id: string, amountToPay?: number) => {
     if (type === 'order') {
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders) {
         const orders = JSON.parse(savedOrders);
-        const newOrders = orders.map((o: any) => o.id === id ? { ...o, status: 'Pago' } : o);
-        localStorage.setItem('app_orders', JSON.stringify(newOrders));
+        const updated = orders.map((o: any) => {
+          if (o.id === id) {
+            const currentPaid = Number(o.paidAmount || 0);
+            const total = Number(o.total || 0);
+            const nextPaid = amountToPay !== undefined ? currentPaid + amountToPay : total;
+            
+            return { 
+              ...o, 
+              paidAmount: nextPaid,
+              status: nextPaid >= total - 0.01 ? 'Pago' : o.status 
+            };
+          }
+          return o;
+        });
+        localStorage.setItem('app_orders', JSON.stringify(updated));
       }
     } else {
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals) {
         const rentals = JSON.parse(savedRentals);
-        const newRentals = rentals.map((r: any) => r.id === id ? { ...r, status: 'completed' } : r);
-        localStorage.setItem('app_rentals', JSON.stringify(newRentals));
+        const updated = rentals.map((r: any) => {
+          if (r.id === id) {
+            const currentPaid = Number(r.paidAmount || 0);
+            const total = Number(r.total || 0);
+            const nextPaid = amountToPay !== undefined ? currentPaid + amountToPay : total;
+            
+            return { 
+              ...r, 
+              paidAmount: nextPaid,
+              status: nextPaid >= total - 0.01 ? 'completed' : r.status 
+            };
+          }
+          return r;
+        });
+        localStorage.setItem('app_rentals', JSON.stringify(updated));
       }
     }
     
-    // Atualiza localmente sem recarregar tudo
     setUsers([...users]); 
-    showSuccess("Recebimento registrado.");
+    showSuccess(amountToPay ? "Amortização registrada!" : "Recebimento total efetuado!");
     window.dispatchEvent(new Event('order-placed'));
   };
 
@@ -165,8 +189,8 @@ const UsersPage = () => {
       const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            user.email.toLowerCase().includes(searchTerm.toLowerCase());
       
-      if (filterType === 'debt') return matchesSearch && user.debtTotal > 0;
-      if (filterType === 'clean') return matchesSearch && user.debtTotal === 0;
+      if (filterType === 'debt') return matchesSearch && user.debtTotal > 0.01;
+      if (filterType === 'clean') return matchesSearch && user.debtTotal <= 0.01;
       return matchesSearch;
     });
   }, [usersWithDebtInfo, searchTerm, filterType]);
