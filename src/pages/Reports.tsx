@@ -10,14 +10,14 @@ import {
 } from 'recharts';
 import { 
   Hammer, Receipt, DollarSign, TrendingUp, 
-  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2, ShoppingBag, ArrowRight, SearchX, ArrowLeft
+  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2, ShoppingBag, ArrowRight, SearchX, ArrowLeft, Trash2, RefreshCcw
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Equipment } from '@/components/EquipmentCard';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 import PaymentActionDialog from '@/components/PaymentActionDialog';
 
 const ReportsPage = () => {
@@ -50,13 +50,37 @@ const ReportsPage = () => {
     return () => window.removeEventListener('order-placed', loadData);
   }, []);
 
+  const handleResetSystem = () => {
+    if (window.confirm("ATENÇÃO: Isso apagará todos os contratos, pedidos e histórico financeiro permanentemente. Deseja continuar?")) {
+      localStorage.setItem('app_rentals', JSON.stringify([]));
+      localStorage.setItem('app_orders', JSON.stringify([]));
+      localStorage.setItem('app_cart', JSON.stringify([]));
+      
+      // Liberar todos os equipamentos que estavam alugados
+      const savedEquip = localStorage.getItem('app_equipments');
+      if (savedEquip) {
+        const allEquip = JSON.parse(savedEquip);
+        const resetEquip = allEquip.map((e: any) => ({
+          ...e,
+          status: e.status === 'rented' ? 'available' : e.status,
+          lastClient: undefined
+        }));
+        localStorage.setItem('app_equipments', JSON.stringify(resetEquip));
+      }
+
+      loadData();
+      window.dispatchEvent(new Event('order-placed'));
+      window.dispatchEvent(new Event('cart-updated'));
+      showSuccess("Sistema resetado! Todos os contadores foram zerados.");
+    }
+  };
+
   const equipmentStats = useMemo(() => [
     { name: 'Disponíveis', value: (equipments || []).filter(e => e && e.status === 'available').length, color: '#2563eb' },
     { name: 'Alugados', value: (equipments || []).filter(e => e && e.status === 'rented').length, color: '#dc2626' },
     { name: 'Manutenção', value: (equipments || []).filter(e => e && e.status === 'maintenance').length, color: '#64748b' },
   ], [equipments]);
 
-  // Lógica Financeira Corrigida: Débito é saldo remanescente, independente do status físico
   const financialStats = useMemo(() => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
@@ -259,9 +283,14 @@ const ReportsPage = () => {
             <h2 className="text-3xl font-black text-slate-900">Relatórios & Inteligência</h2>
             <p className="text-slate-500 font-medium">Análise consolidada de Aluguéis e Vendas de Produtos</p>
           </div>
-          <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold gap-2 h-12 px-6">
-            <Download className="h-5 w-5" /> Exportar Relatório
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleResetSystem} variant="outline" className="rounded-2xl border-red-200 text-red-600 hover:bg-red-50 font-bold gap-2 h-12 px-6">
+              <RefreshCcw className="h-5 w-5" /> Zerar Dados p/ Testes
+            </Button>
+            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold gap-2 h-12 px-6">
+              <Download className="h-5 w-5" /> Exportar Relatório
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="financial" className="space-y-8">
