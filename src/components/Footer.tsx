@@ -7,8 +7,8 @@ const Footer = () => {
   return (
     <footer className="border-t bg-slate-50 py-12">
       <div className="container flex flex-col items-center justify-between gap-8 md:flex-row">
-        <div className="text-center md:text-left space-y-2">
-          <p className="text-lg font-black text-slate-900">BTM Comércio de Material de Construção Ltda</p>
+        <div className="text-center md:text-left space-y-1">
+          <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter">CONSTRULARA</p>
           <p className="text-blue-600 font-black italic text-sm">"Um passo a frente em sua obra!"</p>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pt-2">CONSTRULARA &copy; {new Date().getFullYear()}</p>
         </div>

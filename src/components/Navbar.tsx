@@ -54,7 +54,6 @@ const Navbar = () => {
     };
   }, []);
 
-  // Lógica de permissões de menu
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutGrid, roles: ['Gestor', 'Vendas', 'Entregador'] },
     { name: 'Loja', path: '/loja', icon: ShoppingBag, roles: ['all'] },
@@ -74,18 +73,20 @@ const Navbar = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
     showSuccess("Sessão encerrada.");
-    // Redireciona para a página inicial (que levará à Loja se não estiver logado)
     navigate('/');
   };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
       <div className="container flex h-24 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link to={isLoggedIn ? "/" : "/loja"} className="flex items-center group">
-            <div className="h-24 w-64 flex items-center justify-start transition-transform group-hover:scale-105">
+        <div className="flex items-center gap-6">
+          <Link to={isLoggedIn ? "/" : "/loja"} className="flex flex-col items-start group">
+            <div className="h-16 w-56 flex items-center justify-start transition-transform group-hover:scale-105">
               <img src="/logoconstrulara.png" alt="Construlara Logo" className="h-full w-full object-contain object-left" />
             </div>
+            <p className="text-blue-600 font-black italic text-[10px] ml-1 mt-0.5 group-hover:translate-x-1 transition-transform">
+              "Um passo a frente em sua obra!"
+            </p>
           </Link>
 
           <div className="hidden lg:flex items-center gap-0.5">
