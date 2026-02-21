@@ -64,7 +64,9 @@ const Index = () => {
                   Olá! Eu sou o <br />
                   <span className="text-red-500 drop-shadow-[0_2px_2px_rgba(255,255,255,0.8)] filter">Beto</span>.
                 </h1>
-                <p className="text-blue-300 text-lg font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
+                <div className="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2 rounded-2xl w-fit">
+                  <p className="text-blue-300 text-lg font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
+                </div>
               </div>
               
               <p className="text-blue-100 text-xl max-w-md font-bold leading-relaxed">
