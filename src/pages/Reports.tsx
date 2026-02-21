@@ -17,6 +17,7 @@ import { Equipment } from '@/components/EquipmentCard';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { showSuccess } from '@/utils/toast';
 
 const ReportsPage = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
@@ -25,7 +26,7 @@ const ReportsPage = () => {
   const [activeDetail, setActiveDetail] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const loadData = () => {
     try {
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) setEquipments(JSON.parse(savedEquip));
@@ -38,6 +39,12 @@ const ReportsPage = () => {
     } catch (e) {
       console.error("Erro ao carregar dados dos relatórios:", e);
     }
+  };
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('order-placed', loadData);
+    return () => window.removeEventListener('order-placed', loadData);
   }, []);
 
   // Estatísticas de Inventário
@@ -90,6 +97,28 @@ const ReportsPage = () => {
     ];
   }, [orders]);
 
+  const handleProcessPayment = (type: 'order' | 'rental', id: string) => {
+    if (type === 'order') {
+      const savedOrders = localStorage.getItem('app_orders');
+      if (savedOrders) {
+        const currentOrders = JSON.parse(savedOrders);
+        const updated = currentOrders.map((o: any) => o.id === id ? { ...o, status: 'Pago' } : o);
+        localStorage.setItem('app_orders', JSON.stringify(updated));
+      }
+    } else {
+      const savedRentals = localStorage.getItem('app_rentals');
+      if (savedRentals) {
+        const currentRentals = JSON.parse(savedRentals);
+        const updated = currentRentals.map((r: any) => r.id === id ? { ...r, status: 'completed' } : r);
+        localStorage.setItem('app_rentals', JSON.stringify(updated));
+      }
+    }
+    
+    showSuccess("Recebimento efetuado com sucesso!");
+    loadData();
+    window.dispatchEvent(new Event('order-placed'));
+  };
+
   const renderFinancialDetail = () => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
@@ -100,7 +129,7 @@ const ReportsPage = () => {
       description: r.item || 'Item não especificado',
       date: r.end || r.start || '---',
       value: Number(r.total) || 0,
-      type: 'Aluguel',
+      type: 'Aluguel' as const,
       status: r.status === 'completed' ? 'Recebido' : 'Pendente'
     }));
 
@@ -110,7 +139,7 @@ const ReportsPage = () => {
       description: `Pedido ${o.id}`,
       date: o.date || '---',
       value: Number(o.total) || 0,
-      type: 'Venda',
+      type: 'Venda' as const,
       status: (o.status === 'Entregue' || o.status === 'Pago') ? 'Recebido' : 'Pendente'
     }));
 
@@ -160,12 +189,22 @@ const ReportsPage = () => {
                   <p className="text-xs font-bold text-slate-400 uppercase">{entry.description} • {entry.date}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-black text-blue-700">R$ {entry.value.toFixed(2)}</p>
-                <Badge className={cn(
-                  "text-[10px] font-black uppercase rounded-lg",
-                  entry.status === 'Recebido' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
-                )}>{entry.status}</Badge>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-lg font-black text-blue-700">R$ {entry.value.toFixed(2)}</p>
+                  <Badge className={cn(
+                    "text-[10px] font-black uppercase rounded-lg",
+                    entry.status === 'Recebido' ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700"
+                  )}>{entry.status}</Badge>
+                </div>
+                {entry.status === 'Pendente' && (
+                  <Button 
+                    onClick={() => handleProcessPayment(entry.type === 'Aluguel' ? 'rental' : 'order', entry.id)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-10 px-4 text-xs gap-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> Receber
+                  </Button>
+                )}
               </div>
             </div>
           ))}
