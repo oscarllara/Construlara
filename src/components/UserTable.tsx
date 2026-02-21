@@ -12,7 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { UserX, UserCheck, Mail, Trash2, Phone, Pencil, MapPin, SearchX, CreditCard, DollarSign } from 'lucide-react';
+import { 
+  UserX, UserCheck, Mail, Trash2, Phone, 
+  Pencil, MapPin, SearchX, CreditCard, 
+  DollarSign, AlertCircle, CheckCircle2 
+} from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export type UserRole = 'Cliente' | 'Entregador' | 'Vendas' | 'Gestor';
@@ -31,7 +35,7 @@ export interface UserAccount {
   city?: string;
   state?: string;
   worksiteAddress?: string;
-  debt?: number; // Campo calculado
+  debt?: number;
 }
 
 interface UserTableProps {
@@ -53,28 +57,35 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit, onOpenFinance }: U
     return <Badge variant="outline" className={cn("rounded-lg font-bold text-[10px] uppercase px-2 py-0.5", styles[role])}>{role}</Badge>;
   };
 
-  // Lógica para calcular o débito em tempo real
   const calculateUserDebt = (user: UserAccount) => {
-    const savedOrders = localStorage.getItem('app_orders');
-    const savedRentals = localStorage.getItem('app_rentals');
-    
-    const orders = savedOrders ? JSON.parse(savedOrders) : [];
-    const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+    try {
+      const savedOrders = localStorage.getItem('app_orders');
+      const savedRentals = localStorage.getItem('app_rentals');
+      
+      const orders = savedOrders ? JSON.parse(savedOrders) : [];
+      const rentals = savedRentals ? JSON.parse(savedRentals) : [];
 
-    const pendingOrders = orders.filter((o: any) => 
-      o.userEmail.toLowerCase() === user.email.toLowerCase() && 
-      o.status !== 'Entregue' && o.status !== 'Pago'
-    );
-    
-    const pendingRentals = rentals.filter((r: any) => 
-      (r.clientId === user.id || r.client === user.name) && 
-      r.status !== 'completed'
-    );
+      if (!Array.isArray(orders) || !Array.isArray(rentals)) return 0;
 
-    const totalOrders = pendingOrders.reduce((acc: number, o: any) => acc + (o.total || 0), 0);
-    const totalRentals = pendingRentals.reduce((acc: number, r: any) => acc + (r.total || 0), 0);
+      const userEmail = (user.email || "").toLowerCase();
 
-    return totalOrders + totalRentals;
+      const pendingOrders = orders.filter((o: any) => 
+        o && (o.userEmail || "").toLowerCase() === userEmail && 
+        o.status !== 'Entregue' && o.status !== 'Pago'
+      );
+      
+      const pendingRentals = rentals.filter((r: any) => 
+        r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()) && 
+        r.status !== 'completed'
+      );
+
+      const totalOrders = pendingOrders.reduce((acc: number, o: any) => acc + (Number(o.total) || 0), 0);
+      const totalRentals = pendingRentals.reduce((acc: number, r: any) => acc + (Number(r.total) || 0), 0);
+
+      return totalOrders + totalRentals;
+    } catch (e) {
+      return 0;
+    }
   };
 
   return (
