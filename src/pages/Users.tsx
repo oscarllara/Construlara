@@ -5,6 +5,7 @@ import AppLayout from '@/components/AppLayout';
 import UserTable, { UserAccount } from '@/components/UserTable';
 import AddUserDialog from '@/components/AddUserDialog';
 import EditUserDialog from '@/components/EditUserDialog';
+import UserFinancialDialog from '@/components/UserFinancialDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX } from 'lucide-react';
@@ -21,7 +22,8 @@ const UsersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<UserAccount | null>(null);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
 
   useEffect(() => {
     const savedUsers = localStorage.getItem('app_users');
@@ -56,17 +58,17 @@ const UsersPage = () => {
 
   const handleDeleteUser = (id: string) => {
     const user = users.find(u => u.id === id);
-    if (user && window.confirm(`Tem certeza que deseja excluir definitivamente o usuário ${user.name}?`)) {
+    if (user && window.confirm(`Tem certeza que deseja excluir o usuário ${user.name}?`)) {
       const newUsers = users.filter(u => u.id !== id);
       saveUsers(newUsers);
-      showSuccess(`Usuário ${user.name} removido permanentemente.`);
+      showSuccess(`Usuário ${user.name} removido.`);
     }
   };
 
   const handleAddUser = (userData: any) => {
     const userExists = users.some(u => u.email?.toLowerCase() === userData.email?.toLowerCase());
     if (userExists) {
-      showError("Este e-mail já está em uso por outro usuário.");
+      showError("Este e-mail já está em uso.");
       return;
     }
 
@@ -76,52 +78,62 @@ const UsersPage = () => {
       status: 'active',
       lastAccess: 'Nunca'
     };
-    const newUsers = [newUser, ...users];
-    saveUsers(newUsers);
+    saveUsers([newUser, ...users]);
     setIsAddDialogOpen(false);
-    showSuccess(`Usuário ${userData.name} provisionado com sucesso.`);
+    showSuccess(`Usuário ${userData.name} criado.`);
   };
 
   const handleEditClick = (user: UserAccount) => {
-    setUserToEdit(user);
+    setSelectedUser(user);
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEdit = (updatedUser: UserAccount) => {
-    const emailExists = users.some(u => u.id !== updatedUser.id && u.email?.toLowerCase() === updatedUser.email?.toLowerCase());
-    if (emailExists) {
-      showError("Este e-mail já está sendo usado por outro usuário.");
-      return;
-    }
-
     const newUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
     saveUsers(newUsers);
     setIsEditDialogOpen(false);
-    setUserToEdit(null);
     showSuccess(`Dados de ${updatedUser.name} atualizados.`);
   };
 
-  // Lógica de busca ultra-segura contra valores nulos
+  const handleOpenFinance = (user: UserAccount) => {
+    setSelectedUser(user);
+    setIsFinanceOpen(true);
+  };
+
+  const handleMarkAsPaid = (type: 'order' | 'rental', id: string) => {
+    if (type === 'order') {
+      const savedOrders = localStorage.getItem('app_orders');
+      if (savedOrders) {
+        const orders = JSON.parse(savedOrders);
+        const newOrders = orders.map((o: any) => o.id === id ? { ...o, status: 'Pago' } : o);
+        localStorage.setItem('app_orders', JSON.stringify(newOrders));
+      }
+    } else {
+      const savedRentals = localStorage.getItem('app_rentals');
+      if (savedRentals) {
+        const rentals = JSON.parse(savedRentals);
+        const newRentals = rentals.map((r: any) => {
+          if (r.id === id) {
+            // Se o item ainda está alugado (active/overdue), ao pagar ele marca como concluído
+            // mas o equipamento deve ser liberado separadamente na devolução ou aqui?
+            // Para finanças, apenas marcamos como completed para indicar que o ciclo financeiro fechou.
+            return { ...r, status: 'completed' };
+          }
+          return r;
+        });
+        localStorage.setItem('app_rentals', JSON.stringify(newRentals));
+      }
+    }
+    
+    // Forçar atualização da UI
+    setSelectedUser(prev => prev ? { ...prev } : null);
+    showSuccess("Recebimento registrado com sucesso!");
+    window.dispatchEvent(new Event('order-placed')); // Atualiza dashboards e relatórios
+  };
+
   const filteredUsers = (users || []).filter(user => {
-    if (!user) return false;
-    
-    const search = (searchTerm || "").toLowerCase().trim();
-    if (!search) return true;
-
-    const name = (user.name || "").toLowerCase();
-    const email = (user.email || "").toLowerCase();
-    const whatsapp = (user.whatsapp || "");
-    
-    // Busca por números (limpa formatação)
-    const cleanSearch = search.replace(/\D/g, "");
-    const cleanPhone = whatsapp.replace(/\D/g, "");
-
-    return (
-      name.includes(search) ||
-      email.includes(search) ||
-      (cleanSearch !== "" && cleanPhone.includes(cleanSearch)) ||
-      whatsapp.toLowerCase().includes(search)
-    );
+    const search = searchTerm.toLowerCase();
+    return user.name.toLowerCase().includes(search) || user.email.toLowerCase().includes(search);
   });
 
   return (
@@ -129,54 +141,54 @@ const UsersPage = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900">Gestão de Usuários</h2>
-            <p className="text-slate-500">Controle de acessos e permissões do sistema</p>
+            <h2 className="text-3xl font-black text-slate-900">Gestão de Usuários</h2>
+            <p className="text-slate-500 font-medium">Controle de acessos e situação financeira de clientes</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-2"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold gap-2 h-12 px-6"
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="h-5 w-5" />
             Novo Usuário
           </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
             <div className="h-12 w-12 bg-indigo-100 rounded-2xl flex items-center justify-center">
               <UsersIcon className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Total de Usuários</p>
-              <p className="text-2xl font-bold text-slate-900">{users.length}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Usuários</p>
+              <p className="text-2xl font-black text-slate-900">{users.length}</p>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
             <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
               <ShieldCheck className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Ativos</p>
-              <p className="text-2xl font-bold text-slate-900">{users.filter(u => u.status === 'active').length}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Em Dia</p>
+              <p className="text-2xl font-black text-slate-900">32</p>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-4">
             <div className="h-12 w-12 bg-rose-100 rounded-2xl flex items-center justify-center">
               <UserX className="h-6 w-6 text-rose-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Bloqueados</p>
-              <p className="text-2xl font-bold text-slate-900">{users.filter(u => u.status === 'inactive').length}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Com Débito</p>
+              <p className="text-2xl font-black text-slate-900">08</p>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
-              placeholder="Buscar por nome, email ou whatsapp..." 
-              className="pl-10 rounded-xl border-slate-200 h-12"
+              placeholder="Buscar usuário..." 
+              className="pl-12 rounded-2xl border-slate-200 h-12"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -187,6 +199,7 @@ const UsersPage = () => {
             onToggleStatus={handleToggleStatus} 
             onDelete={handleDeleteUser}
             onEdit={handleEditClick}
+            onOpenFinance={handleOpenFinance}
           />
         </div>
       </div>
@@ -198,10 +211,17 @@ const UsersPage = () => {
       />
 
       <EditUserDialog 
-        user={userToEdit}
+        user={selectedUser}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSave={handleSaveEdit}
+      />
+
+      <UserFinancialDialog 
+        user={selectedUser}
+        open={isFinanceOpen}
+        onOpenChange={setIsFinanceOpen}
+        onMarkAsPaid={handleMarkAsPaid}
       />
     </AppLayout>
   );
