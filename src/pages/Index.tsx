@@ -59,19 +59,20 @@ const Index = () => {
                 <Sparkles className="h-3.5 w-3.5" /> Sistema Oficial
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <h1 className="text-5xl md:text-7xl font-black text-white leading-tight tracking-tighter">
                   Olá! Eu sou o <br />
                   <span className="text-red-500 drop-shadow-[0_2px_2px_rgba(255,255,255,0.8)] filter">Beto</span>.
                 </h1>
+                
+                <p className="text-blue-100 text-xl max-w-lg font-bold leading-relaxed">
+                  Seu assistente inteligente para gestão de locações e compras na Construlara Material de Construção.
+                </p>
+
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2 rounded-2xl w-fit">
                   <p className="text-blue-300 text-lg font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
                 </div>
               </div>
-              
-              <p className="text-blue-100 text-xl max-w-md font-bold leading-relaxed">
-                Seu assistente inteligente para gestão de locações na <span className="text-white underline decoration-red-500 decoration-4 underline-offset-4">Construlara</span>.
-              </p>
 
               <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
                 <button 
