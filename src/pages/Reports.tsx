@@ -56,49 +56,31 @@ const ReportsPage = () => {
     { name: 'Manutenção', value: (equipments || []).filter(e => e && e.status === 'maintenance').length, color: '#64748b' },
   ], [equipments]);
 
-  // Lógica Financeira Corrigida para Amortizações
+  // Lógica Financeira Corrigida: Débito é saldo remanescente, independente do status físico
   const financialStats = useMemo(() => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
 
-    // --- ALUGUÉIS ---
-    // Recebido = Total de completos + Amortizações de ativos
-    const rentalsReceived = safeRentals.reduce((acc, r) => {
-      if (!r) return acc;
-      if (r.status === 'completed') return acc + (Number(r.total) || 0);
-      return acc + (Number(r.paidAmount) || 0);
-    }, 0);
-    
-    // A Receber = Saldo devedor de itens não completados
-    const rentalsToReceive = safeRentals.reduce((acc, r) => {
-      if (!r || r.status === 'completed') return acc;
-      const balance = (Number(r.total) || 0) - (Number(r.paidAmount) || 0);
+    const totalReceived = [...safeRentals, ...safeOrders].reduce((acc, item) => acc + (Number(item?.paidAmount) || 0), 0);
+    const totalToReceive = [...safeRentals, ...safeOrders].reduce((acc, item) => {
+      const balance = (Number(item?.total) || 0) - (Number(item?.paidAmount) || 0);
       return acc + Math.max(0, balance);
     }, 0);
 
-    // --- VENDAS ---
-    // Recebido = Total de finalizados + Amortizações de pendentes
-    const salesReceived = safeOrders.reduce((acc, o) => {
-      if (!o) return acc;
-      if (o.status === 'Entregue' || o.status === 'Pago') return acc + (Number(o.total) || 0);
-      return acc + (Number(o.paidAmount) || 0);
-    }, 0);
-    
-    // A Receber = Saldo devedor de pedidos não pagos
-    const salesToReceive = safeOrders.reduce((acc, o) => {
-      if (!o || o.status === 'Entregue' || o.status === 'Pago') return acc;
-      const balance = (Number(o.total) || 0) - (Number(o.paidAmount) || 0);
-      return acc + Math.max(0, balance);
-    }, 0);
+    const rentalsReceived = safeRentals.reduce((acc, r) => acc + (Number(r?.paidAmount) || 0), 0);
+    const rentalsToReceive = safeRentals.reduce((acc, r) => acc + Math.max(0, (Number(r?.total) || 0) - (Number(r?.paidAmount) || 0)), 0);
+
+    const salesReceived = safeOrders.reduce((acc, o) => acc + (Number(o?.paidAmount) || 0), 0);
+    const salesToReceive = safeOrders.reduce((acc, o) => acc + Math.max(0, (Number(o?.total) || 0) - (Number(o?.paidAmount) || 0)), 0);
 
     return { 
       rentalsReceived, 
       rentalsToReceive, 
       salesReceived, 
       salesToReceive,
-      totalReceived: rentalsReceived + salesReceived,
-      totalToReceive: rentalsToReceive + salesToReceive,
-      grandTotal: rentalsReceived + salesReceived + rentalsToReceive + salesToReceive
+      totalReceived,
+      totalToReceive,
+      grandTotal: totalReceived + totalToReceive
     };
   }, [rentals, orders]);
 
@@ -168,34 +150,33 @@ const ReportsPage = () => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
 
-    const rentalEntries = safeRentals.filter(r => r).map(r => ({
-      id: r.id,
-      client: r.client || 'Cliente não identificado',
-      description: r.item || 'Item não especificado',
-      date: r.end || r.start || '---',
-      total: Number(r.total) || 0,
-      paidAmount: Number(r.paidAmount) || 0,
-      type: 'Aluguel' as const,
-      status: r.status === 'completed' ? 'Recebido' : 'Pendente'
-    }));
-
-    const orderEntries = safeOrders.filter(o => o).map(o => ({
-      id: o.id,
-      client: (o.userEmail || 'Desconhecido').split('@')[0],
-      description: `Pedido ${o.id}`,
-      date: o.date || '---',
-      total: Number(o.total) || 0,
-      paidAmount: Number(o.paidAmount) || 0,
-      type: 'Venda' as const,
-      status: (o.status === 'Entregue' || o.status === 'Pago') ? 'Recebido' : 'Pendente'
-    }));
-
-    const allEntries = [...rentalEntries, ...orderEntries];
+    const allEntries = [
+      ...safeRentals.filter(r => r).map(r => ({
+        id: r.id,
+        client: r.client || 'Cliente não identificado',
+        description: r.item || 'Item não especificado',
+        date: r.end || r.start || '---',
+        total: Number(r.total) || 0,
+        paidAmount: Number(r.paidAmount) || 0,
+        type: 'Aluguel' as const,
+        isFullyPaid: Number(r.paidAmount) >= Number(r.total) - 0.01
+      })),
+      ...safeOrders.filter(o => o).map(o => ({
+        id: o.id,
+        client: (o.userEmail || 'Desconhecido').split('@')[0],
+        description: `Pedido ${o.id}`,
+        date: o.date || '---',
+        total: Number(o.total) || 0,
+        paidAmount: Number(o.paidAmount) || 0,
+        type: 'Venda' as const,
+        isFullyPaid: Number(o.paidAmount) >= Number(o.total) - 0.01
+      }))
+    ];
     
     const list = activeDetail === 'received' 
-      ? allEntries.filter(e => e.status === 'Recebido' || e.paidAmount > 0)
+      ? allEntries.filter(e => e.paidAmount > 0)
       : activeDetail === 'toReceive'
-      ? allEntries.filter(e => e.status === 'Pendente')
+      ? allEntries.filter(e => !e.isFullyPaid)
       : allEntries;
 
     return (
@@ -211,7 +192,7 @@ const ReportsPage = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h3 className="text-2xl font-black text-slate-900">
-              {activeDetail === 'received' ? 'Fluxo de Recebimentos' : activeDetail === 'toReceive' ? 'Valores Pendentes' : 'Fluxo de Caixa Total'}
+              {activeDetail === 'received' ? 'Recebimentos Registrados' : activeDetail === 'toReceive' ? 'Saldo Devedor Total' : 'Fluxo de Caixa Total'}
             </h3>
           </div>
           <Badge className="bg-blue-50 text-blue-700 border-none px-4 py-2 rounded-xl font-bold">
@@ -221,11 +202,6 @@ const ReportsPage = () => {
         <div className="grid gap-3">
           {list.map((entry: any) => {
             const balance = entry.total - entry.paidAmount;
-            // Se estamos vendo "recebidos" e a conta está pendente mas teve amortização, mostramos o que foi pago
-            const displayValue = (activeDetail === 'received' && entry.status === 'Pendente') ? entry.paidAmount : (activeDetail === 'toReceive' ? balance : entry.total);
-            
-            if (activeDetail === 'received' && entry.status === 'Pendente' && entry.paidAmount <= 0) return null;
-
             return (
               <div key={entry.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:shadow-md transition-all">
                 <div className="flex items-center gap-4">
@@ -246,19 +222,19 @@ const ReportsPage = () => {
                 <div className="flex items-center gap-6">
                   <div className="text-right">
                     <p className={cn("text-lg font-black", activeDetail === 'received' ? "text-emerald-600" : "text-blue-700")}>
-                      R$ {displayValue.toFixed(2)}
+                      {activeDetail === 'received' ? `R$ ${entry.paidAmount.toFixed(2)}` : `R$ ${balance.toFixed(2)}`}
                     </p>
                     <div className="flex flex-col items-end gap-1">
                       <Badge className={cn(
                         "text-[10px] font-black uppercase rounded-lg",
-                        entry.status === 'Recebido' ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700"
-                      )}>{entry.status === 'Recebido' ? 'Liquidado' : 'Em Aberto'}</Badge>
-                      {activeDetail === 'received' && entry.status === 'Pendente' && (
-                        <span className="text-[8px] font-bold text-slate-400 uppercase">Amortização Parcial</span>
+                        entry.isFullyPaid ? "bg-emerald-50 text-emerald-700" : "bg-blue-100 text-blue-700"
+                      )}>{entry.isFullyPaid ? 'Liquidado' : 'Aberto'}</Badge>
+                      {entry.paidAmount > 0 && !entry.isFullyPaid && (
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">Parcialmente Pago</span>
                       )}
                     </div>
                   </div>
-                  {entry.status === 'Pendente' && activeDetail !== 'received' && (
+                  {!entry.isFullyPaid && activeDetail !== 'received' && (
                     <Button 
                       onClick={() => handleOpenPayment(entry)}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-10 px-4 text-xs gap-2"
@@ -306,14 +282,14 @@ const ReportsPage = () => {
                     <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faturamento Total</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-3xl font-black">R$ {financialStats.grandTotal.toFixed(2)}</div>
-                      <p className="text-[10px] text-slate-400 mt-1 font-bold">Volume Total de Negócios</p>
+                      <p className="text-[10px] text-slate-400 mt-1 font-bold">Valor Global de Contratos e Pedidos</p>
                     </CardContent>
                   </Card>
                   <Card 
                     onClick={() => setActiveDetail('received')}
                     className="border-none shadow-sm rounded-[2.5rem] bg-white cursor-pointer hover:scale-[1.02] transition-transform"
                   >
-                    <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Já Recebidos (Amortizado)</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Já Recebidos (Caixa)</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-3xl font-black text-emerald-600">R$ {financialStats.totalReceived.toFixed(2)}</div>
                       <div className="flex gap-2 mt-2">
@@ -326,7 +302,7 @@ const ReportsPage = () => {
                     onClick={() => setActiveDetail('toReceive')}
                     className="border-none shadow-sm rounded-[2.5rem] bg-white cursor-pointer hover:scale-[1.02] transition-transform"
                   >
-                    <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo Devedor / Pendentes</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo a Receber / Devedores</CardTitle></CardHeader>
                     <CardContent>
                       <div className="text-3xl font-black text-blue-600">R$ {financialStats.totalToReceive.toFixed(2)}</div>
                       <div className="flex gap-2 mt-2">

@@ -69,24 +69,16 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit, onOpenFinance }: U
 
       const userEmail = (user.email || "").toLowerCase();
 
-      // Soma saldo devedor de pedidos (Total - Já Pago)
-      const pendingOrders = orders.filter((o: any) => 
-        o && (o.userEmail || "").toLowerCase() === userEmail && 
-        o.status !== 'Pago' && o.status !== 'Entregue'
-      );
-      
-      // Soma saldo devedor de aluguéis (Total - Já Pago)
-      const pendingRentals = rentals.filter((r: any) => 
-        r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()) && 
-        r.status !== 'completed'
-      );
+      // Filtra todas as faturas do usuário que possuem saldo devedor (Total > Pago)
+      const userOrders = orders.filter((o: any) => o && (o.userEmail || "").toLowerCase() === userEmail);
+      const userRentals = rentals.filter((r: any) => r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()));
 
-      const totalOrdersDebt = pendingOrders.reduce((acc: number, o: any) => {
+      const totalOrdersDebt = userOrders.reduce((acc: number, o: any) => {
         const remaining = (Number(o.total) || 0) - (Number(o.paidAmount) || 0);
         return acc + Math.max(0, remaining);
       }, 0);
 
-      const totalRentalsDebt = pendingRentals.reduce((acc: number, r: any) => {
+      const totalRentalsDebt = userRentals.reduce((acc: number, r: any) => {
         const remaining = (Number(r.total) || 0) - (Number(r.paidAmount) || 0);
         return acc + Math.max(0, remaining);
       }, 0);

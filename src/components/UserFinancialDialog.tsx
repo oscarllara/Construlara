@@ -45,11 +45,13 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
       const userOrders = orders.filter((o: any) => o && (o.userEmail || "").toLowerCase() === userEmail);
       const userRentals = rentals.filter((r: any) => r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()));
 
-      const pendingOrders = userOrders.filter((o: any) => o.status !== 'Entregue' && o.status !== 'Pago');
-      const receivedOrders = userOrders.filter((o: any) => o.status === 'Entregue' || o.status === 'Pago');
+      // Pendentes: qualquer item onde o valor total ainda não foi totalmente pago (Total > Pago)
+      const pendingOrders = userOrders.filter((o: any) => (Number(o.total) || 0) > (Number(o.paidAmount) || 0));
+      const pendingRentals = userRentals.filter((r: any) => (Number(r.total) || 0) > (Number(r.paidAmount) || 0));
 
-      const pendingRentals = userRentals.filter((r: any) => r.status !== 'completed');
-      const receivedRentals = userRentals.filter((r: any) => r.status === 'completed');
+      // Recebidos: itens que já foram 100% quitados
+      const receivedOrders = userOrders.filter((o: any) => (Number(o.total) || 0) <= (Number(o.paidAmount) || 0) && Number(o.total) > 0);
+      const receivedRentals = userRentals.filter((r: any) => (Number(r.total) || 0) <= (Number(r.paidAmount) || 0) && Number(r.total) > 0);
 
       const totalShop = pendingOrders.reduce((acc: number, o: any) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0);
       const totalRental = pendingRentals.reduce((acc: number, r: any) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
