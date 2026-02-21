@@ -1,150 +1,64 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, UserPlus, Briefcase, ShieldCheck } from 'lucide-react';
-import { showSuccess, showError } from '@/utils/toast';
+import { MessageCircle, Mail, Phone, Facebook, Chrome as Google, Apple } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!role) {
-      showError("Por favor, selecione seu nível de acesso.");
-      return;
-    }
-
-    if (email === 'novo@construlara.com' && password === '123456') {
-      showSuccess("Primeiro acesso detectado. Por favor, altere sua senha.");
-      navigate('/trocar-senha');
-      return;
-    }
-
-    if (email && password) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userRole', role);
-      localStorage.setItem('userEmail', email);
-      showSuccess(`Bem-vindo de volta, ${role}!`);
-      
-      if (role === 'Cliente') {
-        navigate('/loja');
-      } else {
-        navigate('/');
-      }
-    } else {
-      showError("Credenciais inválidas.");
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-red-600/5 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="w-full max-w-[520px] space-y-8 relative z-10">
-        <div className="text-center space-y-4">
-          <div className="h-48 w-full flex items-center justify-center mx-auto">
-            <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-auto object-contain drop-shadow-2xl" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-violet-700 to-indigo-800 p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center text-white">
+          <div className="bg-white/20 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 backdrop-blur-xl border border-white/30">
+            <MessageCircle className="h-10 w-10 text-white" />
           </div>
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">CONSTRULARA</h1>
-            <p className="text-blue-600 text-sm font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest pt-1">Gestão Inteligente de Locações</p>
-          </div>
+          <h1 className="text-4xl font-black tracking-tighter">Ki papo</h1>
+          <p className="text-purple-100 font-medium">Conecte-se com pessoas da sua região</p>
         </div>
 
-        <Card className="border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] rounded-[3.5rem] overflow-hidden bg-white/80 backdrop-blur-sm border border-white">
-          <CardHeader className="space-y-2 pb-6 pt-10 px-12">
-            <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Entrar</CardTitle>
-            <CardDescription className="text-base font-medium text-slate-500">Acesse sua conta para gerenciar o sistema.</CardDescription>
+        <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white/95 backdrop-blur-sm">
+          <CardHeader className="text-center pt-8">
+            <CardTitle className="text-2xl font-bold text-slate-900">Bem-vindo de volta!</CardTitle>
+            <CardDescription>Escolha como deseja acessar sua conta</CardDescription>
           </CardHeader>
-          <CardContent className="px-12 pb-12 space-y-8">
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</Label>
-                <div className="relative">
-                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center z-10 border border-slate-100">
-                    <Mail className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="nome@construlara.com" 
-                    className="pl-14 rounded-2xl h-14 border-slate-200 bg-white text-base focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+          <CardContent className="grid gap-4 pb-10 px-8">
+            <Button variant="outline" className="h-12 rounded-2xl gap-3 border-slate-200 hover:bg-slate-50" onClick={() => navigate('/registro')}>
+              <Mail className="h-5 w-5 text-slate-600" /> E-mail
+            </Button>
+            <Button variant="outline" className="h-12 rounded-2xl gap-3 border-slate-200 hover:bg-slate-50">
+              <Phone className="h-5 w-5 text-emerald-600" /> Telefone
+            </Button>
+            
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-100"></span>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Senha de Acesso</Label>
-                <div className="relative">
-                  <div className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center z-10 border border-slate-100">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••"
-                    className="pl-14 rounded-2xl h-14 border-slate-200 bg-white text-base focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-slate-400 font-bold">Ou continue com</span>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Nível de Acesso</Label>
-                <Select onValueChange={(value) => setRole(value)}>
-                  <SelectTrigger className="rounded-2xl h-14 border-slate-200 bg-white pl-14 relative text-base focus:ring-2 focus:ring-blue-500/20 transition-all">
-                    <div className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center z-10 border border-blue-100">
-                      <Briefcase className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <SelectValue placeholder="Selecione seu cargo..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 shadow-2xl">
-                    <SelectItem value="Cliente" className="rounded-xl py-3">Cliente</SelectItem>
-                    <SelectItem value="Entregador" className="rounded-xl py-3">Entregador</SelectItem>
-                    <SelectItem value="Vendas" className="rounded-xl py-3">Vendas</SelectItem>
-                    <SelectItem value="Gestor" className="rounded-xl py-3 font-bold text-blue-700">Gestor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg shadow-2xl shadow-blue-200 mt-4 transition-all hover:-translate-y-1 active:scale-95">
-                Acessar Sistema
-              </Button>
-            </form>
-
-            <div className="pt-4 text-center">
-              <p className="text-sm text-slate-500 font-medium">
-                Novo por aqui? <Link to="/cadastro" className="text-blue-600 font-black hover:underline inline-flex items-center gap-1">Criar conta de acesso <UserPlus className="h-4 w-4" /></Link>
-              </p>
             </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-blue-50">
+                <Facebook className="h-5 w-5 text-blue-600" />
+              </Button>
+              <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-red-50">
+                <Google className="h-5 w-5 text-red-500" />
+              </Button>
+              <Button variant="outline" className="h-12 rounded-2xl border-slate-200 hover:bg-slate-100">
+                <Apple className="h-5 w-5 text-slate-900" />
+              </Button>
+            </div>
+
+            <p className="text-center text-sm text-slate-500 mt-4">
+              Não tem uma conta? <span className="text-purple-600 font-bold cursor-pointer hover:underline" onClick={() => navigate('/registro')}>Cadastre-se</span>
+            </p>
           </CardContent>
         </Card>
-
-        <div className="flex items-center justify-center gap-6 text-slate-400">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-            <ShieldCheck className="h-4 w-4" /> Conexão Segura
-          </div>
-          <div className="h-1 w-1 bg-slate-300 rounded-full"></div>
-          <a href="#" className="text-[10px] font-black uppercase tracking-widest hover:text-blue-600 transition-colors">Esqueci minha senha</a>
-        </div>
       </div>
     </div>
   );
