@@ -69,20 +69,29 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit, onOpenFinance }: U
 
       const userEmail = (user.email || "").toLowerCase();
 
+      // Soma saldo devedor de pedidos (Total - Já Pago)
       const pendingOrders = orders.filter((o: any) => 
         o && (o.userEmail || "").toLowerCase() === userEmail && 
-        o.status !== 'Entregue' && o.status !== 'Pago'
+        o.status !== 'Pago' && o.status !== 'Entregue'
       );
       
+      // Soma saldo devedor de aluguéis (Total - Já Pago)
       const pendingRentals = rentals.filter((r: any) => 
         r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()) && 
         r.status !== 'completed'
       );
 
-      const totalOrders = pendingOrders.reduce((acc: number, o: any) => acc + (Number(o.total) || 0), 0);
-      const totalRentals = pendingRentals.reduce((acc: number, r: any) => acc + (Number(r.total) || 0), 0);
+      const totalOrdersDebt = pendingOrders.reduce((acc: number, o: any) => {
+        const remaining = (Number(o.total) || 0) - (Number(o.paidAmount) || 0);
+        return acc + Math.max(0, remaining);
+      }, 0);
 
-      return totalOrders + totalRentals;
+      const totalRentalsDebt = pendingRentals.reduce((acc: number, r: any) => {
+        const remaining = (Number(r.total) || 0) - (Number(r.paidAmount) || 0);
+        return acc + Math.max(0, remaining);
+      }, 0);
+
+      return totalOrdersDebt + totalRentalsDebt;
     } catch (e) {
       return 0;
     }
@@ -132,7 +141,7 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit, onOpenFinance }: U
                       className="cursor-pointer group"
                       onClick={() => onOpenFinance(user)}
                     >
-                      {debt > 0 ? (
+                      {debt > 0.01 ? (
                         <div className="flex flex-col">
                           <span className="text-xs font-black text-red-600 flex items-center gap-1 group-hover:underline">
                             <AlertCircle className="h-3 w-3" /> R$ {debt.toFixed(2)}
