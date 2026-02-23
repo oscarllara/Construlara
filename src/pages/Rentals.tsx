@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, User, Hammer, Receipt, Clock } from 'lucide-react';
+import { Search, Calendar, User, Hammer, Receipt, Clock, SearchX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRentalDialog from '@/components/AddRentalDialog';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
@@ -32,10 +32,18 @@ const RentalsPage = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<any>(null);
 
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const userEmail = localStorage.getItem('userEmail') || '';
+  const isCliente = userRole === 'Cliente';
+
   useEffect(() => {
     const saved = localStorage.getItem('app_rentals');
     if (saved) {
-      setRentals(JSON.parse(saved));
+      try {
+        setRentals(JSON.parse(saved));
+      } catch (e) {
+        setRentals(INITIAL_RENTALS);
+      }
     } else {
       setRentals(INITIAL_RENTALS);
       localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
@@ -54,8 +62,8 @@ const RentalsPage = () => {
       clientId: data.clientId,
       item: data.itemName,
       equipmentId: data.equipmentId,
-      start: data.startDate,
-      end: data.endDate,
+      start: data.start,
+      end: data.end,
       status: 'active',
       total: data.totalValue,
       modality: data.modality,
@@ -110,38 +118,60 @@ const RentalsPage = () => {
       'Mês': "bg-emerald-50 text-emerald-700 border-emerald-100"
     };
     return (
-      <Badge variant="outline" className={cn("rounded-lg font-bold text-[10px] uppercase", styles[modality])}>
+      <Badge variant="outline" className={cn("rounded-lg font-bold text-[10px] uppercase", styles[modality] || "bg-slate-50")}>
         {modality}
       </Badge>
     );
   };
 
-  const filtered = rentals.filter(r => 
-    r.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.item.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = rentals.filter(r => {
+    if (!r) return false;
+
+    // Primeiro aplica o filtro de privacidade por cliente
+    if (isCliente) {
+      const savedUsers = localStorage.getItem('app_users');
+      const users = savedUsers ? JSON.parse(savedUsers) : [];
+      const me = users.find((u: any) => u.email?.toLowerCase() === userEmail?.toLowerCase());
+      
+      const isMyRental = (r.clientId === me?.id) || (r.client?.toLowerCase() === me?.name?.toLowerCase());
+      if (!isMyRental) return false;
+    }
+
+    // Depois aplica a busca por texto
+    const search = searchTerm.toLowerCase();
+    const clientName = (r.client || "").toLowerCase();
+    const itemName = (r.item || "").toLowerCase();
+    
+    return clientName.includes(search) || itemName.includes(search);
+  });
 
   return (
     <AppLayout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black text-slate-900">Contratos de Aluguel</h2>
-            <p className="text-slate-500 font-medium">Controle de locações e prazos de devolução</p>
+            <h2 className="text-3xl font-black text-slate-900">
+              {isCliente ? 'Meus Aluguéis' : 'Contratos de Aluguel'}
+            </h2>
+            <p className="text-slate-500 font-medium">
+              {isCliente ? 'Acompanhe seus prazos e devoluções' : 'Controle de locações e prazos de devolução'}
+            </p>
           </div>
-          <Button 
-            onClick={() => setIsAddOpen(true)}
-            className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-red-100 h-12 px-6"
-          >
-            <Receipt className="h-5 w-5" />
-            Novo Contrato
-          </Button>
+          {!isCliente && (
+            <Button 
+              onClick={() => setIsAddOpen(true)}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-red-100 h-12 px-6"
+            >
+              <Receipt className="h-5 w-5" />
+              Novo Contrato
+            </Button>
+          )}
         </div>
 
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
-            placeholder="Buscar por cliente ou item..." 
+            placeholder="Buscar por item ou código..." 
             className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -152,8 +182,8 @@ const RentalsPage = () => {
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow className="hover:bg-transparent border-slate-100">
-                <TableHead className="font-bold text-slate-900 py-6 pl-8">Cliente</TableHead>
-                <TableHead className="font-bold text-slate-900">Equipamento</TableHead>
+                <TableHead className="font-bold text-slate-900 py-6 pl-8">Equipamento</TableHead>
+                {!isCliente && <TableHead className="font-bold text-slate-900">Cliente</TableHead>}
                 <TableHead className="font-bold text-slate-900">Modalidade</TableHead>
                 <TableHead className="font-bold text-slate-900">Período</TableHead>
                 <TableHead className="font-bold text-slate-900">Valor Total</TableHead>
@@ -162,63 +192,76 @@ const RentalsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((rental) => (
-                <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
-                  <TableCell className="py-5 pl-8">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
-                        <User className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <span className="font-black text-slate-900">{rental.client}</span>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={isCliente ? 6 : 7} className="h-64 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-300 gap-3">
+                      <SearchX className="h-12 w-12 opacity-20" />
+                      <p className="font-bold text-slate-400">Nenhum contrato encontrado.</p>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 font-bold text-slate-700">
-                      <Hammer className="h-4 w-4 text-red-500" />
-                      {rental.item}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getModalityBadge(rental.modality)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                        <Calendar className="h-3 w-3 text-blue-500" /> {rental.start}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                        <Clock className="h-3 w-3" /> {rental.end}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-lg font-black text-blue-700">R$ {rental.total?.toFixed(2)}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={cn(
-                      "rounded-xl border-none font-bold px-3 py-1",
-                      rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                      rental.status === 'overdue' ? "bg-red-100 text-red-700" :
-                      rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                      "bg-orange-100 text-orange-700"
-                    )}>
-                      {rental.status === 'active' ? 'Ativo' : 
-                       rental.status === 'overdue' ? 'Atrasado' : 
-                       rental.status === 'completed' ? 'Devolvido' : 'Em Reparo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right pr-8">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="rounded-xl font-bold text-blue-600 hover:bg-blue-50"
-                      onClick={() => openDetails(rental)}
-                    >
-                      Detalhes
-                    </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((rental) => (
+                  <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
+                    <TableCell className="py-5 pl-8">
+                      <div className="flex items-center gap-2 font-bold text-slate-700">
+                        <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100">
+                          <Hammer className="h-4 w-4 text-blue-600" />
+                        </div>
+                        {rental.item}
+                      </div>
+                    </TableCell>
+                    {!isCliente && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-slate-400" />
+                          <span className="font-bold text-slate-900">{rental.client}</span>
+                        </div>
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      {getModalityBadge(rental.modality)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                          <Calendar className="h-3 w-3 text-blue-500" /> {rental.start}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                          <Clock className="h-3 w-3" /> {rental.end}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-lg font-black text-blue-700">R$ {Number(rental.total || 0).toFixed(2)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn(
+                        "rounded-xl border-none font-bold px-3 py-1",
+                        rental.status === 'active' ? "bg-blue-100 text-blue-700" :
+                        rental.status === 'overdue' ? "bg-red-100 text-red-700" :
+                        rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
+                        "bg-orange-100 text-orange-700"
+                      )}>
+                        {rental.status === 'active' ? 'Ativo' : 
+                         rental.status === 'overdue' ? 'Atrasado' : 
+                         rental.status === 'completed' ? 'Devolvido' : 'Em Reparo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-xl font-bold text-blue-600 hover:bg-blue-50"
+                        onClick={() => openDetails(rental)}
+                      >
+                        Detalhes
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
