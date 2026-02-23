@@ -25,12 +25,8 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || '';
 
-  // Se não estiver logado, redireciona para a Loja (que é pública) em vez do Login diretamente
   if (!isLoggedIn) return <Navigate to="/loja" replace />;
-  
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/loja" replace />;
-  }
+  if (allowedRoles && !allowedRoles.includes(userRole)) return <Navigate to="/loja" replace />;
 
   return <>{children}</>;
 };
@@ -41,7 +37,6 @@ const App = () => (
       <Toaster /><Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Rotas Públicas */}
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
           <Route path="/loja" element={<Products />} />
@@ -50,14 +45,9 @@ const App = () => (
           <Route path="/termos" element={<Terms />} />
           <Route path="/privacidade" element={<Privacy />} />
 
-          {/* Rota Principal: Dashboard (Protegida) */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          
-          {/* Rotas de Gestão - Apenas Gestor e Vendas */}
           <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['Gestor']}><Users /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['Gestor', 'Vendas']}><Reports /></ProtectedRoute>} />
-          
-          {/* Rotas de Operação - Logado (Qualquer cargo) */}
           <Route path="/alugueis" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

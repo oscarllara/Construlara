@@ -24,15 +24,10 @@ const Index = () => {
   useEffect(() => {
     const loadStats = () => {
       try {
-        // Carregar Equipamentos
         const savedEquip = localStorage.getItem('app_equipments');
         const equipments = savedEquip ? JSON.parse(savedEquip) : [];
-        
-        // Carregar Aluguéis
         const savedRentals = localStorage.getItem('app_rentals');
         const rentals = savedRentals ? JSON.parse(savedRentals) : [];
-        
-        // Carregar Usuários
         const savedUsers = localStorage.getItem('app_users');
         const users = savedUsers ? JSON.parse(savedUsers) : [];
 
@@ -136,9 +131,6 @@ const Index = () => {
               <div className="absolute inset-0 bg-red-600/20 blur-[120px] rounded-full"></div>
               <div className="relative bg-white p-4 rounded-[4rem] shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 border-8 border-blue-600/20">
                 <img src="/beto.png" alt="Mascote Beto" className="w-full h-auto rounded-[3.5rem]" />
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  <span className="bg-blue-700 text-white text-xs font-black px-6 py-3 rounded-full shadow-2xl border-4 border-white uppercase tracking-widest">BETO OFICIAL</span>
-                </div>
               </div>
             </div>
           </div>
@@ -158,63 +150,6 @@ const Index = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Atividades Recentes</h2>
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-            </div>
-            <div className="space-y-6">
-              {[
-                { action: "Novo Aluguel", item: "Betoneira 400L", user: "Construtora Silva", time: "10 min atrás", icon: Receipt, color: "text-blue-600", bg: "bg-blue-50" },
-                { action: "Devolução", item: "Martelete Rompedor", user: "Carlos Santos", time: "1 hora atrás", icon: Hammer, color: "text-emerald-600", bg: "bg-emerald-50" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between group cursor-pointer">
-                  <div className="flex gap-5">
-                    <div className={`h-14 w-14 rounded-2xl ${item.bg} flex items-center justify-center border border-transparent group-hover:border-slate-200 transition-all`}>
-                      <item.icon className={`h-6 w-6 ${item.color}`} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-slate-900">{item.action}: {item.item}</p>
-                      <p className="text-xs text-slate-500 font-bold">{item.user}</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full uppercase tracking-wider">{item.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-200/50 shadow-inner space-y-8 relative overflow-hidden">
-            <div className="relative z-10">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-8">Ações Rápidas</h2>
-              <div className="grid grid-cols-2 gap-6">
-                <button 
-                  onClick={() => setIsAddEquipOpen(true)}
-                  className="bg-white hover:bg-blue-600 p-8 rounded-[2.5rem] text-left transition-all group shadow-sm hover:shadow-xl hover:-translate-y-1 border border-slate-200/60"
-                >
-                  <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-white/20 transition-colors">
-                    <Hammer className="h-6 w-6 text-blue-600 group-hover:text-white" />
-                  </div>
-                  <p className="font-black text-slate-900 group-hover:text-white text-lg">Novo Item</p>
-                  <p className="text-xs text-slate-500 group-hover:text-blue-100 font-bold">Cadastrar ferramenta</p>
-                </button>
-                <button 
-                  onClick={() => navigate('/loja')}
-                  className="bg-blue-700 hover:bg-blue-800 p-8 rounded-[2.5rem] text-left transition-all group shadow-2xl hover:-translate-y-1 border-none"
-                >
-                  <div className="h-12 w-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-                    <Store className="h-6 w-6 text-white" />
-                  </div>
-                  <p className="font-black text-white text-lg">Ir para a Loja</p>
-                  <p className="text-xs text-blue-100 font-bold">Ver produtos</p>
-                </button>
-              </div>
-            </div>
-            <img src="/logoconstrulara.png" className="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 -rotate-12 pointer-events-none grayscale" />
-          </div>
         </div>
       </div>
 
