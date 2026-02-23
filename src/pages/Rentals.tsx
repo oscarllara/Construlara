@@ -33,21 +33,22 @@ const RentalsPage = () => {
   const [selectedRental, setSelectedRental] = useState<any>(null);
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
-  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase();
+  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const isCliente = userRole === 'Cliente';
 
   useEffect(() => {
-    const saved = localStorage.getItem('app_rentals');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('app_rentals');
+      if (saved && saved !== "undefined") {
         const parsed = JSON.parse(saved);
         setRentals(Array.isArray(parsed) ? parsed : INITIAL_RENTALS);
-      } catch (e) {
+      } else {
         setRentals(INITIAL_RENTALS);
+        localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
       }
-    } else {
+    } catch (e) {
+      console.error("Erro ao carregar aluguéis:", e);
       setRentals(INITIAL_RENTALS);
-      localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
     }
   }, []);
 
@@ -113,22 +114,23 @@ const RentalsPage = () => {
     if (isCliente) {
       try {
         const savedUsers = localStorage.getItem('app_users');
-        const users = savedUsers ? JSON.parse(savedUsers) : [];
-        currentUser = users.find((u: any) => u.email?.toLowerCase() === userEmail);
+        if (savedUsers && savedUsers !== "undefined") {
+          const users = JSON.parse(savedUsers);
+          currentUser = users.find((u: any) => u.email?.toLowerCase().trim() === userEmail);
+        }
       } catch (e) { console.error(e); }
     }
 
-    return rentals.filter(r => {
+    return (rentals || []).filter(r => {
       if (!r) return false;
 
       // Filtro de privacidade para Clientes
       if (isCliente) {
-        const isMyRental = 
-          (r.clientId && r.clientId === currentUser?.id) || 
-          (r.client && r.client.toLowerCase() === currentUser?.name?.toLowerCase()) ||
-          (r.clientEmail && r.clientEmail.toLowerCase() === userEmail);
+        const isMyRentalByEmail = r.clientEmail && r.clientEmail.toLowerCase().trim() === userEmail;
+        const isMyRentalById = r.clientId && currentUser && r.clientId === currentUser.id;
+        const isMyRentalByName = r.client && currentUser && r.client.toLowerCase() === currentUser.name?.toLowerCase();
         
-        if (!isMyRental) return false;
+        if (!isMyRentalByEmail && !isMyRentalById && !isMyRentalByName) return false;
       }
 
       // Filtro de busca
