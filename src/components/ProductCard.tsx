@@ -45,12 +45,12 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const [quantity, setQuantity] = useState<number | string>(1);
   const [desiredAmount, setDesiredAmount] = useState<string>("");
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
   const navigate = useNavigate();
   
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   
-  // Preços agora são visíveis para todos
   const canSeePrice = true; 
   const canEdit = isLoggedIn && ['Gestor', 'Vendas'].includes(userRole);
 
@@ -90,6 +90,11 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       return;
     }
     onAddToCart(product, calculatedPacks, totalAmount);
+  };
+
+  const handleCalcResult = (value: number) => {
+    setDesiredAmount(value.toFixed(2));
+    setIsCalcOpen(false);
   };
 
   return (
@@ -172,13 +177,15 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
               <div className="flex items-center justify-between">
                 <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">Quanto você precisa ({product.unitLabel})?</Label>
                 {isFloorCategory && (
-                  <Dialog>
+                  <Dialog open={isCalcOpen} onOpenChange={setIsCalcOpen}>
                     <DialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-blue-700 hover:bg-blue-100 rounded-lg gap-1">
                         <CalcIcon className="h-3 w-3" /> Calcular Área
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden"><Calculators /></DialogContent>
+                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden">
+                      <Calculators onResult={handleCalcResult} hideHeader />
+                    </DialogContent>
                   </Dialog>
                 )}
               </div>

@@ -10,7 +10,12 @@ import { Calculator, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-const Calculators = () => {
+interface CalculatorsProps {
+  onResult?: (value: number) => void;
+  hideHeader?: boolean;
+}
+
+const Calculators = ({ onResult, hideHeader = false }: CalculatorsProps) => {
   const navigate = useNavigate();
   
   // Estados das calculadoras
@@ -38,20 +43,26 @@ const Calculators = () => {
   const totalMortarKg = Number(mortarArea) * consumption;
   const bags20kg = Math.ceil(totalMortarKg / 20);
 
-  const goToCategory = (category: string) => {
-    navigate(`/?category=${encodeURIComponent(category)}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleApplyResult = (value: number, category: string) => {
+    if (onResult) {
+      onResult(value);
+    } else {
+      navigate(`/?category=${encodeURIComponent(category)}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
     <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden">
-      <CardHeader className="bg-blue-700 p-8 text-white">
-        <CardTitle className="flex items-center gap-3 text-2xl font-black">
-          <Calculator className="h-7 w-7 text-white" />
-          Calculadoras de Obra
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-8">
+      {!hideHeader && (
+        <CardHeader className="bg-blue-700 p-8 text-white">
+          <CardTitle className="flex items-center gap-3 text-2xl font-black">
+            <Calculator className="h-7 w-7 text-white" />
+            Calculadoras de Obra
+          </CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={cn("p-8", hideHeader && "pt-8")}>
         <Tabs defaultValue="piso" className="space-y-8">
           <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full overflow-x-auto flex-nowrap justify-start md:justify-center">
             <TabsTrigger value="piso" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Pisos</TabsTrigger>
@@ -73,7 +84,7 @@ const Calculators = () => {
               </div>
             </div>
             <button 
-              onClick={() => goToCategory("Pisos e revestimentos")}
+              onClick={() => handleApplyResult(floorArea * 1.1, "Pisos e revestimentos")}
               className="w-full bg-blue-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-blue-100 transition-all group text-left border-2 border-transparent hover:border-blue-200"
             >
               <div>
@@ -129,7 +140,7 @@ const Calculators = () => {
             </div>
 
             <button 
-              onClick={() => goToCategory("Pisos e revestimentos")}
+              onClick={() => handleApplyResult(finalWallArea * 1.1, "Pisos e revestimentos")}
               className="w-full bg-emerald-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-emerald-100 transition-all group text-left border-2 border-transparent hover:border-emerald-200"
             >
               <div>
@@ -183,7 +194,7 @@ const Calculators = () => {
             </div>
 
             <button 
-              onClick={() => goToCategory("Cimento e Ferragens")}
+              onClick={() => handleApplyResult(bags20kg, "Cimento e Ferragens")}
               className="w-full bg-orange-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-orange-100 transition-all group text-left border-2 border-transparent hover:border-orange-200"
             >
               <div>
@@ -215,7 +226,7 @@ const Calculators = () => {
               </div>
             </div>
             <button 
-              onClick={() => goToCategory("Telhas")}
+              onClick={() => handleApplyResult(ceilingArea * 1.05, "Telhas")}
               className="w-full bg-purple-50 p-6 rounded-[2rem] grid grid-cols-2 gap-4 hover:bg-purple-100 transition-all group text-left border-2 border-transparent hover:border-purple-200"
             >
               <div>
