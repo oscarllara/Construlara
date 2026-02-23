@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { 
   Table, 
@@ -33,14 +33,15 @@ const RentalsPage = () => {
   const [selectedRental, setSelectedRental] = useState<any>(null);
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
-  const userEmail = localStorage.getItem('userEmail') || '';
+  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase();
   const isCliente = userRole === 'Cliente';
 
   useEffect(() => {
     const saved = localStorage.getItem('app_rentals');
     if (saved) {
       try {
-        setRentals(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setRentals(Array.isArray(parsed) ? parsed : INITIAL_RENTALS);
       } catch (e) {
         setRentals(INITIAL_RENTALS);
       }
@@ -70,14 +71,15 @@ const RentalsPage = () => {
       notes: ''
     };
 
-    // Atualizar status do equipamento para 'rented'
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
-      const allEquip = JSON.parse(savedEquip);
-      const updatedEquip = allEquip.map((e: any) => 
-        e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
-      );
-      localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+      try {
+        const allEquip = JSON.parse(savedEquip);
+        const updatedEquip = allEquip.map((e: any) => 
+          e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
+        );
+        localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+      } catch (e) { console.error(e); }
     }
 
     saveRentals([newRental, ...rentals]);
@@ -88,15 +90,16 @@ const RentalsPage = () => {
   const handleUpdateRental = (updated: any) => {
     const newRentals = rentals.map(r => r.id === updated.id ? updated : r);
     
-    // Se o status mudou para 'completed', liberar o equipamento
     if (updated.status === 'completed') {
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
-        const allEquip = JSON.parse(savedEquip);
-        const updatedEquip = allEquip.map((e: any) => 
-          e.id === updated.equipmentId ? { ...e, status: 'available' } : e
-        );
-        localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+        try {
+          const allEquip = JSON.parse(savedEquip);
+          const updatedEquip = allEquip.map((e: any) => 
+            e.id === updated.equipmentId ? { ...e, status: 'available' } : e
+          );
+          localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+        } catch (e) { console.error(e); }
       }
     }
 
@@ -105,10 +108,37 @@ const RentalsPage = () => {
     showSuccess("Contrato atualizado.");
   };
 
-  const openDetails = (rental: any) => {
-    setSelectedRental(rental);
-    setIsDetailsOpen(true);
-  };
+  const filtered = useMemo(() => {
+    let currentUser: any = null;
+    if (isCliente) {
+      try {
+        const savedUsers = localStorage.getItem('app_users');
+        const users = savedUsers ? JSON.parse(savedUsers) : [];
+        currentUser = users.find((u: any) => u.email?.toLowerCase() === userEmail);
+      } catch (e) { console.error(e); }
+    }
+
+    return rentals.filter(r => {
+      if (!r) return false;
+
+      // Filtro de privacidade para Clientes
+      if (isCliente) {
+        const isMyRental = 
+          (r.clientId && r.clientId === currentUser?.id) || 
+          (r.client && r.client.toLowerCase() === currentUser?.name?.toLowerCase()) ||
+          (r.clientEmail && r.clientEmail.toLowerCase() === userEmail);
+        
+        if (!isMyRental) return false;
+      }
+
+      // Filtro de busca
+      const search = searchTerm.toLowerCase();
+      const clientName = (r.client || "").toLowerCase();
+      const itemName = (r.item || "").toLowerCase();
+      
+      return clientName.includes(search) || itemName.includes(search);
+    });
+  }, [rentals, searchTerm, isCliente, userEmail]);
 
   const getModalityBadge = (modality: string) => {
     const styles: Record<string, string> = {
@@ -123,27 +153,6 @@ const RentalsPage = () => {
       </Badge>
     );
   };
-
-  const filtered = rentals.filter(r => {
-    if (!r) return false;
-
-    // Primeiro aplica o filtro de privacidade por cliente
-    if (isCliente) {
-      const savedUsers = localStorage.getItem('app_users');
-      const users = savedUsers ? JSON.parse(savedUsers) : [];
-      const me = users.find((u: any) => u.email?.toLowerCase() === userEmail?.toLowerCase());
-      
-      const isMyRental = (r.clientId === me?.id) || (r.client?.toLowerCase() === me?.name?.toLowerCase());
-      if (!isMyRental) return false;
-    }
-
-    // Depois aplica a busca por texto
-    const search = searchTerm.toLowerCase();
-    const clientName = (r.client || "").toLowerCase();
-    const itemName = (r.item || "").toLowerCase();
-    
-    return clientName.includes(search) || itemName.includes(search);
-  });
 
   return (
     <AppLayout>
@@ -254,7 +263,10 @@ const RentalsPage = () => {
                         variant="ghost" 
                         size="sm" 
                         className="rounded-xl font-bold text-blue-600 hover:bg-blue-50"
-                        onClick={() => openDetails(rental)}
+                        onClick={() => {
+                          setSelectedRental(rental);
+                          setIsDetailsOpen(true);
+                        }}
                       >
                         Detalhes
                       </Button>
