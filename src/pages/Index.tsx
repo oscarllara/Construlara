@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Hammer, Receipt, Users, AlertCircle, TrendingUp, ArrowRight, Sparkles, ShoppingBag, Store } from 'lucide-react';
+import { Hammer, Receipt, Users, AlertCircle, ArrowRight, Sparkles, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AddEquipmentDialog from '@/components/AddEquipmentDialog';
 import AddRentalDialog from '@/components/AddRentalDialog';

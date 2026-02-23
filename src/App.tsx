@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,9 +35,11 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster /><Sonner />
+      <Toaster />
+      <Sonner position="top-center" />
       <BrowserRouter>
         <Routes>
+          {/* Rotas Públicas */}
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
           <Route path="/loja" element={<Products />} />
@@ -45,6 +48,7 @@ const App = () => (
           <Route path="/termos" element={<Terms />} />
           <Route path="/privacidade" element={<Privacy />} />
 
+          {/* Rotas Privadas (Página Inicial é o Dashboard) */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['Gestor']}><Users /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['Gestor', 'Vendas']}><Reports /></ProtectedRoute>} />
