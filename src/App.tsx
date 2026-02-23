@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// Páginas
 import Index from "./pages/Index";
 import Equipments from "./pages/Equipments";
 import Rentals from "./pages/Rentals";
@@ -22,6 +24,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Proteção de Rotas: Se não logado, vai para a Loja pública
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || '';
@@ -48,7 +51,7 @@ const App = () => (
           <Route path="/termos" element={<Terms />} />
           <Route path="/privacidade" element={<Privacy />} />
 
-          {/* Rotas Privadas (Página Inicial é o Dashboard) */}
+          {/* Rotas Privadas (Dashboard Construlara) */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['Gestor']}><Users /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['Gestor', 'Vendas']}><Reports /></ProtectedRoute>} />
@@ -57,6 +60,7 @@ const App = () => (
           <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/trocar-senha" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
           
+          {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
