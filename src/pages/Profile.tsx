@@ -5,7 +5,11 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, ShoppingBag, MessageCircle, Pencil, ArrowRight, Package, RefreshCw } from 'lucide-react';
+import { 
+  User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, 
+  ShoppingBag, MessageCircle, Pencil, ArrowRight, Package, 
+  RefreshCw, DollarSign, Wallet, AlertCircle, CheckCircle2 
+} from 'lucide-react';
 import { UserAccount } from '@/components/UserTable';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
@@ -40,7 +44,6 @@ const ProfilePage = () => {
     if (foundUser) {
       setUser(foundUser);
     } else {
-      // Fallback para perfil temporário
       const role = localStorage.getItem('userRole') || 'Usuário';
       const tempUser: UserAccount = {
         id: 'temp',
@@ -55,25 +58,24 @@ const ProfilePage = () => {
       foundUser = tempUser;
     }
 
-    // 2. Carregar Aluguéis
+    // 2. Carregar Aluguéis (Lógica Corrigida)
     if (savedRentals) {
       const rentals = JSON.parse(savedRentals);
       const filtered = rentals.filter((r: any) => 
         (r.clientId && r.clientId === foundUser?.id) || 
+        (r.clientEmail && r.clientEmail.toLowerCase().trim() === email) ||
         (r.client && r.client.toLowerCase() === foundUser?.name.toLowerCase())
       );
       setUserRentals(filtered);
     }
 
-    // 3. Carregar Pedidos (Lógica Reforçada)
+    // 3. Carregar Pedidos
     if (savedOrders) {
       const orders = JSON.parse(savedOrders);
-      const filteredOrders = foundUser.role === 'Gestor' 
-        ? orders 
-        : orders.filter((o: any) => {
-            const orderEmail = (o.userEmail || '').toLowerCase().trim();
-            return orderEmail === email;
-          });
+      const filteredOrders = orders.filter((o: any) => {
+        const orderEmail = (o.userEmail || '').toLowerCase().trim();
+        return orderEmail === email;
+      });
       setUserOrders(filteredOrders);
     }
 
@@ -82,16 +84,28 @@ const ProfilePage = () => {
 
   useEffect(() => {
     loadProfileData();
-    
-    // Listener para atualizações em tempo real se o usuário mudar algo em outra aba
     window.addEventListener('storage', loadProfileData);
     window.addEventListener('order-placed', loadProfileData);
-    
     return () => {
       window.removeEventListener('storage', loadProfileData);
       window.removeEventListener('order-placed', loadProfileData);
     };
   }, []);
+
+  // Cálculos Financeiros
+  const financialSummary = React.useMemo(() => {
+    const shopTotal = userOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+    const shopPaid = userOrders.reduce((acc, o) => acc + (Number(o.paidAmount) || 0), 0);
+    
+    const rentalTotal = userRentals.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
+    const rentalPaid = userRentals.reduce((acc, r) => acc + (Number(r.paidAmount) || 0), 0);
+
+    return {
+      total: shopTotal + rentalTotal,
+      paid: shopPaid + rentalPaid,
+      pending: (shopTotal + rentalTotal) - (shopPaid + rentalPaid)
+    };
+  }, [userOrders, userRentals]);
 
   const handleResendOrder = (order: any) => {
     const itemsList = order.items.map((item: any) => {
@@ -102,120 +116,86 @@ const ProfilePage = () => {
       return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}`;
     }).join('\n');
 
-    const methodLabel = order.paymentMethod === 'pix' ? 'PIX' : order.paymentMethod === 'store' ? 'Pagar na Loja' : 'WhatsApp';
-
-    const message = `*REENVIO DE PEDIDO - CONSTRULARA*\n` +
-      `*ID:* ${order.id}\n` +
-      `*Data Original:* ${order.date}\n\n` +
-      `*Itens:*\n${itemsList}\n\n` +
-      `*Total:* R$ ${order.total.toFixed(2)}\n` +
-      `*Pagamento:* ${methodLabel}\n\n` +
-      `Estou reenviando meu pedido para confirmação!`;
-
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
-    showSuccess("WhatsApp aberto para reenvio.");
+    const message = `*REENVIO DE PEDIDO - CONSTRULARA*\nID: ${order.id}\nTotal: R$ ${order.total.toFixed(2)}\n\nEstou reenviando meu pedido para confirmação!`;
+    window.open(`https://wa.me/5532999625979?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  const handleEditOrder = (order: any) => {
-    localStorage.setItem('app_cart', JSON.stringify(order.items));
-    window.dispatchEvent(new Event('cart-updated'));
-    showSuccess("Itens carregados no carrinho para edição!");
-    navigate('/carrinho');
-  };
-
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-slate-500 font-bold">Carregando seu perfil...</p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
+  if (isLoading) return null;
 
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Coluna da Esquerda: Dados Pessoais */}
+          {/* Coluna Lateral */}
           <div className="w-full md:w-1/3 space-y-6">
             <Card className="border-none shadow-xl rounded-[3rem] overflow-hidden bg-white">
-              <div className="h-32 bg-gradient-to-br from-blue-600 to-blue-800"></div>
-              <CardContent className="relative pt-0 px-8 pb-8">
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2">
-                  <div className="h-24 w-24 rounded-[2rem] bg-white p-1 shadow-xl">
-                    <div className="h-full w-full rounded-[1.8rem] bg-slate-100 flex items-center justify-center">
-                      <User className="h-12 w-12 text-blue-600" />
+              <div className="h-24 bg-gradient-to-br from-blue-600 to-blue-800"></div>
+              <CardContent className="relative pt-0 px-8 pb-8 text-center">
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2">
+                  <div className="h-20 w-20 rounded-[1.5rem] bg-white p-1 shadow-xl">
+                    <div className="h-full w-full rounded-[1.3rem] bg-slate-100 flex items-center justify-center">
+                      <User className="h-10 w-10 text-blue-600" />
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-16 text-center space-y-2">
-                  <h2 className="text-2xl font-black text-slate-900">{user?.name}</h2>
-                  <Badge className="bg-blue-100 text-blue-700 border-none rounded-xl font-bold px-4 py-1">
-                    {user?.role}
-                  </Badge>
+                <div className="mt-12 space-y-1">
+                  <h2 className="text-xl font-black text-slate-900">{user?.name}</h2>
+                  <Badge className="bg-blue-100 text-blue-700 border-none rounded-xl font-bold px-4">{user?.role}</Badge>
                 </div>
-
-                <div className="mt-8 space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                    <Mail className="h-5 w-5 text-blue-500" />
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] font-black text-slate-400 uppercase">E-mail</p>
-                      <p className="text-sm font-bold text-slate-700 truncate">{user?.email}</p>
-                    </div>
+                <div className="mt-6 space-y-3 text-left">
+                  <div className="p-3 bg-slate-50 rounded-2xl flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-600 truncate">{user?.email}</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                    <Phone className="h-5 w-5 text-emerald-500" />
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase">WhatsApp</p>
-                      <p className="text-sm font-bold text-slate-700">{user?.whatsapp}</p>
-                    </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-600">{user?.whatsapp}</span>
                   </div>
-                  {user?.worksiteAddress && (
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                      <MapPin className="h-5 w-5 text-red-500" />
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase">Endereço da Obra</p>
-                        <p className="text-sm font-bold text-slate-700 leading-tight">{user.worksiteAddress}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
 
-            <div className="bg-blue-900 rounded-[2.5rem] p-8 text-white space-y-4 shadow-2xl shadow-blue-900/20">
+            <Card className="border-none shadow-xl rounded-[3rem] bg-slate-900 text-white p-8 space-y-6">
               <div className="flex items-center gap-3">
-                <ShieldCheck className="h-6 w-6 text-blue-400" />
-                <h3 className="font-black text-lg">Segurança</h3>
+                <Wallet className="h-6 w-6 text-emerald-400" />
+                <h3 className="font-black text-lg">Minha Conta</h3>
               </div>
-              <p className="text-sm text-blue-200 font-medium">Sua conta está protegida. Último acesso registrado em {user?.lastAccess}.</p>
-            </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black text-slate-400 uppercase">Total Acumulado</span>
+                  <span className="text-xl font-black">R$ {financialSummary.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black text-emerald-400 uppercase">Total Pago</span>
+                  <span className="text-xl font-black text-emerald-400">R$ {financialSummary.paid.toFixed(2)}</span>
+                </div>
+                <div className="pt-4 border-t border-white/10 flex justify-between items-end">
+                  <span className="text-[10px] font-black text-red-400 uppercase">Saldo Devedor</span>
+                  <span className="text-2xl font-black text-red-400">R$ {financialSummary.pending.toFixed(2)}</span>
+                </div>
+              </div>
+              {financialSummary.pending > 0 && (
+                <div className="bg-red-500/10 p-4 rounded-2xl border border-red-500/20 flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <p className="text-[10px] font-bold text-red-200 leading-tight">Você possui faturas pendentes. Entre em contato com a loja para regularizar.</p>
+                </div>
+              )}
+            </Card>
           </div>
 
-          {/* Coluna da Direita: Abas de Atividade */}
+          {/* Área de Conteúdo principal */}
           <div className="flex-1 space-y-6">
             <Tabs defaultValue="orders" className="space-y-6">
               <div className="flex items-center justify-between">
-                <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full md:w-auto">
-                  <TabsTrigger value="orders" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <ShoppingBag className="h-4 w-4 mr-2" /> Meus Pedidos
+                <TabsList className="bg-slate-100 p-1 rounded-2xl h-14">
+                  <TabsTrigger value="orders" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">
+                    <ShoppingBag className="h-4 w-4 mr-2" /> Compras
                   </TabsTrigger>
-                  <TabsTrigger value="rentals" className="rounded-xl px-8 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <Receipt className="h-4 w-4 mr-2" /> Meus Contratos
+                  <TabsTrigger value="rentals" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">
+                    <Receipt className="h-4 w-4 mr-2" /> Aluguéis
                   </TabsTrigger>
                 </TabsList>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={loadProfileData}
-                  className="rounded-xl font-bold text-slate-400 hover:text-blue-600 gap-2"
-                >
+                <Button variant="ghost" size="sm" onClick={loadProfileData} className="rounded-xl font-bold text-slate-400 gap-2">
                   <RefreshCw className="h-4 w-4" /> Atualizar
                 </Button>
               </div>
@@ -224,65 +204,54 @@ const ProfilePage = () => {
                 {userOrders.length === 0 ? (
                   <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
                     <ShoppingBag className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold">Você ainda não realizou compras na loja.</p>
-                    <Button onClick={() => navigate('/')} variant="link" className="text-blue-600 font-black mt-2">
-                      Ir para a Loja <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <p className="text-slate-500 font-bold">Nenhum pedido encontrado.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-4">
-                    {userOrders.map((order) => (
-                      <Card key={order.id} className="border-none shadow-sm rounded-[2rem] bg-white hover:shadow-md transition-all overflow-hidden group">
-                        <div className="p-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-blue-600" />
-                              </div>
-                              <div>
-                                <h4 className="font-black text-slate-900">{order.id}</h4>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">{order.date}</p>
-                              </div>
+                  userOrders.map((order) => {
+                    const balance = order.total - (order.paidAmount || 0);
+                    return (
+                      <Card key={order.id} className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden group">
+                        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                              <Package className="h-7 w-7 text-blue-600" />
                             </div>
-                            <div className="text-right">
-                              <p className="text-xl font-black text-blue-700">R$ {order.total.toFixed(2)}</p>
-                              <Badge className="bg-slate-100 text-slate-600 border-none text-[10px] font-black uppercase">
-                                {order.paymentMethod === 'store' ? 'Pagar na Loja' : order.paymentMethod.toUpperCase()}
-                              </Badge>
+                            <div>
+                              <h4 className="font-black text-slate-900">{order.id}</h4>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">{order.date}</p>
                             </div>
                           </div>
                           
-                          <div className="bg-slate-50 p-4 rounded-2xl">
-                            <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Itens do Pedido</p>
-                            <div className="space-y-1">
-                              {order.items.map((item: any, idx: number) => (
-                                <p key={idx} className="text-xs font-bold text-slate-600 flex justify-between">
-                                  <span>{item.quantity}x {item.name}</span>
-                                  <span>R$ {((item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}</span>
-                                </p>
-                              ))}
+                          <div className="flex flex-wrap gap-8">
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-slate-400 uppercase">Total</p>
+                              <p className="font-black text-slate-900">R$ {order.total.toFixed(2)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-emerald-400 uppercase">Pago</p>
+                              <p className="font-black text-emerald-600">R$ {(order.paidAmount || 0).toFixed(2)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-red-400 uppercase">Pendente</p>
+                              <p className={cn("font-black", balance > 0 ? "text-red-600" : "text-slate-300")}>R$ {balance.toFixed(2)}</p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 pt-2">
-                            <Button 
-                              onClick={() => handleResendOrder(order)}
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold gap-2 h-10 text-xs"
-                            >
-                              <MessageCircle className="h-4 w-4" /> Reenviar WhatsApp
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              onClick={() => handleEditOrder(order)}
-                              className="flex-1 rounded-xl border-slate-200 font-bold gap-2 h-10 text-xs hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
-                            >
-                              <Pencil className="h-4 w-4" /> Editar Pedido
-                            </Button>
+                          <div className="flex items-center gap-2">
+                            {balance <= 0.01 ? (
+                              <Badge className="bg-emerald-100 text-emerald-700 border-none rounded-xl h-10 px-4 font-black">
+                                <CheckCircle2 className="h-4 w-4 mr-2" /> PAGO
+                              </Badge>
+                            ) : (
+                              <Button onClick={() => handleResendOrder(order)} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold h-10 px-4">
+                                <MessageCircle className="h-4 w-4 mr-2" /> Detalhes
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
-                    ))}
-                  </div>
+                    );
+                  })
                 )}
               </TabsContent>
 
@@ -290,39 +259,53 @@ const ProfilePage = () => {
                 {userRentals.length === 0 ? (
                   <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
                     <Receipt className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold">Você ainda não possui contratos registrados.</p>
+                    <p className="text-slate-500 font-bold">Nenhum contrato de aluguel encontrado.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-4">
-                    {userRentals.map((rental) => (
-                      <Card key={rental.id} className="border-none shadow-sm rounded-[2rem] bg-white hover:shadow-md transition-all overflow-hidden group">
-                        <div className="flex items-center p-6 gap-6">
-                          <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                            <Calendar className="h-7 w-7 text-blue-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
+                  userRentals.map((rental) => {
+                    const balance = rental.total - (rental.paidAmount || 0);
+                    return (
+                      <Card key={rental.id} className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden group">
+                        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center">
+                              <Calendar className="h-7 w-7 text-orange-600" />
+                            </div>
+                            <div>
                               <h4 className="font-black text-slate-900">{rental.item}</h4>
-                              <span className="text-lg font-black text-blue-700">R$ {rental.total?.toFixed(2)}</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                              <span>Início: {rental.start}</span>
-                              <span>Fim: {rental.end}</span>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">FIM: {rental.end}</p>
                             </div>
                           </div>
-                          <Badge className={cn(
-                            "rounded-xl border-none font-bold px-4 py-2",
-                            rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                            rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                            "bg-red-100 text-red-700"
-                          )}>
-                            {rental.status === 'active' ? 'Ativo' : 
-                             rental.status === 'completed' ? 'Finalizado' : 'Atrasado'}
-                          </Badge>
+                          
+                          <div className="flex flex-wrap gap-8">
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-slate-400 uppercase">Total</p>
+                              <p className="font-black text-slate-900">R$ {rental.total.toFixed(2)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-emerald-400 uppercase">Pago</p>
+                              <p className="font-black text-emerald-600">R$ {(rental.paidAmount || 0).toFixed(2)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-red-400 uppercase">Pendente</p>
+                              <p className={cn("font-black", balance > 0 ? "text-red-600" : "text-slate-300")}>R$ {balance.toFixed(2)}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Badge className={cn(
+                              "rounded-xl border-none font-bold px-4 h-10 flex items-center",
+                              rental.status === 'active' ? "bg-blue-100 text-blue-700" :
+                              rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
+                              "bg-red-100 text-red-700"
+                            )}>
+                              {rental.status === 'active' ? 'Ativo' : rental.status === 'completed' ? 'Finalizado' : 'Atrasado'}
+                            </Badge>
+                          </div>
                         </div>
                       </Card>
-                    ))}
-                  </div>
+                    );
+                  })
                 )}
               </TabsContent>
             </Tabs>
