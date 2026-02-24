@@ -30,16 +30,15 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
 
   useEffect(() => {
-    const savedUsers = localStorage.getItem('app_users');
-    if (savedUsers) {
-      try {
+    try {
+      const savedUsers = localStorage.getItem('app_users');
+      if (savedUsers && savedUsers !== "undefined") {
         setUsers(JSON.parse(savedUsers));
-      } catch (e) {
+      } else {
         setUsers(INITIAL_USERS);
       }
-    } else {
+    } catch (e) {
       setUsers(INITIAL_USERS);
-      localStorage.setItem('app_users', JSON.stringify(INITIAL_USERS));
     }
   }, []);
 
@@ -49,30 +48,37 @@ const UsersPage = () => {
   };
 
   const usersWithDebtInfo = useMemo(() => {
-    const savedOrders = localStorage.getItem('app_orders');
-    const savedRentals = localStorage.getItem('app_rentals');
-    const orders = savedOrders ? JSON.parse(savedOrders) : [];
-    const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+    try {
+      const savedOrders = localStorage.getItem('app_orders');
+      const savedRentals = localStorage.getItem('app_rentals');
+      const orders = (savedOrders && savedOrders !== "undefined") ? JSON.parse(savedOrders) : [];
+      const rentals = (savedRentals && savedRentals !== "undefined") ? JSON.parse(savedRentals) : [];
 
-    return users.map(user => {
-      const email = (user.email || "").toLowerCase();
-      const name = (user.name || "").toLowerCase();
+      const safeOrders = Array.isArray(orders) ? orders : [];
+      const safeRentals = Array.isArray(rentals) ? rentals : [];
 
-      const pOrders = orders.filter((o: any) => 
-        o && (o.userEmail || "").toLowerCase() === email && 
-        o.status !== 'Entregue' && o.status !== 'Pago'
-      );
-      
-      const pRentals = rentals.filter((r: any) => 
-        r && (r.clientId === user.id || (r.client || "").toLowerCase() === name) && 
-        r.status !== 'completed'
-      );
+      return users.map(user => {
+        const email = (user.email || "").toLowerCase();
+        const name = (user.name || "").toLowerCase();
 
-      const debtTotal = pOrders.reduce((acc: number, o: any) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0) +
-                        pRentals.reduce((acc: number, r: any) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
+        const pOrders = safeOrders.filter((o: any) => 
+          o && (o.userEmail || "").toLowerCase() === email && 
+          o.status !== 'Entregue' && o.status !== 'Pago'
+        );
+        
+        const pRentals = safeRentals.filter((r: any) => 
+          r && (r.clientId === user.id || (r.client || "").toLowerCase() === name) && 
+          r.status !== 'completed'
+        );
 
-      return { ...user, debtTotal };
-    });
+        const debtTotal = pOrders.reduce((acc: number, o: any) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0) +
+                          pRentals.reduce((acc: number, r: any) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
+
+        return { ...user, debtTotal };
+      });
+    } catch (e) {
+      return users.map(u => ({ ...u, debtTotal: 0 }));
+    }
   }, [users]);
 
   const stats = useMemo(() => {
@@ -133,57 +139,61 @@ const UsersPage = () => {
   };
 
   const handleMarkAsPaid = (type: 'order' | 'rental', id: string, amountToPay?: number) => {
-    if (type === 'order') {
-      const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders) {
-        const orders = JSON.parse(savedOrders);
-        const updated = orders.map((o: any) => {
-          if (o.id === id) {
-            const currentPaid = Number(o.paidAmount || 0);
-            const total = Number(o.total || 0);
-            const nextPaid = amountToPay !== undefined ? currentPaid + amountToPay : total;
-            
-            return { 
-              ...o, 
-              paidAmount: nextPaid,
-              status: nextPaid >= total - 0.01 ? 'Pago' : o.status 
-            };
-          }
-          return o;
-        });
-        localStorage.setItem('app_orders', JSON.stringify(updated));
+    try {
+      if (type === 'order') {
+        const savedOrders = localStorage.getItem('app_orders');
+        if (savedOrders) {
+          const orders = JSON.parse(savedOrders);
+          const updated = orders.map((o: any) => {
+            if (o.id === id) {
+              const currentPaid = Number(o.paidAmount || 0);
+              const total = Number(o.total || 0);
+              const nextPaid = amountToPay !== undefined ? currentPaid + amountToPay : total;
+              
+              return { 
+                ...o, 
+                paidAmount: nextPaid,
+                status: nextPaid >= total - 0.01 ? 'Pago' : o.status 
+              };
+            }
+            return o;
+          });
+          localStorage.setItem('app_orders', JSON.stringify(updated));
+        }
+      } else {
+        const savedRentals = localStorage.getItem('app_rentals');
+        if (savedRentals) {
+          const rentals = JSON.parse(savedRentals);
+          const updated = rentals.map((r: any) => {
+            if (r.id === id) {
+              const currentPaid = Number(r.paidAmount || 0);
+              const total = Number(r.total || 0);
+              const nextPaid = amountToPay !== undefined ? currentPaid + amountToPay : total;
+              
+              return { 
+                ...r, 
+                paidAmount: nextPaid,
+                status: nextPaid >= total - 0.01 ? 'completed' : r.status 
+              };
+            }
+            return r;
+          });
+          localStorage.setItem('app_rentals', JSON.stringify(updated));
+        }
       }
-    } else {
-      const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals) {
-        const rentals = JSON.parse(savedRentals);
-        const updated = rentals.map((r: any) => {
-          if (r.id === id) {
-            const currentPaid = Number(r.paidAmount || 0);
-            const total = Number(r.total || 0);
-            const nextPaid = amountToPay !== undefined ? currentPaid + amountToPay : total;
-            
-            return { 
-              ...r, 
-              paidAmount: nextPaid,
-              status: nextPaid >= total - 0.01 ? 'completed' : r.status 
-            };
-          }
-          return r;
-        });
-        localStorage.setItem('app_rentals', JSON.stringify(updated));
-      }
+      
+      setUsers([...users]); 
+      showSuccess(amountToPay ? "Amortização registrada!" : "Recebimento total efetuado!");
+      window.dispatchEvent(new Event('order-placed'));
+    } catch (e) {
+      showError("Erro ao processar pagamento.");
     }
-    
-    setUsers([...users]); 
-    showSuccess(amountToPay ? "Amortização registrada!" : "Recebimento total efetuado!");
-    window.dispatchEvent(new Event('order-placed'));
   };
 
   const filteredUsers = useMemo(() => {
     return usersWithDebtInfo.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
       
       if (filterType === 'debt') return matchesSearch && user.debtTotal > 0.01;
       if (filterType === 'clean') return matchesSearch && user.debtTotal <= 0.01;
@@ -191,7 +201,6 @@ const UsersPage = () => {
     });
   }, [usersWithDebtInfo, searchTerm, filterType]);
 
-  // Exportar para CSV
   const exportCSV = () => {
     const headers = ["Nome", "Email", "WhatsApp", "CPF", "Nível", "Status", "Dívida Total"];
     const rows = filteredUsers.map(u => [
@@ -201,7 +210,7 @@ const UsersPage = () => {
       u.cpf || "-", 
       u.role, 
       u.status === 'active' ? 'Ativo' : 'Bloqueado',
-      u.debtTotal.toFixed(2)
+      (u.debtTotal || 0).toFixed(2)
     ]);
 
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -217,27 +226,30 @@ const UsersPage = () => {
     showSuccess("Exportação CSV concluída!");
   };
 
-  // Exportar para PDF
   const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Relatório de Usuários - Construlara", 14, 15);
-    
-    const tableData = filteredUsers.map(u => [
-      u.name,
-      u.cpf || "-",
-      u.role,
-      u.status === 'active' ? 'Ativo' : 'Bloqueado',
-      `R$ ${u.debtTotal.toFixed(2)}`
-    ]);
+    try {
+      const doc = new jsPDF();
+      doc.text("Relatório de Usuários - Construlara", 14, 15);
+      
+      const tableData = filteredUsers.map(u => [
+        u.name,
+        u.cpf || "-",
+        u.role,
+        u.status === 'active' ? 'Ativo' : 'Bloqueado',
+        `R$ ${(u.debtTotal || 0).toFixed(2)}`
+      ]);
 
-    (doc as any).autoTable({
-      head: [['Nome', 'CPF', 'Nível', 'Status', 'Débito']],
-      body: tableData,
-      startY: 20,
-    });
+      (doc as any).autoTable({
+        head: [['Nome', 'CPF', 'Nível', 'Status', 'Débito']],
+        body: tableData,
+        startY: 20,
+      });
 
-    doc.save("usuarios_construlara.pdf");
-    showSuccess("Relatório PDF gerado!");
+      doc.save("usuarios_construlara.pdf");
+      showSuccess("Relatório PDF gerado!");
+    } catch (e) {
+      showError("Erro ao gerar PDF.");
+    }
   };
 
   return (
