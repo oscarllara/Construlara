@@ -34,7 +34,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   
   const userRole = localStorage.getItem('userRole') || 'Visitante';
-  const userEmail = localStorage.getItem('userEmail') || '';
+  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const isCliente = userRole === 'Cliente';
 
   const [formData, setFormData] = useState({
@@ -48,17 +48,20 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
   const loadData = () => {
     const savedUsers = localStorage.getItem('app_users');
-    const allUsers = savedUsers ? JSON.parse(savedUsers) : [];
+    const allUsers: UserAccount[] = savedUsers ? JSON.parse(savedUsers) : [];
     setClients(allUsers);
 
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) setEquipments(JSON.parse(savedEquip));
 
-    // Se for cliente, já seleciona ele mesmo
+    // Se for cliente, tenta selecionar a si mesmo pelo e-mail
     if (isCliente && userEmail) {
-      const me = allUsers.find((u: any) => u.email.toLowerCase() === userEmail.toLowerCase());
+      const me = allUsers.find((u: any) => u.email?.toLowerCase().trim() === userEmail);
       if (me) {
         setFormData(prev => ({ ...prev, clientId: me.id }));
+      } else {
+        // Se não encontrar o registro completo, define um ID temporário baseado no e-mail
+        setFormData(prev => ({ ...prev, clientId: 'logged-user' }));
       }
     }
   };
@@ -135,8 +138,11 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
   const handleSubmit = () => {
     if (!formData.clientId || !formData.equipmentId || !formData.totalValue || !formData.endDate) return;
+    
     const client = clients.find(c => c.id === formData.clientId);
     const equipment = equipments.find(e => e.id === formData.equipmentId);
+
+    const clientName = client ? client.name : userEmail;
 
     const formatDate = (dateStr: string) => {
       return dateStr.split('-').reverse().join('/');
@@ -144,8 +150,9 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
     const rentalPayload = {
       ...formData,
-      clientName: client?.name,
-      clientId: client?.id,
+      clientName: clientName,
+      clientEmail: userEmail,
+      clientId: client?.id || 'temp',
       itemName: equipment?.name,
       equipmentId: equipment?.id,
       start: formatDate(formData.startDate),
@@ -155,7 +162,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
     onAdd(rentalPayload);
     
-    // Se for cliente, envia para o WhatsApp
     if (isCliente) {
       sendWhatsAppMessage(rentalPayload);
     }
@@ -168,6 +174,13 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       endDate: "",
       totalValue: ""
     });
+  };
+
+  const displayClientName = () => {
+    const client = clients.find(c => c.id === formData.clientId);
+    if (client) return client.name;
+    if (isCliente && userEmail) return userEmail;
+    return 'Carregando...';
   };
 
   return (
@@ -212,7 +225,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
               ) : (
                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Identificado como</p>
-                  <p className="text-lg font-black text-blue-900">{clients.find(c => c.id === formData.clientId)?.name || 'Carregando...'}</p>
+                  <p className="text-lg font-black text-blue-900">{displayClientName()}</p>
                 </div>
               )}
             </div>
