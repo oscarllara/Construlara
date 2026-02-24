@@ -3,7 +3,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, Facebook, Instagram, MapPin, MessageCircle, ExternalLink, Globe } from 'lucide-react';
+import { Mail, Phone, Facebook, Instagram, MapPin, MessageCircle, ExternalLink } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 
@@ -37,11 +37,11 @@ const ContactPage = () => {
 
   const socials = [
     { 
-      name: "Website", 
-      handle: "www.construlara.com.br", 
-      icon: Globe, 
+      name: "Facebook", 
+      handle: "Construlara", 
+      icon: Facebook, 
       color: "text-blue-700", 
-      link: "http://www.construlara.com.br" 
+      link: "https://facebook.com/construlara.rdm" 
     },
     { 
       name: "Instagram", 
@@ -91,7 +91,7 @@ const ContactPage = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <Card className="border-none shadow-xl rounded-[3rem] p-10 bg-blue-50/50 border border-blue-100 overflow-hidden relative">
             <div className="relative z-10 space-y-8">
-              <h3 className="text-2xl font-black tracking-tight text-slate-900">Redes & Site</h3>
+              <h3 className="text-2xl font-black tracking-tight text-slate-900">Redes Sociais</h3>
               <div className="space-y-6">
                 {socials.map((social, i) => (
                   <a 
@@ -103,7 +103,7 @@ const ContactPage = () => {
                   >
                     <div className="flex items-center gap-5">
                       <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        <social.icon className={cn("h-8 w-8", social.name === "Website" ? "text-blue-700" : "text-[#E4405F]")} />
+                        <social.icon className={cn("h-8 w-8", social.name === "Facebook" ? "text-blue-700" : "text-[#E4405F]")} />
                       </div>
                       <div>
                         <p className={cn("font-black text-xl leading-none", social.color)}>

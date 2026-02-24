@@ -62,6 +62,7 @@ const RentalsPage = () => {
       id: `r-${Date.now()}`,
       client: data.clientName,
       clientId: data.clientId,
+      clientEmail: userEmail,
       item: data.itemName,
       equipmentId: data.equipmentId,
       start: data.start,
