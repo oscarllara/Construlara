@@ -8,14 +8,16 @@ import EditUserDialog from '@/components/EditUserDialog';
 import UserFinancialDialog from '@/components/UserFinancialDialog';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX, X } from 'lucide-react';
+import { Search, UserPlus, ShieldCheck, Users as UsersIcon, UserX, X, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
 const INITIAL_USERS: UserAccount[] = [
-  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '(11) 99999-9999', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
-  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '(11) 98888-8888', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
-  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '(11) 97777-7777', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
+  { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '(11) 99999-9999', cpf: '000.000.000-01', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
+  { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '(11) 98888-8888', cpf: '000.000.000-02', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
+  { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '(11) 97777-7777', cpf: '000.000.000-03', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },
 ];
 
 const UsersPage = () => {
@@ -102,12 +104,6 @@ const UsersPage = () => {
   };
 
   const handleAddUser = (userData: any) => {
-    const userExists = users.some(u => u.email?.toLowerCase() === userData.email?.toLowerCase());
-    if (userExists) {
-      showError("Este e-mail já está em uso.");
-      return;
-    }
-
     const newUser: UserAccount = {
       id: `u-${Date.now()}`,
       ...userData,
@@ -195,6 +191,55 @@ const UsersPage = () => {
     });
   }, [usersWithDebtInfo, searchTerm, filterType]);
 
+  // Exportar para CSV
+  const exportCSV = () => {
+    const headers = ["Nome", "Email", "WhatsApp", "CPF", "Nível", "Status", "Dívida Total"];
+    const rows = filteredUsers.map(u => [
+      u.name, 
+      u.email, 
+      u.whatsapp, 
+      u.cpf || "-", 
+      u.role, 
+      u.status === 'active' ? 'Ativo' : 'Bloqueado',
+      u.debtTotal.toFixed(2)
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "usuarios_construlara.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showSuccess("Exportação CSV concluída!");
+  };
+
+  // Exportar para PDF
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Relatório de Usuários - Construlara", 14, 15);
+    
+    const tableData = filteredUsers.map(u => [
+      u.name,
+      u.cpf || "-",
+      u.role,
+      u.status === 'active' ? 'Ativo' : 'Bloqueado',
+      `R$ ${u.debtTotal.toFixed(2)}`
+    ]);
+
+    (doc as any).autoTable({
+      head: [['Nome', 'CPF', 'Nível', 'Status', 'Débito']],
+      body: tableData,
+      startY: 20,
+    });
+
+    doc.save("usuarios_construlara.pdf");
+    showSuccess("Relatório PDF gerado!");
+  };
+
   return (
     <AppLayout>
       <div className="space-y-8">
@@ -203,13 +248,21 @@ const UsersPage = () => {
             <h2 className="text-3xl font-black text-slate-900">Gestão de Usuários</h2>
             <p className="text-slate-500 font-medium">Controle de acessos e situação financeira de clientes</p>
           </div>
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-indigo-100"
-          >
-            <UserPlus className="h-5 w-5" />
-            Novo Usuário
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={exportCSV} className="rounded-2xl border-slate-200 font-bold gap-2 h-12 bg-white">
+              <FileSpreadsheet className="h-4 w-4" /> CSV
+            </Button>
+            <Button variant="outline" onClick={exportPDF} className="rounded-2xl border-slate-200 font-bold gap-2 h-12 bg-white">
+              <FileText className="h-4 w-4" /> PDF
+            </Button>
+            <Button 
+              onClick={() => setIsAddDialogOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-indigo-100 ml-2"
+            >
+              <UserPlus className="h-5 w-5" />
+              Novo Usuário
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -268,7 +321,7 @@ const UsersPage = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input 
                 placeholder="Buscar usuário..." 
-                className="pl-12 rounded-2xl border-slate-200 h-12 shadow-sm"
+                className="pl-12 rounded-2xl border-slate-200 h-12 shadow-sm focus:ring-indigo-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

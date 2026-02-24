@@ -20,6 +20,7 @@ import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
+import { differenceInDays, parseISO } from 'date-fns';
 import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
@@ -31,6 +32,7 @@ interface RentalDetailsDialogProps {
 
 const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDetailsDialogProps) => {
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
+  const [allEquipments, setAllEquipments] = useState<Equipment[]>([]);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   
@@ -73,11 +75,50 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
         const allEquip: Equipment[] = JSON.parse(savedEquip);
+        setAllEquipments(allEquip);
         const found = allEquip.find(e => e.name === rental.item || e.id === rental.equipmentId);
         setEquipment(found || null);
       }
     }
   }, [rental, open]);
+
+  // Recálculo Automático de Valor
+  useEffect(() => {
+    if (!startDate || !endDate || !equipment || showReturnForm) return;
+
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    const totalDays = differenceInDays(end, start) + 1;
+    
+    if (totalDays <= 0) return;
+
+    let calculatedTotal = 0;
+    let displayModality = "Diária";
+
+    if (totalDays >= 20) {
+      displayModality = "Mensal";
+      calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
+    } else if (totalDays >= 11) {
+      displayModality = "Quinzenal";
+      calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
+    } else if (totalDays >= 4) {
+      displayModality = "Semanal";
+      calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4);
+    } else {
+      displayModality = "Diária";
+      calculatedTotal = equipment.dailyRate * totalDays;
+    }
+
+    setModality(displayModality);
+    setTotalValue(calculatedTotal.toFixed(2));
+  }, [startDate, endDate, equipment, showReturnForm]);
+
+  const handleStartReturn = () => {
+    // Ao iniciar devolução, ajusta a data para hoje e recalcula
+    const today = new Date().toISOString().split('T')[0];
+    setEndDate(today);
+    setShowReturnForm(true);
+  };
 
   const currentClient = useMemo(() => allClients.find(c => c.id === selectedClientId), [selectedClientId, allClients]);
 
@@ -124,7 +165,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess("Devolução processada com sucesso!");
+    showSuccess("Devolução processada e valores atualizados com sucesso!");
     onOpenChange(false);
   };
 
@@ -168,7 +209,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto bg-slate-50/50 print:bg-white print:max-h-none print:overflow-visible">
+        <div className="max-h-[70vh] overflow-y-auto bg-slate-50/50 print:bg-white print:max-h-none print:overflow-visible custom-scrollbar">
           {viewMode === 'edit' ? (
             <div className="p-8 grid md:grid-cols-2 gap-10 print:hidden">
               <div className="space-y-8">
@@ -183,7 +224,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                         <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-white font-bold">
                           <SelectValue placeholder="Escolha o usuário..." />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-xl bg-white border shadow-xl">
                           {allClients.map(c => (
                             <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
                           ))}
@@ -242,6 +283,10 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                       <RotateCcw className="h-6 w-6" /> Processar Devolução
                     </h3>
                     <div className="space-y-4">
+                      <div className="bg-white p-4 rounded-2xl border border-emerald-100">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1">Valor Atualizado (Até Hoje)</p>
+                        <p className="text-2xl font-black text-slate-900">R$ {parseFloat(totalValue).toFixed(2)}</p>
+                      </div>
                       <div className="space-y-2">
                         <Label className="font-bold text-emerald-800">Estado do Item no Recebimento</Label>
                         <div className="grid grid-cols-2 gap-3">
@@ -298,10 +343,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                           </div>
                         </div>
                         <div className="bg-emerald-600 p-6 rounded-[2rem] text-white space-y-2 shadow-lg shadow-emerald-100">
-                          <Label className="text-[10px] font-bold text-emerald-200 uppercase">Valor Total do Contrato</Label>
+                          <div className="flex justify-between items-center">
+                            <Label className="text-[10px] font-bold text-emerald-200 uppercase">Valor do Contrato ({modality})</Label>
+                            <Badge className="bg-white/20 text-white border-none text-[9px] font-black">RECALCULADO</Badge>
+                          </div>
                           <div className="relative">
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-emerald-200">R$</span>
-                            <Input type="number" value={totalValue} onChange={(e) => setTotalValue(e.target.value)} className="bg-transparent border-none text-3xl font-black p-0 pl-10 h-auto focus-visible:ring-0 text-white" />
+                            <Input 
+                              type="number" 
+                              value={totalValue} 
+                              onChange={(e) => setTotalValue(e.target.value)} 
+                              className="bg-transparent border-none text-3xl font-black p-0 pl-10 h-auto focus-visible:ring-0 text-white" 
+                            />
                           </div>
                         </div>
                       </div>
@@ -321,7 +374,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
                     {status !== 'completed' && (
                       <Button 
-                        onClick={() => setShowReturnForm(true)}
+                        onClick={handleStartReturn}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black gap-2 h-14 shadow-xl shadow-blue-100"
                       >
                         <RotateCcw className="h-5 w-5" /> Iniciar Devolução

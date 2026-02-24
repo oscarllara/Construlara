@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, UserPlus, Mail, Hammer, Phone, MapPin, Home, CreditCard } from 'lucide-react';
-import { UserRole } from './UserTable';
+import { UserRole, UserAccount } from './UserTable';
+import { showError } from '@/utils/toast';
 
 interface AddUserDialogProps {
   open: boolean;
@@ -62,7 +63,19 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.email || !formData.whatsapp || !formData.role) return;
+    if (!formData.name || !formData.email || !formData.whatsapp || !formData.role || !formData.cpf) return;
+
+    // Verificar CPF Duplicado
+    const saved = localStorage.getItem('app_users');
+    if (saved) {
+      const users: UserAccount[] = JSON.parse(saved);
+      const exists = users.find(u => u.cpf === formData.cpf);
+      if (exists) {
+        showError("Já existe um usuário cadastrado com este CPF.");
+        return;
+      }
+    }
+
     onAdd(formData);
     setFormData({ 
       name: "", 
@@ -80,7 +93,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] rounded-[3rem] border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] rounded-[3rem] border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-900">
             <UserPlus className="h-7 w-7 text-blue-700" />
@@ -154,7 +167,7 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
                   </div>
                   <SelectValue placeholder="Selecione o nível..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl">
+                <SelectContent className="rounded-2xl bg-white border shadow-xl">
                   <SelectItem value="Cliente">Cliente</SelectItem>
                   <SelectItem value="Entregador">Entregador</SelectItem>
                   <SelectItem value="Vendas">Vendas</SelectItem>
@@ -230,7 +243,6 @@ const AddUserDialog = ({ open, onOpenChange, onAdd }: AddUserDialogProps) => {
               </div>
             </div>
             
-            {/* Agora disponível para todos os cargos */}
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
                 Endereço da Obra

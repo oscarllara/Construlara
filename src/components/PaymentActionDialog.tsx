@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DollarSign, CheckCircle2, ArrowRight, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { showError } from '@/utils/toast';
 
 interface PaymentActionDialogProps {
   open: boolean;
@@ -31,20 +32,38 @@ interface PaymentActionDialogProps {
 const PaymentActionDialog = ({ open, onOpenChange, item, onConfirm }: PaymentActionDialogProps) => {
   const [amount, setAmount] = useState<string>("");
   const [isPartial, setIsPartial] = useState(false);
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
 
   const remaining = item ? (item.total - (item.paidAmount || 0)) : 0;
 
   useEffect(() => {
     if (open && item) {
-      setAmount(remaining.toString());
+      setAmount(remaining.toFixed(2));
       setIsPartial(false);
+      setHasStartedTyping(false);
     }
   }, [open, item, remaining]);
 
   const handleConfirm = () => {
     const val = parseFloat(amount);
-    if (isNaN(val) || val <= 0 || val > remaining) return;
+    if (isNaN(val) || val <= 0) {
+      showError("Informe um valor válido.");
+      return;
+    }
+    if (val > (remaining + 0.01)) {
+      showError(`O valor informado (R$ ${val.toFixed(2)}) é superior ao saldo devedor (R$ ${remaining.toFixed(2)}).`);
+      return;
+    }
     onConfirm(val);
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (isPartial && !hasStartedTyping) {
+      setAmount("");
+      setHasStartedTyping(true);
+    } else {
+      e.target.select();
+    }
   };
 
   if (!item) return null;
@@ -73,7 +92,8 @@ const PaymentActionDialog = ({ open, onOpenChange, item, onConfirm }: PaymentAct
               variant={!isPartial ? "default" : "outline"}
               onClick={() => {
                 setIsPartial(false);
-                setAmount(remaining.toString());
+                setAmount(remaining.toFixed(2));
+                setHasStartedTyping(false);
               }}
               className={cn("flex-1 rounded-2xl font-bold h-12", !isPartial && "bg-blue-700")}
             >
@@ -81,31 +101,42 @@ const PaymentActionDialog = ({ open, onOpenChange, item, onConfirm }: PaymentAct
             </Button>
             <Button 
               variant={isPartial ? "default" : "outline"}
-              onClick={() => setIsPartial(true)}
+              onClick={() => {
+                setIsPartial(true);
+                setAmount(remaining.toFixed(2));
+                setHasStartedTyping(false);
+              }}
               className={cn("flex-1 rounded-2xl font-bold h-12", isPartial && "bg-blue-700")}
             >
               Parcial
             </Button>
           </div>
 
-          {isPartial && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-              <Label className="text-slate-700 font-bold text-sm">Quanto está sendo pago agora?</Label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">R$</span>
-                <Input 
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="pl-12 rounded-2xl border-slate-200 h-14 text-lg font-black text-emerald-600"
-                  autoFocus
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 font-bold px-2 italic">
-                O restante de R$ {(remaining - (parseFloat(amount) || 0)).toFixed(2)} continuará em aberto.
-              </p>
+          <div className="space-y-2">
+            <Label className="text-slate-700 font-bold text-sm">
+              {isPartial ? "Informe quanto está sendo pago:" : "Confirmar valor total:"}
+            </Label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">R$</span>
+              <Input 
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setHasStartedTyping(true);
+                }}
+                onFocus={handleFocus}
+                className="pl-12 rounded-2xl border-slate-200 h-14 text-lg font-black text-emerald-600"
+                autoFocus={isPartial}
+              />
             </div>
-          )}
+            {isPartial && (
+              <p className="text-[10px] text-slate-400 font-bold px-2 italic">
+                Saldo remanescente após este pagamento: R$ {Math.max(0, remaining - (parseFloat(amount) || 0)).toFixed(2)}
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter className="gap-3 pt-6">

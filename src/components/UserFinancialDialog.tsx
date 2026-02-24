@@ -45,11 +45,9 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
       const userOrders = orders.filter((o: any) => o && (o.userEmail || "").toLowerCase() === userEmail);
       const userRentals = rentals.filter((r: any) => r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()));
 
-      // Pendentes: qualquer item onde o valor total ainda não foi totalmente pago (Total > Pago)
       const pendingOrders = userOrders.filter((o: any) => (Number(o.total) || 0) > (Number(o.paidAmount) || 0));
       const pendingRentals = userRentals.filter((r: any) => (Number(r.total) || 0) > (Number(r.paidAmount) || 0));
 
-      // Recebidos: itens que já foram 100% quitados
       const receivedOrders = userOrders.filter((o: any) => (Number(o.total) || 0) <= (Number(o.paidAmount) || 0) && Number(o.total) > 0);
       const receivedRentals = userRentals.filter((r: any) => (Number(r.total) || 0) <= (Number(r.paidAmount) || 0) && Number(r.total) > 0);
 
@@ -107,25 +105,29 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase">Débito Total</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase">Dívida Total Acumulada</p>
                 <p className="text-3xl font-black text-red-500">R$ {(financialData.totals.shop + financialData.totals.rental).toFixed(2)}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-8">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShoppingBag className="h-3.5 w-3.5 text-blue-400" />
-                  <span className="text-[10px] font-black text-slate-300 uppercase">Compras na Loja</span>
+              <div className="bg-blue-600/20 p-5 rounded-[2rem] border border-blue-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-6 w-6 rounded-lg bg-blue-500 flex items-center justify-center">
+                    <ShoppingBag className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest">Dívida em Compras</span>
                 </div>
-                <p className="text-xl font-black text-white">R$ {financialData.totals.shop.toFixed(2)}</p>
+                <p className="text-2xl font-black text-white">R$ {financialData.totals.shop.toFixed(2)}</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <div className="flex items-center gap-2 mb-1">
-                  <Receipt className="h-3.5 w-3.5 text-orange-400" />
-                  <span className="text-[10px] font-black text-slate-300 uppercase">Contratos de Aluguel</span>
+              <div className="bg-orange-600/20 p-5 rounded-[2rem] border border-orange-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-6 w-6 rounded-lg bg-orange-500 flex items-center justify-center">
+                    <Receipt className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <span className="text-[10px] font-black text-orange-200 uppercase tracking-widest">Dívida em Aluguéis</span>
                 </div>
-                <p className="text-xl font-black text-white">R$ {financialData.totals.rental.toFixed(2)}</p>
+                <p className="text-2xl font-black text-white">R$ {financialData.totals.rental.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -134,10 +136,10 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
             <Tabs defaultValue="pending" className="space-y-6">
               <TabsList className="bg-slate-100 p-1 rounded-2xl h-12 w-fit">
                 <TabsTrigger value="pending" className="rounded-xl px-6 font-bold data-[state=active]:bg-white">
-                  Contas a Receber ({financialData.pending.length})
+                  Contas em Aberto ({financialData.pending.length})
                 </TabsTrigger>
                 <TabsTrigger value="history" className="rounded-xl px-6 font-bold data-[state=active]:bg-white">
-                  Histórico de Recebidos
+                  Histórico de Pagos
                 </TabsTrigger>
               </TabsList>
 
@@ -145,7 +147,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                 {financialData.pending.length === 0 ? (
                   <div className="text-center py-12 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
                     <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-                    <p className="font-bold text-slate-500">Este cliente não possui débitos pendentes.</p>
+                    <p className="font-bold text-slate-500">Este cliente está totalmente em dia!</p>
                   </div>
                 ) : (
                   <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -163,7 +165,10 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-black text-slate-900">{item.id}</p>
-                                <Badge variant="outline" className="text-[9px] font-black uppercase rounded-lg px-2 h-4">{item.displayType}</Badge>
+                                <Badge className={cn(
+                                  "text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none",
+                                  item.type === 'order' ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"
+                                )}>{item.displayType}</Badge>
                               </div>
                               <p className="text-xs font-bold text-slate-400">{item.date || item.start || 'Data não inf.'}</p>
                             </div>
@@ -172,7 +177,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                             <div className="text-right">
                               <p className="text-lg font-black text-red-600">R$ {remaining.toFixed(2)}</p>
                               {item.paidAmount > 0 && (
-                                <p className="text-[9px] font-bold text-slate-400 uppercase">Restante de R$ {item.total.toFixed(2)}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase">Falta R$ {remaining.toFixed(2)} de R$ {item.total.toFixed(2)}</p>
                               )}
                               <Badge className="bg-red-50 text-red-700 border-none text-[8px] font-black uppercase">Pendente</Badge>
                             </div>
@@ -206,7 +211,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                           </div>
                           <div>
                             <p className="font-bold text-slate-700">{item.id}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">{item.displayType} • Pago</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">{item.displayType} • Pago integralmente</p>
                           </div>
                         </div>
                         <div className="text-right">
