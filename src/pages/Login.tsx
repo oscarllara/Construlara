@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, UserPlus, Briefcase, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, User, Briefcase } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
@@ -26,7 +27,17 @@ const Login = () => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRole', role);
       localStorage.setItem('userEmail', email);
-      showSuccess(`Bem-vindo de volta, ${role}!`);
+      // Salva o nome se for um novo login para persistência simples
+      if (name) {
+        const savedUsers = localStorage.getItem('app_users');
+        const users = savedUsers ? JSON.parse(savedUsers) : [];
+        if (!users.find((u: any) => u.email === email)) {
+          users.push({ name, email, role, status: 'active' });
+          localStorage.setItem('app_users', JSON.stringify(users));
+        }
+      }
+      
+      showSuccess(`Bem-vindo de volta, ${name || role}!`);
       navigate(role === 'Cliente' ? '/loja' : '/');
     } else {
       showError("Credenciais inválidas.");
@@ -53,6 +64,19 @@ const Login = () => {
           </CardHeader>
           <CardContent className="px-12 pb-12 space-y-8">
             <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-black text-slate-400 uppercase">Nome</Label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Seu nome completo" 
+                    className="flex h-14 w-full rounded-2xl border border-slate-200 bg-white px-12 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label className="text-xs font-black text-slate-400 uppercase">E-mail</Label>
                 <div className="relative">

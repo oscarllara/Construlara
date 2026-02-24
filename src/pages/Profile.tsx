@@ -1,26 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
-  User, Mail, Phone, MapPin, Receipt, Calendar, ShieldCheck, 
-  ShoppingBag, MessageCircle, Pencil, ArrowRight, Package, 
-  RefreshCw, DollarSign, Wallet, AlertCircle, CheckCircle2 
+  User, Mail, Phone, MapPin, Receipt, Calendar, 
+  ShoppingBag, MessageCircle, Package, 
+  RefreshCw, DollarSign, Wallet, AlertCircle, CheckCircle2,
+  Home, CreditCard, Facebook, Instagram, Save, History, LayoutGrid
 } from 'lucide-react';
 import { UserAccount } from '@/components/UserTable';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 
 const ProfilePage = () => {
-  const [user, setUser] = useState<UserAccount | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [userRentals, setUserRentals] = useState<any[]>([]);
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeFinanceTab, setActiveFinanceTab] = useState<'all' | 'pending' | 'paid'>('all');
   const navigate = useNavigate();
 
   const loadProfileData = () => {
@@ -34,23 +38,35 @@ const ProfilePage = () => {
       return;
     }
 
-    // 1. Carregar Dados do Usuário
-    let foundUser: UserAccount | undefined;
+    let foundUser: any;
     if (savedUsers) {
-      const users: UserAccount[] = JSON.parse(savedUsers);
+      const users: any[] = JSON.parse(savedUsers);
       foundUser = users.find(u => u.email.toLowerCase().trim() === email);
     }
 
     if (foundUser) {
-      setUser(foundUser);
+      setUser({
+        ...foundUser,
+        cep: foundUser.cep || "",
+        facebook: foundUser.facebook || "",
+        instagram: foundUser.instagram || ""
+      });
     } else {
-      const role = localStorage.getItem('userRole') || 'Usuário';
-      const tempUser: UserAccount = {
-        id: 'temp',
+      const role = localStorage.getItem('userRole') || 'Cliente';
+      const tempUser: any = {
+        id: 'temp-' + Date.now(),
         name: email.split('@')[0],
         email: email,
-        whatsapp: '(32) 99999-9999',
-        role: role as any,
+        whatsapp: "",
+        cpf: "",
+        address: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+        cep: "",
+        facebook: "",
+        instagram: "",
+        role: role,
         status: 'active',
         lastAccess: 'Agora'
       };
@@ -58,18 +74,16 @@ const ProfilePage = () => {
       foundUser = tempUser;
     }
 
-    // 2. Carregar Aluguéis (Lógica Corrigida)
     if (savedRentals) {
       const rentals = JSON.parse(savedRentals);
       const filtered = rentals.filter((r: any) => 
         (r.clientId && r.clientId === foundUser?.id) || 
         (r.clientEmail && r.clientEmail.toLowerCase().trim() === email) ||
-        (r.client && r.client.toLowerCase() === foundUser?.name.toLowerCase())
+        (r.client && r.client.toLowerCase() === (foundUser?.name || "").toLowerCase())
       );
       setUserRentals(filtered);
     }
 
-    // 3. Carregar Pedidos
     if (savedOrders) {
       const orders = JSON.parse(savedOrders);
       const filteredOrders = orders.filter((o: any) => {
@@ -84,41 +98,56 @@ const ProfilePage = () => {
 
   useEffect(() => {
     loadProfileData();
-    window.addEventListener('storage', loadProfileData);
-    window.addEventListener('order-placed', loadProfileData);
-    return () => {
-      window.removeEventListener('storage', loadProfileData);
-      window.removeEventListener('order-placed', loadProfileData);
-    };
   }, []);
 
-  // Cálculos Financeiros
-  const financialSummary = React.useMemo(() => {
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const savedUsers = localStorage.getItem('app_users');
+    if (savedUsers) {
+      const users: any[] = JSON.parse(savedUsers);
+      const index = users.findIndex(u => u.email.toLowerCase().trim() === user.email.toLowerCase().trim());
+      
+      if (index > -1) {
+        users[index] = { ...user };
+        localStorage.setItem('app_users', JSON.stringify(users));
+        showSuccess("Seu perfil foi atualizado com sucesso!");
+      } else {
+        users.push({ ...user });
+        localStorage.setItem('app_users', JSON.stringify(users));
+        showSuccess("Perfil criado e atualizado!");
+      }
+    }
+  };
+
+  const financialSummary = useMemo(() => {
     const shopTotal = userOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
     const shopPaid = userOrders.reduce((acc, o) => acc + (Number(o.paidAmount) || 0), 0);
     
     const rentalTotal = userRentals.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
     const rentalPaid = userRentals.reduce((acc, r) => acc + (Number(r.paidAmount) || 0), 0);
 
+    const movements = [
+      ...userOrders.map(o => ({ ...o, type: 'order', label: 'Compra' })),
+      ...userRentals.map(r => ({ ...r, type: 'rental', label: 'Aluguel' }))
+    ].sort((a, b) => {
+      const dateA = new Date(a.date || a.start || 0).getTime();
+      const dateB = new Date(b.date || b.start || 0).getTime();
+      return dateB - dateA;
+    });
+
     return {
       total: shopTotal + rentalTotal,
       paid: shopPaid + rentalPaid,
-      pending: (shopTotal + rentalTotal) - (shopPaid + rentalPaid)
+      pending: (shopTotal + rentalTotal) - (shopPaid + rentalPaid),
+      movements
     };
   }, [userOrders, userRentals]);
 
-  const handleResendOrder = (order: any) => {
-    const itemsList = order.items.map((item: any) => {
-      const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
-      const detail = item.isFractional 
-        ? `${item.quantity} cx (${(item.totalAmount || 0).toFixed(2)}${item.unitLabel || 'un'})`
-        : `${item.quantity} un`;
-      return `• ${item.name} [${detail}] - R$ ${(price * (item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0))).toFixed(2)}`;
-    }).join('\n');
-
-    const message = `*REENVIO DE PEDIDO - CONSTRULARA*\nID: ${order.id}\nTotal: R$ ${order.total.toFixed(2)}\n\nEstou reenviando meu pedido para confirmação!`;
-    window.open(`https://wa.me/5532999625979?text=${encodeURIComponent(message)}`, '_blank');
-  };
+  const filteredMovements = useMemo(() => {
+    if (activeFinanceTab === 'pending') return financialSummary.movements.filter(m => (Number(m.total) || 0) > (Number(m.paidAmount) || 0));
+    if (activeFinanceTab === 'paid') return financialSummary.movements.filter(m => (Number(m.total) || 0) <= (Number(m.paidAmount) || 0) && Number(m.total) > 0);
+    return financialSummary.movements;
+  }, [financialSummary, activeFinanceTab]);
 
   if (isLoading) return null;
 
@@ -126,7 +155,6 @@ const ProfilePage = () => {
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Coluna Lateral */}
           <div className="w-full md:w-1/3 space-y-6">
             <Card className="border-none shadow-xl rounded-[3rem] overflow-hidden bg-white">
               <div className="h-24 bg-gradient-to-br from-blue-600 to-blue-800"></div>
@@ -142,116 +170,137 @@ const ProfilePage = () => {
                   <h2 className="text-xl font-black text-slate-900">{user?.name}</h2>
                   <Badge className="bg-blue-100 text-blue-700 border-none rounded-xl font-bold px-4">{user?.role}</Badge>
                 </div>
-                <div className="mt-6 space-y-3 text-left">
-                  <div className="p-3 bg-slate-50 rounded-2xl flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-slate-400" />
-                    <span className="text-xs font-bold text-slate-600 truncate">{user?.email}</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-2xl flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-slate-400" />
-                    <span className="text-xs font-bold text-slate-600">{user?.whatsapp}</span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
             <Card className="border-none shadow-xl rounded-[3rem] bg-slate-900 text-white p-8 space-y-6">
               <div className="flex items-center gap-3">
                 <Wallet className="h-6 w-6 text-emerald-400" />
-                <h3 className="font-black text-lg">Minha Conta</h3>
+                <h3 className="font-black text-lg">Resumo Financeiro</h3>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">Total Acumulado</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase">Movimentação Total</span>
                   <span className="text-xl font-black">R$ {financialSummary.total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-black text-emerald-400 uppercase">Total Pago</span>
+                  <span className="text-[10px] font-black text-emerald-400 uppercase">Valores Pagos</span>
                   <span className="text-xl font-black text-emerald-400">R$ {financialSummary.paid.toFixed(2)}</span>
                 </div>
                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
-                  <span className="text-[10px] font-black text-red-400 uppercase">Saldo Devedor</span>
+                  <span className="text-[10px] font-black text-red-400 uppercase">Valores a Pagar</span>
                   <span className="text-2xl font-black text-red-400">R$ {financialSummary.pending.toFixed(2)}</span>
                 </div>
               </div>
-              {financialSummary.pending > 0 && (
-                <div className="bg-red-500/10 p-4 rounded-2xl border border-red-500/20 flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                  <p className="text-[10px] font-bold text-red-200 leading-tight">Você possui faturas pendentes. Entre em contato com a loja para regularizar.</p>
-                </div>
-              )}
             </Card>
           </div>
 
-          {/* Área de Conteúdo principal */}
           <div className="flex-1 space-y-6">
-            <Tabs defaultValue="orders" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <TabsList className="bg-slate-100 p-1 rounded-2xl h-14">
-                  <TabsTrigger value="orders" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">
-                    <ShoppingBag className="h-4 w-4 mr-2" /> Compras
-                  </TabsTrigger>
-                  <TabsTrigger value="rentals" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">
-                    <Receipt className="h-4 w-4 mr-2" /> Aluguéis
-                  </TabsTrigger>
-                </TabsList>
-                <Button variant="ghost" size="sm" onClick={loadProfileData} className="rounded-xl font-bold text-slate-400 gap-2">
-                  <RefreshCw className="h-4 w-4" /> Atualizar
-                </Button>
-              </div>
+            <Tabs defaultValue="data" className="space-y-6">
+              <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-full flex">
+                <TabsTrigger value="data" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Dados Pessoais</TabsTrigger>
+                <TabsTrigger value="orders" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Meus Pedidos</TabsTrigger>
+                <TabsTrigger value="rentals" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Meus Contratos</TabsTrigger>
+                <TabsTrigger value="finance" className="flex-1 rounded-xl font-bold data-[state=active]:bg-white">Minha Conta</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="data" className="animate-in fade-in slide-in-from-bottom-4">
+                <form onSubmit={handleUpdateProfile}>
+                  <Card className="border-none shadow-sm rounded-[3rem] p-8 space-y-8 bg-white">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="font-bold flex items-center gap-2"><User className="h-4 w-4 text-blue-600" /> Nome Completo</Label>
+                        <Input value={user.name} onChange={e => setUser({...user, name: e.target.value})} className="rounded-xl h-12" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-bold flex items-center gap-2"><CreditCard className="h-4 w-4 text-blue-600" /> CPF</Label>
+                        <Input value={user.cpf} onChange={e => setUser({...user, cpf: e.target.value})} className="rounded-xl h-12" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-bold flex items-center gap-2"><Mail className="h-4 w-4 text-blue-600" /> E-mail</Label>
+                        <Input value={user.email} disabled className="rounded-xl h-12 bg-slate-50" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-bold flex items-center gap-2"><Phone className="h-4 w-4 text-blue-600" /> Telefone / WhatsApp</Label>
+                        <Input value={user.whatsapp} onChange={e => setUser({...user, whatsapp: e.target.value})} className="rounded-xl h-12" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-6 pt-4 border-t border-slate-100">
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <MapPin className="h-4 w-4" /> Endereço de Entrega
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2 space-y-2">
+                          <Label className="font-bold">Logradouro e Número</Label>
+                          <Input value={user.address} onChange={e => setUser({...user, address: e.target.value})} className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="font-bold">Bairro</Label>
+                          <Input value={user.neighborhood} onChange={e => setUser({...user, neighborhood: e.target.value})} className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="font-bold">Cidade</Label>
+                          <Input value={user.city} onChange={e => setUser({...user, city: e.target.value})} className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="font-bold">Estado (UF)</Label>
+                          <Input value={user.state} onChange={e => setUser({...user, state: e.target.value})} maxLength={2} className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="font-bold">CEP</Label>
+                          <Input value={user.cep} onChange={e => setUser({...user, cep: e.target.value})} className="rounded-xl h-12" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6 pt-4 border-t border-slate-100">
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4" /> Redes Sociais (Opcional)
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="font-bold flex items-center gap-2"><Facebook className="h-4 w-4 text-blue-700" /> Facebook</Label>
+                          <Input placeholder="Link ou usuário" value={user.facebook} onChange={e => setUser({...user, facebook: e.target.value})} className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="font-bold flex items-center gap-2"><Instagram className="h-4 w-4 text-pink-600" /> Instagram</Label>
+                          <Input placeholder="@usuario" value={user.instagram} onChange={e => setUser({...user, instagram: e.target.value})} className="rounded-xl h-12" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg shadow-xl shadow-blue-100">
+                      <Save className="mr-2 h-6 w-6" /> Salvar Alterações
+                    </Button>
+                  </Card>
+                </form>
+              </TabsContent>
 
               <TabsContent value="orders" className="space-y-4">
                 {userOrders.length === 0 ? (
                   <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
                     <ShoppingBag className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold">Nenhum pedido encontrado.</p>
+                    <p className="text-slate-500 font-bold">Nenhum pedido realizado.</p>
                   </div>
                 ) : (
-                  userOrders.map((order) => {
-                    const balance = order.total - (order.paidAmount || 0);
-                    return (
-                      <Card key={order.id} className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden group">
-                        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                          <div className="flex items-center gap-4">
-                            <div className="h-14 w-14 rounded-2xl bg-blue-50 flex items-center justify-center">
-                              <Package className="h-7 w-7 text-blue-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-black text-slate-900">{order.id}</h4>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase">{order.date}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-8">
-                            <div className="text-center">
-                              <p className="text-[10px] font-black text-slate-400 uppercase">Total</p>
-                              <p className="font-black text-slate-900">R$ {order.total.toFixed(2)}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-[10px] font-black text-emerald-400 uppercase">Pago</p>
-                              <p className="font-black text-emerald-600">R$ {(order.paidAmount || 0).toFixed(2)}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-[10px] font-black text-red-400 uppercase">Pendente</p>
-                              <p className={cn("font-black", balance > 0 ? "text-red-600" : "text-slate-300")}>R$ {balance.toFixed(2)}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {balance <= 0.01 ? (
-                              <Badge className="bg-emerald-100 text-emerald-700 border-none rounded-xl h-10 px-4 font-black">
-                                <CheckCircle2 className="h-4 w-4 mr-2" /> PAGO
-                              </Badge>
-                            ) : (
-                              <Button onClick={() => handleResendOrder(order)} className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold h-10 px-4">
-                                <MessageCircle className="h-4 w-4 mr-2" /> Detalhes
-                              </Button>
-                            )}
-                          </div>
+                  userOrders.map((order) => (
+                    <Card key={order.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+                          <Package className="h-6 w-6 text-blue-600" />
                         </div>
-                      </Card>
-                    );
-                  })
+                        <div>
+                          <h4 className="font-black text-slate-900">{order.id}</h4>
+                          <p className="text-[10px] font-black text-slate-400 uppercase">{order.date}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-slate-900">R$ {order.total.toFixed(2)}</p>
+                        <Badge className={cn("rounded-lg text-[9px] font-black uppercase", order.status === 'Pago' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700")}>{order.status}</Badge>
+                      </div>
+                    </Card>
+                  ))
                 )}
               </TabsContent>
 
@@ -259,54 +308,79 @@ const ProfilePage = () => {
                 {userRentals.length === 0 ? (
                   <div className="bg-white rounded-[3rem] p-16 text-center border border-dashed border-slate-200">
                     <Receipt className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold">Nenhum contrato de aluguel encontrado.</p>
+                    <p className="text-slate-500 font-bold">Nenhum contrato de aluguel.</p>
                   </div>
                 ) : (
-                  userRentals.map((rental) => {
-                    const balance = rental.total - (rental.paidAmount || 0);
-                    return (
-                      <Card key={rental.id} className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden group">
-                        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  userRentals.map((rental) => (
+                    <Card key={rental.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center">
+                          <Calendar className="h-6 w-6 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-slate-900">{rental.item}</h4>
+                          <p className="text-[10px] font-black text-slate-400 uppercase">Fim: {rental.end}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-slate-900">R$ {rental.total.toFixed(2)}</p>
+                        <Badge className="bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase">{rental.status}</Badge>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="finance" className="space-y-6">
+                <div className="flex gap-2">
+                  <Button variant={activeFinanceTab === 'all' ? 'default' : 'outline'} onClick={() => setActiveFinanceTab('all')} className="rounded-xl font-bold h-10 px-6 gap-2">
+                    <LayoutGrid className="h-4 w-4" /> Tudo
+                  </Button>
+                  <Button variant={activeFinanceTab === 'pending' ? 'default' : 'outline'} onClick={() => setActiveFinanceTab('pending')} className="rounded-xl font-bold h-10 px-6 gap-2">
+                    <AlertCircle className="h-4 w-4" /> A Receber
+                  </Button>
+                  <Button variant={activeFinanceTab === 'paid' ? 'default' : 'outline'} onClick={() => setActiveFinanceTab('paid')} className="rounded-xl font-bold h-10 px-6 gap-2">
+                    <CheckCircle2 className="h-4 w-4" /> Recebidos
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {filteredMovements.length === 0 ? (
+                    <div className="text-center py-12">
+                      <History className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                      <p className="font-bold text-slate-400">Nenhuma movimentação para este filtro.</p>
+                    </div>
+                  ) : (
+                    filteredMovements.map((move: any) => {
+                      const balance = Number(move.total) - (Number(move.paidAmount) || 0);
+                      const isPaid = balance <= 0.01;
+                      return (
+                        <Card key={move.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between hover:shadow-md transition-all">
                           <div className="flex items-center gap-4">
-                            <div className="h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center">
-                              <Calendar className="h-7 w-7 text-orange-600" />
+                            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", move.type === 'order' ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600")}>
+                              {move.type === 'order' ? <ShoppingBag className="h-6 w-6" /> : <Receipt className="h-6 w-6" />}
                             </div>
                             <div>
-                              <h4 className="font-black text-slate-900">{rental.item}</h4>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase">FIM: {rental.end}</p>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-black text-slate-900">{move.id}</h4>
+                                <Badge variant="outline" className="text-[9px] font-black uppercase rounded-lg">{move.label}</Badge>
+                              </div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">{move.date || move.end}</p>
                             </div>
                           </div>
-                          
-                          <div className="flex flex-wrap gap-8">
-                            <div className="text-center">
-                              <p className="text-[10px] font-black text-slate-400 uppercase">Total</p>
-                              <p className="font-black text-slate-900">R$ {rental.total.toFixed(2)}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-[10px] font-black text-emerald-400 uppercase">Pago</p>
-                              <p className="font-black text-emerald-600">R$ {(rental.paidAmount || 0).toFixed(2)}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-[10px] font-black text-red-400 uppercase">Pendente</p>
-                              <p className={cn("font-black", balance > 0 ? "text-red-600" : "text-slate-300")}>R$ {balance.toFixed(2)}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Badge className={cn(
-                              "rounded-xl border-none font-bold px-4 h-10 flex items-center",
-                              rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                              rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                              "bg-red-100 text-red-700"
-                            )}>
-                              {rental.status === 'active' ? 'Ativo' : rental.status === 'completed' ? 'Finalizado' : 'Atrasado'}
+                          <div className="text-right">
+                            <p className={cn("text-lg font-black", isPaid ? "text-emerald-600" : "text-red-600")}>
+                              {isPaid ? `R$ ${Number(move.total).toFixed(2)}` : `R$ ${balance.toFixed(2)}`}
+                            </p>
+                            <Badge className={cn("rounded-lg text-[8px] font-black uppercase", isPaid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700")}>
+                              {isPaid ? "Recebido / Pago" : "A Receber / Pendente"}
                             </Badge>
                           </div>
-                        </div>
-                      </Card>
-                    );
-                  })
-                )}
+                        </Card>
+                      );
+                    })
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

@@ -38,7 +38,7 @@ const ContactPage = () => {
   const socials = [
     { 
       name: "Facebook", 
-      handle: "Construlara", 
+      handle: "construlara.rdm", 
       icon: Facebook, 
       color: "text-blue-700", 
       link: "https://facebook.com/construlara.rdm" 
@@ -53,7 +53,7 @@ const ContactPage = () => {
   ];
 
   const handleOpenMaps = () => {
-    window.open("https://www.google.com/maps/search/Rua+Maestro+José+Cândido+das+Neves,+38A+-+Centro+-+Rio+das+Mortes+-+MG", "_blank");
+    window.open("https://www.google.com/maps/place/Rua+Maestro+José+Cândido+das+Neves,+38A+-+Centro,+Rio+das+Mortes+-+MG,+36315-000", "_blank");
   };
 
   return (
