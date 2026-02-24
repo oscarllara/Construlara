@@ -19,6 +19,7 @@ import { Equipment } from './EquipmentCard';
 import { differenceInDays, parseISO } from 'date-fns';
 import AddUserDialog from './AddUserDialog';
 import { showSuccess } from '@/utils/toast';
+import { cn } from "@/lib/utils";
 
 interface AddRentalDialogProps {
   open: boolean;
