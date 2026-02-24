@@ -30,15 +30,17 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
 
   useEffect(() => {
-    try {
-      const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers && savedUsers !== "undefined") {
-        setUsers(JSON.parse(savedUsers));
-      } else {
+    const savedUsers = localStorage.getItem('app_users');
+    if (savedUsers && savedUsers !== "undefined" && savedUsers !== "null") {
+      try {
+        const parsed = JSON.parse(savedUsers);
+        setUsers(Array.isArray(parsed) ? parsed : INITIAL_USERS);
+      } catch (e) {
         setUsers(INITIAL_USERS);
       }
-    } catch (e) {
+    } else {
       setUsers(INITIAL_USERS);
+      localStorage.setItem('app_users', JSON.stringify(INITIAL_USERS));
     }
   }, []);
 
@@ -51,22 +53,23 @@ const UsersPage = () => {
     try {
       const savedOrders = localStorage.getItem('app_orders');
       const savedRentals = localStorage.getItem('app_rentals');
-      const orders = (savedOrders && savedOrders !== "undefined") ? JSON.parse(savedOrders) : [];
-      const rentals = (savedRentals && savedRentals !== "undefined") ? JSON.parse(savedRentals) : [];
+      
+      const ordersRaw = (savedOrders && savedOrders !== "undefined") ? JSON.parse(savedOrders) : [];
+      const rentalsRaw = (savedRentals && savedRentals !== "undefined") ? JSON.parse(savedRentals) : [];
+      
+      const orders = Array.isArray(ordersRaw) ? ordersRaw : [];
+      const rentals = Array.isArray(rentalsRaw) ? rentalsRaw : [];
 
-      const safeOrders = Array.isArray(orders) ? orders : [];
-      const safeRentals = Array.isArray(rentals) ? rentals : [];
-
-      return users.map(user => {
+      return (users || []).map(user => {
         const email = (user.email || "").toLowerCase();
         const name = (user.name || "").toLowerCase();
 
-        const pOrders = safeOrders.filter((o: any) => 
+        const pOrders = orders.filter((o: any) => 
           o && (o.userEmail || "").toLowerCase() === email && 
           o.status !== 'Entregue' && o.status !== 'Pago'
         );
         
-        const pRentals = safeRentals.filter((r: any) => 
+        const pRentals = rentals.filter((r: any) => 
           r && (r.clientId === user.id || (r.client || "").toLowerCase() === name) && 
           r.status !== 'completed'
         );
@@ -77,16 +80,16 @@ const UsersPage = () => {
         return { ...user, debtTotal };
       });
     } catch (e) {
-      return users.map(u => ({ ...u, debtTotal: 0 }));
+      return (users || []).map(u => ({ ...u, debtTotal: 0 }));
     }
   }, [users]);
 
   const stats = useMemo(() => {
-    const total = users.length;
-    const withDebt = usersWithDebtInfo.filter(u => u.debtTotal > 0.01).length;
+    const total = (users || []).length;
+    const withDebt = (usersWithDebtInfo || []).filter(u => u.debtTotal > 0.01).length;
     const clean = total - withDebt;
     return { total, withDebt, clean };
-  }, [usersWithDebtInfo]);
+  }, [users, usersWithDebtInfo]);
 
   const handleToggleStatus = (id: string) => {
     const newUsers = users.map(user => {
@@ -144,7 +147,7 @@ const UsersPage = () => {
         const savedOrders = localStorage.getItem('app_orders');
         if (savedOrders) {
           const orders = JSON.parse(savedOrders);
-          const updated = orders.map((o: any) => {
+          const updated = Array.isArray(orders) ? orders.map((o: any) => {
             if (o.id === id) {
               const currentPaid = Number(o.paidAmount || 0);
               const total = Number(o.total || 0);
@@ -157,14 +160,14 @@ const UsersPage = () => {
               };
             }
             return o;
-          });
+          }) : [];
           localStorage.setItem('app_orders', JSON.stringify(updated));
         }
       } else {
         const savedRentals = localStorage.getItem('app_rentals');
         if (savedRentals) {
           const rentals = JSON.parse(savedRentals);
-          const updated = rentals.map((r: any) => {
+          const updated = Array.isArray(rentals) ? rentals.map((r: any) => {
             if (r.id === id) {
               const currentPaid = Number(r.paidAmount || 0);
               const total = Number(r.total || 0);
@@ -177,7 +180,7 @@ const UsersPage = () => {
               };
             }
             return r;
-          });
+          }) : [];
           localStorage.setItem('app_rentals', JSON.stringify(updated));
         }
       }
@@ -191,7 +194,7 @@ const UsersPage = () => {
   };
 
   const filteredUsers = useMemo(() => {
-    return usersWithDebtInfo.filter(user => {
+    return (usersWithDebtInfo || []).filter(user => {
       const matchesSearch = (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
                            (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
       

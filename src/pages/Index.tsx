@@ -25,11 +25,11 @@ const Index = () => {
     const loadStats = () => {
       try {
         const savedEquip = localStorage.getItem('app_equipments');
-        const equipments = savedEquip ? JSON.parse(savedEquip) : [];
+        const equipments = (savedEquip && savedEquip !== "undefined") ? JSON.parse(savedEquip) : [];
         const savedRentals = localStorage.getItem('app_rentals');
-        const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+        const rentals = (savedRentals && savedRentals !== "undefined") ? JSON.parse(savedRentals) : [];
         const savedUsers = localStorage.getItem('app_users');
-        const users = savedUsers ? JSON.parse(savedUsers) : [];
+        const users = (savedUsers && savedUsers !== "undefined") ? JSON.parse(savedUsers) : [];
 
         setCounts({
           equipments: Array.isArray(equipments) ? equipments.length : 0,
@@ -56,7 +56,7 @@ const Index = () => {
 
   const handleAddEquipment = (data: any) => {
     const saved = localStorage.getItem('app_equipments');
-    const current = saved ? JSON.parse(saved) : [];
+    const current = (saved && saved !== "undefined") ? JSON.parse(saved) : [];
     const newItem = { id: `e-${Date.now()}`, ...data, status: 'available' };
     const updated = [newItem, ...current];
     localStorage.setItem('app_equipments', JSON.stringify(updated));
@@ -67,21 +67,25 @@ const Index = () => {
 
   const handleAddRental = (data: any) => {
     const savedRentals = localStorage.getItem('app_rentals');
-    const currentRentals = savedRentals ? JSON.parse(savedRentals) : [];
+    const currentRentals = (savedRentals && savedRentals !== "undefined") ? JSON.parse(savedRentals) : [];
     const newRental = { id: `r-${Date.now()}`, ...data, status: 'active' };
     const updatedRentals = [newRental, ...currentRentals];
     localStorage.setItem('app_rentals', JSON.stringify(updatedRentals));
     
     const savedEquip = localStorage.getItem('app_equipments');
-    if (savedEquip) {
-      const allEquip = JSON.parse(savedEquip);
-      const updatedEquip = allEquip.map((e: any) => 
-        e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
-      );
-      localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+    if (savedEquip && savedEquip !== "undefined") {
+      try {
+        const allEquip = JSON.parse(savedEquip);
+        if (Array.isArray(allEquip)) {
+          const updatedEquip = allEquip.map((e: any) => 
+            e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
+          );
+          localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+        }
+      } catch (e) { console.error(e); }
     }
 
-    setCounts(prev => ({ ...prev, activeRentals: updatedRentals.filter((r: any) => r.status === 'active').length }));
+    setCounts(prev => ({ ...prev, activeRentals: updatedRentals.filter((r: any) => r && r.status === 'active').length }));
     setIsAddRentalOpen(false);
     showSuccess(`Contrato gerado para ${data.clientName}!`);
   };
