@@ -18,7 +18,7 @@ import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { differenceInDays, parseISO } from 'date-fns';
 import AddUserDialog from './AddUserDialog';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 import { cn } from "@/lib/utils";
 
 interface AddRentalDialogProps {
@@ -54,13 +54,11 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) setEquipments(JSON.parse(savedEquip));
 
-    // Se for cliente, tenta selecionar a si mesmo pelo e-mail
     if (isCliente && userEmail) {
       const me = allUsers.find((u: any) => u.email?.toLowerCase().trim() === userEmail);
       if (me) {
         setFormData(prev => ({ ...prev, clientId: me.id }));
       } else {
-        // Se não encontrar o registro completo, define um ID temporário baseado no e-mail
         setFormData(prev => ({ ...prev, clientId: 'logged-user' }));
       }
     }
@@ -124,21 +122,43 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   };
 
   const sendWhatsAppMessage = (rentalData: any) => {
-    const message = `*SOLICITAÇÃO DE ALUGUEL - CONSTRULARA*\n` +
-      `*Locatário:* ${rentalData.clientName}\n` +
-      `*Equipamento:* ${rentalData.itemName}\n` +
-      `*Período:* ${rentalData.start} até ${rentalData.end}\n` +
-      `*Modalidade:* ${rentalData.modality}\n` +
-      `*Valor Total:* R$ ${rentalData.totalValue.toFixed(2)}\n\n` +
-      `Gostaria de confirmar a reserva deste equipamento!`;
+    try {
+      const val = typeof rentalData.totalValue === 'number' ? rentalData.totalValue.toFixed(2) : rentalData.totalValue;
+      
+      const message = `*SOLICITAÇÃO DE ALUGUEL - CONSTRULARA*\n` +
+        `*Locatário:* ${rentalData.clientName}\n` +
+        `*Equipamento:* ${rentalData.itemName}\n` +
+        `*Período:* ${rentalData.start} até ${rentalData.end}\n` +
+        `*Modalidade:* ${rentalData.modality}\n` +
+        `*Valor Total:* R$ ${val}\n\n` +
+        `Gostaria de confirmar a reserva deste equipamento!`;
 
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
+      const encoded = encodeURIComponent(message);
+      const url = `https://wa.me/5532999625979?text=${encoded}`;
+      
+      // Abre em nova aba
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      console.error("Erro ao gerar link do WhatsApp:", e);
+      showError("Não foi possível abrir o WhatsApp. Verifique os dados.");
+    }
   };
 
   const handleSubmit = () => {
-    if (!formData.clientId || !formData.equipmentId || !formData.totalValue || !formData.endDate) return;
-    
+    // Validações explícitas para feedback ao usuário
+    if (!formData.endDate) {
+      showError("Por favor, informe a data de devolução.");
+      return;
+    }
+    if (!formData.clientId) {
+      showError("Usuário não identificado.");
+      return;
+    }
+    if (!formData.equipmentId) {
+      showError("Equipamento não selecionado.");
+      return;
+    }
+
     const client = clients.find(c => c.id === formData.clientId);
     const equipment = equipments.find(e => e.id === formData.equipmentId);
 
@@ -153,15 +173,17 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       clientName: clientName,
       clientEmail: userEmail,
       clientId: client?.id || 'temp',
-      itemName: equipment?.name,
+      itemName: equipment?.name || "Equipamento",
       equipmentId: equipment?.id,
       start: formatDate(formData.startDate),
       end: formatDate(formData.endDate),
-      totalValue: parseFloat(formData.totalValue)
+      totalValue: parseFloat(formData.totalValue) || 0
     };
 
+    // Primeiro processa internamente
     onAdd(rentalPayload);
     
+    // Depois tenta abrir o WhatsApp se for cliente
     if (isCliente) {
       sendWhatsAppMessage(rentalPayload);
     }
@@ -180,7 +202,7 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const client = clients.find(c => c.id === formData.clientId);
     if (client) return client.name;
     if (isCliente && userEmail) return userEmail;
-    return 'Carregando...';
+    return 'Identificando...';
   };
 
   return (
