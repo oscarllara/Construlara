@@ -136,7 +136,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       const encoded = encodeURIComponent(message);
       const url = `https://wa.me/5532999625979?text=${encoded}`;
       
-      // Abre em nova aba
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
       console.error("Erro ao gerar link do WhatsApp:", e);
@@ -145,7 +144,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   };
 
   const handleSubmit = () => {
-    // Validações explícitas para feedback ao usuário
     if (!formData.endDate) {
       showError("Por favor, informe a data de devolução.");
       return;
@@ -162,7 +160,9 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const client = clients.find(c => c.id === formData.clientId);
     const equipment = equipments.find(e => e.id === formData.equipmentId);
 
-    const clientName = client ? client.name : userEmail;
+    // Se não encontrar o objeto cliente, extrai o nome do email ou usa 'Usuário'
+    const fallbackName = userEmail ? userEmail.split('@')[0] : 'Usuário';
+    const clientName = client ? client.name : fallbackName;
 
     const formatDate = (dateStr: string) => {
       return dateStr.split('-').reverse().join('/');
@@ -180,10 +180,8 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       totalValue: parseFloat(formData.totalValue) || 0
     };
 
-    // Primeiro processa internamente
     onAdd(rentalPayload);
     
-    // Depois tenta abrir o WhatsApp se for cliente
     if (isCliente) {
       sendWhatsAppMessage(rentalPayload);
     }
@@ -199,9 +197,17 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   };
 
   const displayClientName = () => {
+    // 1. Tenta pelo ID selecionado no formData
     const client = clients.find(c => c.id === formData.clientId);
     if (client) return client.name;
-    if (isCliente && userEmail) return userEmail;
+    
+    // 2. Se não encontrou pelo ID (ex: id temporário 'logged-user'), tenta buscar pelo e-mail logado
+    const meByEmail = clients.find(c => c.email?.toLowerCase().trim() === userEmail);
+    if (meByEmail) return meByEmail.name;
+
+    // 3. Fallback final: Primeira parte do e-mail
+    if (isCliente && userEmail) return userEmail.split('@')[0];
+    
     return 'Identificando...';
   };
 
