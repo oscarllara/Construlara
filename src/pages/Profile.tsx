@@ -11,13 +11,15 @@ import {
   User, Mail, Phone, MapPin, Receipt, Calendar, 
   ShoppingBag, MessageCircle, Package, 
   RefreshCw, DollarSign, Wallet, AlertCircle, CheckCircle2,
-  Home, CreditCard, Facebook, Instagram, Save, History, LayoutGrid
+  Home, CreditCard, Facebook, Instagram, Save, History, LayoutGrid, Eye, Send
 } from 'lucide-react';
 import { UserAccount } from '@/components/UserTable';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
+import RentalDetailsDialog from '@/components/RentalDetailsDialog';
+import PaymentActionDialog from '@/components/PaymentActionDialog';
 
 const ProfilePage = () => {
   const [user, setUser] = useState<any>(null);
@@ -25,6 +27,11 @@ const ProfilePage = () => {
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFinanceTab, setActiveFinanceTab] = useState<'all' | 'pending' | 'paid'>('all');
+  const [selectedRental, setSelectedRental] = useState<any>(null);
+  const [isRentalDialogOpen, setIsRentalDialogOpen] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState<any>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  
   const navigate = useNavigate();
 
   const loadProfileData = () => {
@@ -98,6 +105,8 @@ const ProfilePage = () => {
 
   useEffect(() => {
     loadProfileData();
+    window.addEventListener('order-placed', loadProfileData);
+    return () => window.removeEventListener('order-placed', loadProfileData);
   }, []);
 
   const handleUpdateProfile = (e: React.FormEvent) => {
@@ -119,6 +128,27 @@ const ProfilePage = () => {
     }
   };
 
+  const handleResendOrder = (order: any) => {
+    const itemsList = order.items.map((item: any) => {
+      if (item.isManual) return `• [MANUAL] ${item.quantity}x ${item.name}`;
+      const detail = item.isFractional 
+        ? `${item.quantity} cx (${(item.totalAmount || 0).toFixed(2)}${item.unitLabel || 'un'})`
+        : `${item.quantity} un`;
+      return `• ${item.name} [${detail}] - R$ ${(Number(item.totalAmount || item.quantity) * Number(item.promoPrice || item.price)).toFixed(2)}`;
+    }).join('\n');
+
+    const message = `*REENVIO DE PEDIDO - CONSTRULARA*\n` +
+      `*ID:* ${order.id}\n` +
+      `*Data:* ${order.date}\n\n` +
+      `*Itens:*\n${itemsList}\n\n` +
+      `*Total:* R$ ${Number(order.total).toFixed(2)}\n` +
+      `*Status:* ${order.status}\n\n` +
+      `Olá, gostaria de confirmar o status desse meu pedido.`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/5532999625979?text=${encoded}`, '_blank');
+  };
+
   const financialSummary = useMemo(() => {
     const shopTotal = userOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
     const shopPaid = userOrders.reduce((acc, o) => acc + (Number(o.paidAmount) || 0), 0);
@@ -127,8 +157,8 @@ const ProfilePage = () => {
     const rentalPaid = userRentals.reduce((acc, r) => acc + (Number(r.paidAmount) || 0), 0);
 
     const movements = [
-      ...userOrders.map(o => ({ ...o, type: 'order', label: 'Compra' })),
-      ...userRentals.map(r => ({ ...r, type: 'rental', label: 'Aluguel' }))
+      ...userOrders.map(o => ({ ...o, type: 'order', label: 'Compra', description: `Pedido ${o.id}` })),
+      ...userRentals.map(r => ({ ...r, type: 'rental', label: 'Aluguel', description: r.item }))
     ].sort((a, b) => {
       const dateA = new Date(a.date || a.start || 0).getTime();
       const dateB = new Date(b.date || b.start || 0).getTime();
@@ -148,6 +178,63 @@ const ProfilePage = () => {
     if (activeFinanceTab === 'paid') return financialSummary.movements.filter(m => (Number(m.total) || 0) <= (Number(m.paidAmount) || 0) && Number(m.total) > 0);
     return financialSummary.movements;
   }, [financialSummary, activeFinanceTab]);
+
+  const handleOpenPayment = (move: any) => {
+    setSelectedMovement({
+      ...move,
+      client: user?.name || "Cliente"
+    });
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleConfirmPayment = (amount: number) => {
+    if (!selectedMovement) return;
+
+    if (selectedMovement.type === 'order') {
+      const saved = localStorage.getItem('app_orders');
+      if (saved) {
+        const orders = JSON.parse(saved);
+        const updated = orders.map((o: any) => {
+          if (o.id === selectedMovement.id) {
+            const currentPaid = Number(o.paidAmount || 0);
+            const total = Number(o.total || 0);
+            const nextPaid = currentPaid + amount;
+            return { 
+              ...o, 
+              paidAmount: nextPaid,
+              status: nextPaid >= total - 0.01 ? 'Pago' : o.status 
+            };
+          }
+          return o;
+        });
+        localStorage.setItem('app_orders', JSON.stringify(updated));
+      }
+    } else {
+      const saved = localStorage.getItem('app_rentals');
+      if (saved) {
+        const rentals = JSON.parse(saved);
+        const updated = rentals.map((r: any) => {
+          if (r.id === selectedMovement.id) {
+            const currentPaid = Number(r.paidAmount || 0);
+            const total = Number(r.total || 0);
+            const nextPaid = currentPaid + amount;
+            return { 
+              ...r, 
+              paidAmount: nextPaid,
+              status: nextPaid >= total - 0.01 ? 'completed' : r.status 
+            };
+          }
+          return r;
+        });
+        localStorage.setItem('app_rentals', JSON.stringify(updated));
+      }
+    }
+
+    showSuccess("Pagamento registrado com sucesso!");
+    setIsPaymentDialogOpen(false);
+    loadProfileData();
+    window.dispatchEvent(new Event('order-placed'));
+  };
 
   if (isLoading) return null;
 
@@ -285,7 +372,7 @@ const ProfilePage = () => {
                   </div>
                 ) : (
                   userOrders.map((order) => (
-                    <Card key={order.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between">
+                    <Card key={order.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center">
                           <Package className="h-6 w-6 text-blue-600" />
@@ -295,9 +382,17 @@ const ProfilePage = () => {
                           <p className="text-[10px] font-black text-slate-400 uppercase">{order.date}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-slate-900">R$ {order.total.toFixed(2)}</p>
-                        <Badge className={cn("rounded-lg text-[9px] font-black uppercase", order.status === 'Pago' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700")}>{order.status}</Badge>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-lg font-black text-slate-900">R$ {Number(order.total).toFixed(2)}</p>
+                          <Badge className={cn("rounded-lg text-[9px] font-black uppercase", order.status === 'Pago' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700")}>{order.status}</Badge>
+                        </div>
+                        <Button 
+                          onClick={() => handleResendOrder(order)}
+                          className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-4 gap-2"
+                        >
+                          <Send className="h-4 w-4" /> Detalhes/WhatsApp
+                        </Button>
                       </div>
                     </Card>
                   ))
@@ -312,7 +407,7 @@ const ProfilePage = () => {
                   </div>
                 ) : (
                   userRentals.map((rental) => (
-                    <Card key={rental.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between">
+                    <Card key={rental.id} className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center">
                           <Calendar className="h-6 w-6 text-orange-600" />
@@ -322,9 +417,20 @@ const ProfilePage = () => {
                           <p className="text-[10px] font-black text-slate-400 uppercase">Fim: {rental.end}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-slate-900">R$ {rental.total.toFixed(2)}</p>
-                        <Badge className="bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase">{rental.status}</Badge>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-lg font-black text-slate-900">R$ {Number(rental.total).toFixed(2)}</p>
+                          <Badge className="bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase">{rental.status}</Badge>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            setSelectedRental(rental);
+                            setIsRentalDialogOpen(true);
+                          }}
+                          className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 px-4 gap-2"
+                        >
+                          <Eye className="h-4 w-4" /> Visualizar
+                        </Button>
                       </div>
                     </Card>
                   ))
@@ -337,10 +443,10 @@ const ProfilePage = () => {
                     <LayoutGrid className="h-4 w-4" /> Tudo
                   </Button>
                   <Button variant={activeFinanceTab === 'pending' ? 'default' : 'outline'} onClick={() => setActiveFinanceTab('pending')} className="rounded-xl font-bold h-10 px-6 gap-2">
-                    <AlertCircle className="h-4 w-4" /> A Receber
+                    <AlertCircle className="h-4 w-4" /> A Pagar
                   </Button>
                   <Button variant={activeFinanceTab === 'paid' ? 'default' : 'outline'} onClick={() => setActiveFinanceTab('paid')} className="rounded-xl font-bold h-10 px-6 gap-2">
-                    <CheckCircle2 className="h-4 w-4" /> Recebidos
+                    <CheckCircle2 className="h-4 w-4" /> Pagos
                   </Button>
                 </div>
 
@@ -368,13 +474,23 @@ const ProfilePage = () => {
                               <p className="text-[10px] font-bold text-slate-400 uppercase">{move.date || move.end}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className={cn("text-lg font-black", isPaid ? "text-emerald-600" : "text-red-600")}>
-                              {isPaid ? `R$ ${Number(move.total).toFixed(2)}` : `R$ ${balance.toFixed(2)}`}
-                            </p>
-                            <Badge className={cn("rounded-lg text-[8px] font-black uppercase", isPaid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700")}>
-                              {isPaid ? "Recebido / Pago" : "A Receber / Pendente"}
-                            </Badge>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className={cn("text-lg font-black", isPaid ? "text-emerald-600" : "text-red-600")}>
+                                {isPaid ? `R$ ${Number(move.total).toFixed(2)}` : `R$ ${balance.toFixed(2)}`}
+                              </p>
+                              <Badge className={cn("rounded-lg text-[8px] font-black uppercase", isPaid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700")}>
+                                {isPaid ? "Pago" : "Pendente"}
+                              </Badge>
+                            </div>
+                            {!isPaid && (
+                              <Button 
+                                onClick={() => handleOpenPayment(move)}
+                                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-4 gap-2"
+                              >
+                                <DollarSign className="h-4 w-4" /> Pagar
+                              </Button>
+                            )}
                           </div>
                         </Card>
                       );
@@ -386,6 +502,28 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      <RentalDetailsDialog 
+        rental={selectedRental}
+        open={isRentalDialogOpen}
+        onOpenChange={setIsRentalDialogOpen}
+        onUpdate={(updated) => {
+          const saved = localStorage.getItem('app_rentals');
+          if (saved) {
+            const rentals = JSON.parse(saved);
+            const nextRentals = rentals.map((r: any) => r.id === updated.id ? updated : r);
+            localStorage.setItem('app_rentals', JSON.stringify(nextRentals));
+            loadProfileData();
+          }
+        }}
+      />
+
+      <PaymentActionDialog 
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        item={selectedMovement}
+        onConfirm={handleConfirmPayment}
+      />
     </AppLayout>
   );
 };

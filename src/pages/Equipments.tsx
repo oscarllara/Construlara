@@ -30,6 +30,9 @@ const EquipmentsPage = () => {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const navigate = useNavigate();
 
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const isAdmin = ['Gestor', 'Vendas'].includes(userRole);
+
   useEffect(() => {
     const saved = localStorage.getItem('app_equipments');
     if (saved) {
@@ -73,25 +76,25 @@ const EquipmentsPage = () => {
   };
 
   const handleConfirmRental = (data: any) => {
-    // 1. Atualizar status do equipamento
     const newEquipments = equipments.map(e => 
       e.id === data.equipmentId ? { ...e, status: 'rented' as const, lastClient: data.clientName } : e
     );
     saveEquipments(newEquipments);
 
-    // 2. Criar o contrato no histórico
     const savedRentals = localStorage.getItem('app_rentals');
     const currentRentals = savedRentals ? JSON.parse(savedRentals) : [];
     const newRental = {
       id: `r-${Date.now()}`,
       client: data.clientName,
       clientId: data.clientId,
+      clientEmail: data.clientEmail,
       item: data.itemName,
       equipmentId: data.equipmentId,
-      start: data.startDate,
-      end: data.endDate,
+      start: data.start,
+      end: data.end,
       status: 'active',
       total: data.totalValue,
+      paidAmount: 0,
       modality: data.modality,
       notes: ''
     };
@@ -171,13 +174,15 @@ const EquipmentsPage = () => {
             <h2 className="text-3xl font-black text-slate-900">Inventário</h2>
             <p className="text-slate-500 font-medium">Gerencie suas ferramentas e equipamentos</p>
           </div>
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-orange-100 h-12 px-6"
-          >
-            <Plus className="h-5 w-5" />
-            Novo Equipamento
-          </Button>
+          {isAdmin && (
+            <Button 
+              onClick={() => setIsAddDialogOpen(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-orange-100 h-12 px-6"
+            >
+              <Plus className="h-5 w-5" />
+              Novo Equipamento
+            </Button>
+          )}
         </div>
 
         <div className="flex gap-4">

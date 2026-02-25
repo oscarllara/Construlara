@@ -40,6 +40,9 @@ const ProductsPage = () => {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const isAdmin = ['Gestor', 'Vendas'].includes(userRole);
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -143,7 +146,8 @@ const ProductsPage = () => {
         cart.push({ 
           ...product, 
           quantity: safeQuantity, 
-          totalAmount: safeTotalAmount || safeQuantity 
+          totalAmount: safeTotalAmount || safeQuantity,
+          paidAmount: 0 
         });
       }
       
@@ -160,12 +164,16 @@ const ProductsPage = () => {
     const popularityMap: Record<string, number> = {};
     
     if (savedOrders) {
-      const orders = JSON.parse(savedOrders);
-      orders.forEach((order: any) => {
-        order.items.forEach((item: any) => {
-          popularityMap[item.id] = (popularityMap[item.id] || 0) + 1;
+      try {
+        const orders = JSON.parse(savedOrders);
+        orders.forEach((order: any) => {
+          if (order.items) {
+            order.items.forEach((item: any) => {
+              popularityMap[item.id] = (popularityMap[item.id] || 0) + 1;
+            });
+          }
         });
-      });
+      } catch (e) {}
     }
     return popularityMap;
   }, [products]);
@@ -227,27 +235,31 @@ const ProductsPage = () => {
             <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Categorias</h3>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setIsAddCategoryOpen(true)}
-                  className="h-8 w-8 rounded-xl hover:bg-blue-50 text-blue-600"
-                  title="Nova Categoria"
-                >
-                  <Plus className="h-5 w-5" />
-                </Button>
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsAddCategoryOpen(true)}
+                    className="h-8 w-8 rounded-xl hover:bg-blue-50 text-blue-600"
+                    title="Nova Categoria"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                )}
               </div>
 
-              <Button 
-                onClick={() => {
-                  setProductToEdit(null);
-                  setIsAddProductOpen(true);
-                }}
-                className="w-full mb-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold gap-2 h-12 shadow-lg shadow-emerald-100"
-              >
-                <PackagePlus className="h-5 w-5" />
-                Novo Produto
-              </Button>
+              {isAdmin && (
+                <Button 
+                  onClick={() => {
+                    setProductToEdit(null);
+                    setIsAddProductOpen(true);
+                  }}
+                  className="w-full mb-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold gap-2 h-12 shadow-lg shadow-emerald-100"
+                >
+                  <PackagePlus className="h-5 w-5" />
+                  Novo Produto
+                </Button>
+              )}
 
               <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 <button 
