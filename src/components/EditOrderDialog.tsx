@@ -54,7 +54,9 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
     const item = newItems[idx];
     
     if (item.isFractional) {
-      item.totalAmount = Math.max(0.01, (Number(item.totalAmount) || 0) + (delta * 0.5));
+      // Se tiver tamanho de caixa definido, pula de caixa em caixa
+      const step = item.packageSize || 0.5;
+      item.totalAmount = Math.max(step, (Number(item.totalAmount) || 0) + (delta * step));
     } else {
       item.quantity = Math.max(1, (Number(item.quantity) || 1) + delta);
     }
@@ -114,13 +116,15 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
                       <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1">
                         <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(idx, -1)} className="h-8 w-8 rounded-lg"><Minus className="h-3 w-3" /></Button>
                         <Input 
-                          className="w-16 h-8 border-none text-center font-bold focus-visible:ring-0" 
-                          value={item.isFractional ? item.totalAmount : item.quantity}
+                          className="w-20 h-8 border-none text-center font-bold focus-visible:ring-0" 
+                          value={item.isFractional ? item.totalAmount.toFixed(2) : item.quantity}
                           onChange={(e) => handleManualAmount(idx, e.target.value)}
                         />
                         <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(idx, 1)} className="h-8 w-8 rounded-lg"><Plus className="h-3 w-3" /></Button>
                       </div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase">{item.unitLabel || 'un'}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase">
+                        {item.unitLabel || 'un'} {item.packageSize ? `(Caixa: ${item.packageSize})` : ''}
+                      </span>
                     </div>
                   )}
                 </div>

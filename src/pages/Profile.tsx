@@ -282,8 +282,11 @@ const ProfilePage = () => {
               <Badge className="bg-blue-100 text-blue-700 border-none rounded-xl mt-2 px-4 py-1 text-[10px] font-black uppercase tracking-widest">{userData.role}</Badge>
             </Card>
 
-            <Card className="border-none shadow-xl rounded-[3rem] bg-slate-900 text-white p-8">
-              <h3 className="font-black text-lg mb-6 flex items-center gap-2">
+            <Card 
+              onClick={() => setActiveTab('finance')}
+              className="border-none shadow-xl rounded-[3rem] bg-slate-900 text-white p-8 cursor-pointer hover:scale-[1.02] transition-all group"
+            >
+              <h3 className="font-black text-lg mb-6 flex items-center gap-2 group-hover:text-emerald-400 transition-colors">
                 <Wallet className="h-6 w-6 text-emerald-400" /> 
                 Resumo Financeiro
               </h3>
@@ -296,6 +299,7 @@ const ProfilePage = () => {
                   <span className="text-[10px] text-emerald-400 uppercase font-black tracking-widest">Total Pago</span>
                   <p className="text-2xl font-black text-emerald-400">R$ {financialSummary.paid.toFixed(2)}</p>
                 </div>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pt-2">Clique para ver detalhes</p>
               </div>
             </Card>
           </div>
