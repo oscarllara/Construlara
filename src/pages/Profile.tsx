@@ -15,12 +15,14 @@ import {
   MapPin, CreditCard, Home, SearchX, CheckCircle2, AlertCircle, Clock
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { showSuccess, showError } from '@/utils/toast';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/utils';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
 
 const ProfilePage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'data');
   const [userData, setUserData] = useState<any>(null);
   const [userRentals, setUserRentals] = useState<any[]>([]);
   const [userOrders, setUserOrders] = useState<any[]>([]);
@@ -31,6 +33,14 @@ const ProfilePage = () => {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Atualiza a aba se o parâmetro na URL mudar
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   const loadProfileData = () => {
     const email = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
@@ -67,7 +77,6 @@ const ProfilePage = () => {
           photo: ""
         };
       } else {
-        // Garantir que os campos sociais existam
         if (!foundUser.facebook) foundUser.facebook = "https://facebook.com/";
         if (!foundUser.instagram) foundUser.instagram = "https://instagram.com/";
       }
@@ -113,7 +122,7 @@ const ProfilePage = () => {
         description: `Pedido ${o.id}`, 
         total: Number(o.total) || 0,
         paid: Number(o.paidAmount) || 0,
-        date: o.date, // Já deve estar no formato dd/mm/yyyy
+        date: o.date,
         status: o.status === 'Pago' || (Number(o.paidAmount) >= Number(o.total) - 0.01) ? 'paid' : 'debt'
       })),
       ...userRentals.map(r => ({ 
@@ -123,13 +132,12 @@ const ProfilePage = () => {
         description: r.item, 
         total: Number(r.total) || 0,
         paid: Number(r.paidAmount) || 0,
-        date: r.start, // Data de início como referência
+        date: r.start,
         status: r.status === 'completed' || (Number(r.paidAmount) >= Number(r.total) - 0.01) ? 'paid' : 'debt'
       }))
     ].sort((a, b) => {
-      // Ordenação simples por data (as datas estão como string dd/mm/yyyy)
-      const partA = a.date.split('/');
-      const partB = b.date.split('/');
+      const partA = (a.date || '01/01/2000').split('/');
+      const partB = (b.date || '01/01/2000').split('/');
       const dateA = new Date(Number(partA[2]), Number(partA[1])-1, Number(partA[0])).getTime();
       const dateB = new Date(Number(partB[2]), Number(partB[1])-1, Number(partB[0])).getTime();
       return dateB - dateA;
@@ -174,7 +182,6 @@ const ProfilePage = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setUserData({ ...userData, photo: base64String });
-        // Auto salvar a foto
         const savedUsers = localStorage.getItem('app_users');
         if (savedUsers) {
           const users: any[] = JSON.parse(savedUsers);
@@ -192,7 +199,6 @@ const ProfilePage = () => {
 
   const handleSocialChange = (field: 'facebook' | 'instagram', value: string) => {
     const prefix = field === 'facebook' ? "https://facebook.com/" : "https://instagram.com/";
-    // Não permitir apagar o prefixo
     if (!value.startsWith(prefix)) {
       setUserData({ ...userData, [field]: prefix });
     } else {
@@ -202,7 +208,6 @@ const ProfilePage = () => {
 
   const handleSocialFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    // Colocar cursor no final
     e.target.setSelectionRange(val.length, val.length);
   };
 
@@ -253,7 +258,7 @@ const ProfilePage = () => {
           </div>
 
           <div className="flex-1">
-            <Tabs defaultValue="data" className="space-y-6">
+            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearchParams({ tab: v }); }} className="space-y-6">
               <TabsList className="bg-white p-1 rounded-[2.5rem] h-16 w-full shadow-sm flex overflow-x-auto custom-scrollbar">
                 <TabsTrigger value="data" className="flex-1 rounded-[2rem] font-bold h-full min-w-[120px]">Meus Dados</TabsTrigger>
                 <TabsTrigger value="finance" className="flex-1 rounded-[2rem] font-bold h-full min-w-[120px]">Financeiro</TabsTrigger>
@@ -370,8 +375,6 @@ const ProfilePage = () => {
                                   const r = userRentals.find(x => x.id === move.id);
                                   setSelectedRental(r);
                                   setIsRentalDialogOpen(true);
-                                } else {
-                                  showSuccess("Detalhes do pedido em desenvolvimento.");
                                 }
                               }}
                               className="h-10 w-10 rounded-xl hover:bg-slate-50 text-slate-400 group-hover:text-blue-600"
@@ -406,9 +409,6 @@ const ProfilePage = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="text-xl font-black text-blue-700 mr-4">R$ {Number(order.total || 0).toFixed(2)}</p>
-                      <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)} className="rounded-xl font-bold gap-2 hover:bg-blue-50 hover:text-blue-700 h-10 px-4 border-slate-100">
-                        <Pencil className="h-4 w-4" /> Editar Pedido
-                      </Button>
                     </div>
                   </Card>
                 ))}

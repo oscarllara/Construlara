@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/utils';
 import { showSuccess } from '@/utils/toast';
 import NotificationBell from './NotificationBell';
 import {
@@ -136,15 +136,15 @@ const Navbar = () => {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-slate-100 my-2" />
-                    <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                    <DropdownMenuItem onClick={() => navigate('/perfil?tab=data')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                       <UserCircle className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Meu Perfil</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                    <DropdownMenuItem onClick={() => navigate('/perfil?tab=orders')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                       <ShoppingBag className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Pedidos</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/perfil')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                    <DropdownMenuItem onClick={() => navigate('/perfil?tab=rentals')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                       <FileText className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
                     </DropdownMenuItem>
