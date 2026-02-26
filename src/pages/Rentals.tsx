@@ -20,9 +20,8 @@ import RentalDetailsDialog from '@/components/RentalDetailsDialog';
 import { showSuccess } from '@/utils/toast';
 
 const INITIAL_RENTALS = [
-  { id: 'r1', client: 'Construtora Silva', item: 'Betoneira 400L', start: '20/05/2024', end: '25/05/2024', status: 'active', total: 425.00, modality: 'Diária', notes: '' },
-  { id: 'r2', client: 'Carlos Santos', item: 'Martelete Rompedor', start: '22/05/2024', end: '23/05/2024', status: 'overdue', total: 120.00, modality: 'Diária', notes: '' },
-  { id: 'r3', client: 'Ana Oliveira', item: 'Andaime Tubular (x4)', start: '15/05/2024', end: '15/06/2024', status: 'completed', total: 180.00, modality: 'Mês', notes: 'Devolvido sem avarias.' },
+  { id: 'r1', client: 'Construtora Silva', item: 'Betoneira 400L', start: '20/05/2024', end: '25/05/2024', status: 'active', total: 425.00, paidAmount: 0, modality: 'Diária', notes: '' },
+  { id: 'r2', client: 'Carlos Santos', item: 'Martelete Rompedor', start: '22/05/2024', end: '23/05/2024', status: 'overdue', total: 120.00, paidAmount: 0, modality: 'Diária', notes: '' },
 ];
 
 const RentalsPage = () => {
@@ -40,27 +39,39 @@ const RentalsPage = () => {
   const loadRentals = () => {
     try {
       const saved = localStorage.getItem('app_rentals');
-      if (saved && saved !== "undefined") {
+      if (saved && saved !== "undefined" && saved !== "null") {
         const parsed = JSON.parse(saved);
         setRentals(Array.isArray(parsed) ? parsed : INITIAL_RENTALS);
       } else {
         setRentals(INITIAL_RENTALS);
         localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
       }
-    } catch (e) { setRentals(INITIAL_RENTALS); }
+    } catch (e) { 
+      setRentals(INITIAL_RENTALS); 
+    }
   };
 
   useEffect(() => {
     loadRentals();
+    window.addEventListener('order-placed', loadRentals);
+    window.addEventListener('storage', loadRentals);
+    return () => {
+      window.removeEventListener('order-placed', loadRentals);
+      window.removeEventListener('storage', loadRentals);
+    };
   }, []);
 
   const handleUpdateRental = (updated: any) => {
     const saved = localStorage.getItem('app_rentals');
     if (saved) {
-      const current = JSON.parse(saved);
-      const updatedList = current.map((r: any) => r.id === updated.id ? updated : r);
-      localStorage.setItem('app_rentals', JSON.stringify(updatedList));
-      setRentals(updatedList);
+      try {
+        const current = JSON.parse(saved);
+        const updatedList = Array.isArray(current) ? current.map((r: any) => r.id === updated.id ? updated : r) : [updated];
+        localStorage.setItem('app_rentals', JSON.stringify(updatedList));
+        setRentals(updatedList);
+        // Notifica outras abas (Relatórios, Perfil)
+        window.dispatchEvent(new Event('order-placed'));
+      } catch (e) { console.error(e); }
     }
     setIsDetailsOpen(false);
   };
@@ -68,12 +79,18 @@ const RentalsPage = () => {
   const filtered = useMemo(() => {
     return (rentals || []).filter(r => {
       if (!r) return false;
+      
+      // Filtro para clientes verem apenas seus aluguéis
       if (isCliente) {
-        const isMyRental = (r.clientEmail && r.clientEmail.toLowerCase().trim() === userEmail) || (r.client && r.client.toLowerCase().includes(userEmail.split('@')[0]));
+        const isMyRental = (r.clientEmail && r.clientEmail.toLowerCase().trim() === userEmail) || 
+                           (r.client && r.client.toLowerCase().includes(userEmail.split('@')[0]));
         if (!isMyRental) return false;
       }
+
       const search = searchTerm.toLowerCase();
-      return (r.client || "").toLowerCase().includes(search) || (r.item || "").toLowerCase().includes(search);
+      return (r.client || "").toLowerCase().includes(search) || 
+             (r.item || "").toLowerCase().includes(search) ||
+             (r.id || "").toLowerCase().includes(search);
     });
   }, [rentals, searchTerm, isCliente, userEmail]);
 
@@ -82,8 +99,8 @@ const RentalsPage = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black text-slate-900">{isCliente ? 'Meus Aluguéis' : 'Contratos de Aluguel'}</h2>
-            <p className="text-slate-500 font-medium">Controle de locações e prazos de devolução</p>
+            <h2 className="text-3xl font-black text-slate-900">{isCliente ? 'Meus Aluguéis' : 'Gestão de Contratos'}</h2>
+            <p className="text-slate-500 font-medium">Controle central de locações, faturas e prazos</p>
           </div>
           {isAdmin && (
             <Button 
@@ -98,8 +115,8 @@ const RentalsPage = () => {
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
-            placeholder="Buscar por item ou cliente..." 
-            className="pl-12 h-12 rounded-2xl border-slate-200"
+            placeholder="Buscar por item, cliente ou ID..." 
+            className="pl-12 h-12 rounded-2xl border-slate-200 bg-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -109,54 +126,100 @@ const RentalsPage = () => {
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow className="hover:bg-transparent border-slate-100">
-                <TableHead className="font-black text-slate-900 py-6 pl-8">Equipamento</TableHead>
+                <TableHead className="font-black text-slate-900 py-6 pl-8">Contrato / Item</TableHead>
                 {!isCliente && <TableHead className="font-black text-slate-900">Cliente</TableHead>}
                 <TableHead className="font-black text-slate-900">Período</TableHead>
-                <TableHead className="font-black text-slate-900">Valor</TableHead>
+                <TableHead className="font-black text-slate-900">Total / Pago</TableHead>
                 <TableHead className="font-black text-slate-900">Status</TableHead>
                 <TableHead className="text-right pr-8 font-black text-slate-900">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="h-64 text-center text-slate-400">Nenhum contrato encontrado.</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={7} className="h-64 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+                      <SearchX className="h-10 w-10 opacity-20" />
+                      <p className="font-bold">Nenhum contrato encontrado.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : (
-                filtered.map((rental) => (
-                  <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
-                    <TableCell className="py-5 pl-8 font-bold text-slate-700">{rental.item}</TableCell>
-                    {!isCliente && <TableCell className="font-black text-slate-900">{rental.client}</TableCell>}
-                    <TableCell className="text-xs font-bold text-slate-500">{rental.start} - {rental.end}</TableCell>
-                    <TableCell className="text-lg font-black text-blue-700">R$ {Number(rental.total || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge className={cn(
-                        "rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1",
-                        rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                        rental.status === 'overdue' ? "bg-rose-100 text-rose-700" :
-                        rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
-                      )}>{rental.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <Button variant="ghost" className="text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 rounded-xl" onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}>Detalhes</Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filtered.map((rental) => {
+                  const total = Number(rental.total || 0);
+                  const paid = Number(rental.paidAmount || 0);
+                  const isFullyPaid = paid >= total - 0.01;
+
+                  return (
+                    <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
+                      <TableCell className="py-5 pl-8">
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-900">{rental.item}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">{rental.id}</span>
+                        </div>
+                      </TableCell>
+                      {!isCliente && <TableCell className="font-bold text-slate-700">{rental.client}</TableCell>}
+                      <TableCell className="text-xs font-bold text-slate-500">
+                        <div className="flex flex-col">
+                          <span>Início: {rental.start}</span>
+                          <span>Fim: {rental.end}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-base font-black text-blue-700">R$ {total.toFixed(2)}</span>
+                          <span className={cn("text-[10px] font-bold uppercase", isFullyPaid ? "text-emerald-500" : "text-slate-400")}>
+                            {isFullyPaid ? "Pago Total" : `Pago R$ ${paid.toFixed(2)}`}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn(
+                          "rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1",
+                          rental.status === 'active' ? "bg-blue-100 text-blue-700" :
+                          rental.status === 'overdue' ? "bg-rose-100 text-rose-700" :
+                          rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
+                        )}>{rental.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <Button 
+                          variant="ghost" 
+                          className="text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 rounded-xl" 
+                          onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}
+                        >
+                          Visualizar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </div>
       </div>
 
-      <AddRentalDialog open={isAddOpen} onOpenChange={setIsAddOpen} onAdd={(d) => {
-        const saved = localStorage.getItem('app_rentals');
-        const list = saved ? JSON.parse(saved) : [];
-        const newList = [{ ...d, id: `r-${Date.now()}`, status: 'active' }, ...list];
-        localStorage.setItem('app_rentals', JSON.stringify(newList));
-        setRentals(newList);
-        setIsAddOpen(false);
-        showSuccess("Contrato criado com sucesso!");
-      }} />
+      <AddRentalDialog 
+        open={isAddOpen} 
+        onOpenChange={setIsAddOpen} 
+        onAdd={(d) => {
+          const saved = localStorage.getItem('app_rentals');
+          const list = saved ? JSON.parse(saved) : [];
+          const newList = [{ ...d, id: `r-${Date.now()}`, status: 'active' }, ...list];
+          localStorage.setItem('app_rentals', JSON.stringify(newList));
+          setRentals(newList);
+          setIsAddOpen(false);
+          showSuccess("Contrato criado com sucesso!");
+          window.dispatchEvent(new Event('order-placed'));
+        }} 
+      />
 
-      <RentalDetailsDialog rental={selectedRental} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} onUpdate={handleUpdateRental} />
+      <RentalDetailsDialog 
+        rental={selectedRental} 
+        open={isDetailsOpen} 
+        onOpenChange={setIsDetailsOpen} 
+        onUpdate={handleUpdateRental} 
+      />
     </AppLayout>
   );
 };

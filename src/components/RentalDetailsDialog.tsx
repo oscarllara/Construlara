@@ -15,12 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye, ScrollText } from 'lucide-react';
+import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye, ScrollText, CheckCircle2 } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
-import { differenceInDays, parse, format, isValid } from 'date-fns';
+import { differenceInDays, parse, format, isValid, parseISO } from 'date-fns';
 import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
@@ -116,6 +116,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   }, [startDate, endDate, equipment]);
 
   const handleStartReturn = () => {
+    // Ao iniciar retorno, a data de devolução trava na data de hoje para o cálculo final
     const today = new Date().toISOString().split('T')[0];
     setEndDate(today); 
     setShowReturnForm(true);
@@ -130,11 +131,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
     const finalTotal = parseFloat(totalValue);
 
+    // Na devolução, assumimos que o valor é liquidado (Pago = Total)
     const updatedRental = {
       ...rental,
       status: 'completed',
       end: formatDate(endDate),
       total: finalTotal,
+      paidAmount: finalTotal, // Marca como pago ao devolver
       modality: modality,
       notes: notes + (notes ? "\n" : "") + `Devolvido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
@@ -149,7 +152,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess("Devolução processada!");
+    showSuccess("Devolução e Liquidação processadas!");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
@@ -216,7 +219,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </div>
                 <div className="flex gap-3 pt-2">
                   <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Voltar</Button>
-                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Confirmar Recebimento</Button>
+                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Confirmar Recebimento & Liquidação</Button>
                 </div>
               </div>
             </div>
