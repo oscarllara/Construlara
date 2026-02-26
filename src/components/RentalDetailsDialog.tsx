@@ -20,7 +20,7 @@ import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parse, format, isValid } from 'date-fns';
 import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
@@ -32,8 +32,6 @@ interface RentalDetailsDialogProps {
 
 const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDetailsDialogProps) => {
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
-  const [allEquipments, setAllEquipments] = useState<Equipment[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState("");
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   
   const [status, setStatus] = useState("");
@@ -51,108 +49,90 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     if (rental && open) {
       setStatus(rental.status);
       setNotes(rental.notes || "");
-      const formatToInput = (dateStr: string) => {
+      
+      const toISODate = (dateStr: string) => {
         if (!dateStr) return "";
-        if (dateStr.includes('/')) return dateStr.split('/').reverse().join('-');
+        if (dateStr.includes('/')) {
+          const [d, m, y] = dateStr.split('/');
+          return `${y}-${m}-${d}`;
+        }
         return dateStr;
       };
       
-      setStartDate(formatToInput(rental.start));
-      setEndDate(formatToInput(rental.end));
+      setStartDate(toISODate(rental.start));
+      setEndDate(toISODate(rental.end));
       setModality(rental.modality || "Diária");
       setTotalValue(rental.total?.toString() || "0");
       setShowReturnForm(false);
       setViewMode('edit');
       
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) {
-        const users: UserAccount[] = JSON.parse(savedUsers);
-        setAllClients(users);
-        const currentClient = users.find(u => u.name === rental.client || u.id === rental.clientId);
-        setSelectedClientId(currentClient?.id || "");
-      }
+      if (savedUsers) setAllClients(JSON.parse(savedUsers));
 
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
         const allEquip: Equipment[] = JSON.parse(savedEquip);
-        setAllEquipments(allEquip);
         const found = allEquip.find(e => e.name === rental.item || e.id === rental.equipmentId);
         setEquipment(found || null);
       }
     }
   }, [rental, open]);
 
-  // Recálculo Automático de Valor
+  // Recálculo de Valor Automático quando as datas mudam
   useEffect(() => {
-    if (!startDate || !endDate || !equipment || showReturnForm) return;
+    if (!startDate || !endDate || !equipment) return;
 
-    const start = parseISO(startDate);
-    const end = parseISO(endDate);
-    const totalDays = differenceInDays(end, start) + 1;
-    
-    if (totalDays <= 0) return;
+    try {
+      const start = parse(startDate, 'yyyy-MM-dd', new Date());
+      const end = parse(endDate, 'yyyy-MM-dd', new Date());
+      
+      if (!isValid(start) || !isValid(end)) return;
 
-    let calculatedTotal = 0;
-    let displayModality = "Diária";
+      const totalDays = Math.max(1, differenceInDays(end, start) + 1);
+      
+      let calculatedTotal = 0;
+      let displayModality = "Diária";
 
-    if (totalDays >= 20) {
-      displayModality = "Mensal";
-      calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
-    } else if (totalDays >= 11) {
-      displayModality = "Quinzenal";
-      calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
-    } else if (totalDays >= 4) {
-      displayModality = "Semanal";
-      calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4);
-    } else {
-      displayModality = "Diária";
-      calculatedTotal = equipment.dailyRate * totalDays;
-    }
+      // Lógica de Tabela Progressiva (Igual ao AddRentalDialog)
+      if (totalDays >= 20) {
+        displayModality = "Mensal";
+        calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
+      } else if (totalDays >= 11) {
+        displayModality = "Quinzenal";
+        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
+      } else if (totalDays >= 4) {
+        displayModality = "Semanal";
+        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4);
+      } else {
+        displayModality = "Diária";
+        calculatedTotal = equipment.dailyRate * totalDays;
+      }
 
-    setModality(displayModality);
-    setTotalValue(calculatedTotal.toFixed(2));
-  }, [startDate, endDate, equipment, showReturnForm]);
+      setModality(displayModality);
+      setTotalValue(calculatedTotal.toFixed(2));
+    } catch (e) { console.error("Erro no cálculo:", e); }
+  }, [startDate, endDate, equipment]);
 
   const handleStartReturn = () => {
-    // Ao iniciar devolução, ajusta a data para hoje e recalcula
     const today = new Date().toISOString().split('T')[0];
-    setEndDate(today);
+    setEndDate(today); // Isso vai disparar o useEffect acima e atualizar o totalValue
     setShowReturnForm(true);
   };
 
-  const currentClient = useMemo(() => allClients.find(c => c.id === selectedClientId), [selectedClientId, allClients]);
-
-  const currentRentalData = useMemo(() => {
-    if (!rental) return null;
+  const handleProcessReturn = () => {
     const formatDate = (dateStr: string) => {
       if (!dateStr) return "";
-      if (dateStr.includes('-')) return dateStr.split('-').reverse().join('/');
-      return dateStr;
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
     };
 
-    return {
-      ...rental,
-      client: currentClient?.name || rental.client,
-      start: formatDate(startDate),
-      end: formatDate(endDate),
-      modality,
-      total: parseFloat(totalValue) || 0
-    };
-  }, [rental, currentClient, startDate, endDate, modality, totalValue]);
-
-  const handleSave = () => {
-    onUpdate(currentRentalData);
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleProcessReturn = () => {
     const updatedRental = {
-      ...currentRentalData,
+      ...rental,
       status: 'completed',
-      notes: notes + (notes ? "\n" : "") + `Devolvido em ${new Date().toLocaleDateString()} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
+      end: formatDate(endDate),
+      total: parseFloat(totalValue),
+      modality: modality,
+      notes: notes + (notes ? "\n" : "") + `Devolvido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
     const savedEquip = localStorage.getItem('app_equipments');
@@ -165,7 +145,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess("Devolução processada e valores atualizados com sucesso!");
+    showSuccess("Devolução processada e valor ajustado com sucesso!");
     onOpenChange(false);
   };
 
@@ -173,249 +153,64 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
-        <div className="bg-blue-700 p-8 text-white print:hidden">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-md border border-white/30">
-                <FileText className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-black tracking-tighter">
-                  {viewMode === 'edit' ? 'DETALHES DO CONTRATO' : 'VISUALIZAR CONTRATO'}
-                </h2>
-                <p className="text-blue-100 font-bold text-xs uppercase tracking-widest">Nº {rental.id.toUpperCase()}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button 
-                onClick={() => setViewMode(viewMode === 'edit' ? 'contract' : 'edit')}
-                className="bg-white/20 hover:bg-white/30 text-white rounded-xl font-bold gap-2 border border-white/20"
-              >
-                {viewMode === 'edit' ? <><Eye className="h-4 w-4" /> Ver Contrato</> : <><ArrowLeft className="h-4 w-4" /> Voltar p/ Edição</>}
-              </Button>
-              <Badge className={cn(
-                "rounded-xl border-none font-bold px-4 py-2 text-sm shadow-lg",
-                status === 'active' ? "bg-blue-500 text-white" :
-                status === 'overdue' ? "bg-red-500 text-white" :
-                status === 'completed' ? "bg-emerald-500 text-white" :
-                "bg-orange-500 text-white"
-              )}>
-                {status === 'active' ? 'Em Aberto' : 
-                 status === 'overdue' ? 'Atrasado' : 
-                 status === 'completed' ? 'Devolvido' : 'Em Reparo'}
-              </Badge>
-            </div>
+      <DialogContent className="sm:max-w-[800px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+        <div className="bg-blue-700 p-8 text-white">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black">CONTRATO {rental.id.toUpperCase()}</h2>
+            <Badge className="bg-white/20 text-white rounded-xl font-bold px-4 py-1">{status}</Badge>
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto bg-slate-50/50 print:bg-white print:max-h-none print:overflow-visible custom-scrollbar">
-          {viewMode === 'edit' ? (
-            <div className="p-8 grid md:grid-cols-2 gap-10 print:hidden">
-              <div className="space-y-8">
-                <section>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <User className="h-4 w-4" /> Locatário
-                  </h3>
-                  <div className="bg-white p-6 rounded-[2.5rem] space-y-4 border border-slate-100 shadow-sm">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase">Selecionar Usuário</Label>
-                      <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                        <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-white font-bold">
-                          <SelectValue placeholder="Escolha o usuário..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl bg-white border shadow-xl">
-                          {allClients.map(c => (
-                            <SelectItem key={c.id} value={c.id}>{c.name} ({c.role})</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {currentClient && (
-                      <div className="grid grid-cols-2 gap-4 pt-2">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">WhatsApp</p>
-                          <p className="text-sm font-bold text-slate-700">{currentClient.whatsapp}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Email</p>
-                          <p className="text-sm font-bold text-slate-700 truncate">{currentClient.email}</p>
-                        </div>
-                      </div>
-                    )}
+        <div className="p-8 space-y-6">
+          {showReturnForm ? (
+            <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Processar Devolução</h3>
+              <div className="grid gap-4">
+                <div className="bg-white p-4 rounded-2xl">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Ajustado (Até Hoje)</p>
+                  <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold">Estado do Equipamento</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Pronto p/ Uso</Button>
+                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Manutenção</Button>
                   </div>
-                </section>
-
-                <section>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Hammer className="h-4 w-4" /> Objeto da Locação
-                  </h3>
-                  <div className="bg-white p-6 rounded-[2.5rem] space-y-4 border border-slate-100 shadow-sm">
-                    <div>
-                      <p className="text-[10px] font-bold text-blue-400 uppercase mb-0.5">Equipamento</p>
-                      <p className="font-black text-slate-900 text-lg">{rental.item}</p>
-                    </div>
-                    {equipment && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-[10px] font-bold text-blue-400 uppercase mb-0.5">Patrimônio</p>
-                          <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <Hash className="h-3.5 w-3.5 text-blue-400" /> {equipment.serialNumber}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-blue-400 uppercase mb-0.5">Categoria</p>
-                          <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                            <Tag className="h-3.5 w-3.5 text-blue-400" /> {equipment.category}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              <div className="space-y-8">
-                {showReturnForm ? (
-                  <section className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-200 space-y-6 animate-in fade-in zoom-in duration-300">
-                    <h3 className="text-lg font-black text-emerald-900 flex items-center gap-2">
-                      <RotateCcw className="h-6 w-6" /> Processar Devolução
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="bg-white p-4 rounded-2xl border border-emerald-100">
-                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1">Valor Atualizado (Até Hoje)</p>
-                        <p className="text-2xl font-black text-slate-900">R$ {parseFloat(totalValue).toFixed(2)}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-bold text-emerald-800">Estado do Item no Recebimento</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <Button 
-                            variant={returnStatus === 'available' ? 'default' : 'outline'}
-                            onClick={() => setReturnStatus('available')}
-                            className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}
-                          >
-                            Pronto p/ Uso
-                          </Button>
-                          <Button 
-                            variant={returnStatus === 'maintenance' ? 'default' : 'outline'}
-                            onClick={() => setReturnStatus('maintenance')}
-                            className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}
-                          >
-                            Necessita Reparo
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-bold text-emerald-800">Notas de Devolução</Label>
-                        <Textarea 
-                          placeholder="Descreva o estado do item..." 
-                          className="rounded-xl bg-white border-emerald-200"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleProcessReturn} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-12">
-                          Confirmar Recebimento
-                        </Button>
-                        <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="rounded-xl h-12 font-bold">
-                          Cancelar
-                        </Button>
-                      </div>
-                    </div>
-                  </section>
-                ) : (
-                  <>
-                    <section>
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Calendar className="h-4 w-4" /> Prazos e Valores
-                      </h3>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Data Início</Label>
-                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded-xl border-slate-200 h-11 font-bold bg-white" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] font-bold text-slate-500 uppercase">Previsão Devolução</Label>
-                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="rounded-xl border-slate-200 h-11 font-bold bg-white" />
-                          </div>
-                        </div>
-                        <div className="bg-emerald-600 p-6 rounded-[2rem] text-white space-y-2 shadow-lg shadow-emerald-100">
-                          <div className="flex justify-between items-center">
-                            <Label className="text-[10px] font-bold text-emerald-200 uppercase">Valor do Contrato ({modality})</Label>
-                            <Badge className="bg-white/20 text-white border-none text-[9px] font-black">RECALCULADO</Badge>
-                          </div>
-                          <div className="relative">
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-emerald-200">R$</span>
-                            <Input 
-                              type="number" 
-                              value={totalValue} 
-                              onChange={(e) => setTotalValue(e.target.value)} 
-                              className="bg-transparent border-none text-3xl font-black p-0 pl-10 h-auto focus-visible:ring-0 text-white" 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section className="space-y-4">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" /> Observações
-                      </h3>
-                      <Textarea 
-                        placeholder="Notas do contrato..." 
-                        className="rounded-2xl min-h-[100px] border-slate-200 bg-white text-sm"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                      />
-                    </section>
-
-                    {status !== 'completed' && (
-                      <Button 
-                        onClick={handleStartReturn}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black gap-2 h-14 shadow-xl shadow-blue-100"
-                      >
-                        <RotateCcw className="h-5 w-5" /> Iniciar Devolução
-                      </Button>
-                    )}
-                  </>
-                )}
+                </div>
+                <Button onClick={handleProcessReturn} className="bg-emerald-600 h-14 rounded-2xl font-black text-white w-full">Finalizar Recebimento</Button>
               </div>
             </div>
           ) : (
-            <div className="p-10 flex justify-center">
-              <RentalContract rental={currentRentalData} client={currentClient} />
-            </div>
+            <>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="bg-slate-50 p-6 rounded-[2rem]">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Locatário</p>
+                    <p className="text-lg font-black text-slate-900">{rental.client}</p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-[2rem]">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Item</p>
+                    <p className="text-lg font-black text-slate-900">{rental.item}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1"><Label className="text-[10px] font-bold">Início</Label><Input type="date" value={startDate} disabled className="rounded-xl h-10" /></div>
+                    <div className="space-y-1"><Label className="text-[10px] font-bold">Devolução</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-xl h-10" /></div>
+                  </div>
+                  <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                    <p className="text-[10px] font-black text-blue-400 uppercase">{modality}</p>
+                    <p className="text-3xl font-black text-blue-700">R$ {totalValue}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button onClick={handleStartReturn} disabled={status === 'completed'} className="flex-1 bg-emerald-600 h-14 rounded-2xl font-black text-white">Devolver Item Agora</Button>
+                <Button variant="outline" onClick={() => onUpdate({ ...rental, status, total: parseFloat(totalValue), notes })} className="rounded-2xl h-14 font-bold px-8">Salvar Alterações</Button>
+              </div>
+            </>
           )}
         </div>
-
-        <DialogFooter className="p-6 bg-white border-t border-slate-100 flex flex-row items-center justify-between gap-4 print:hidden">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl font-bold h-10 px-6 text-xs">
-              Fechar
-            </Button>
-            <Button onClick={handleSave} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold px-8 h-10 text-xs">
-              Salvar Alterações
-            </Button>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button 
-              onClick={() => setViewMode(viewMode === 'edit' ? 'contract' : 'edit')}
-              variant="outline"
-              className="rounded-xl font-bold h-10 px-6 text-xs border-slate-200 gap-2"
-            >
-              {viewMode === 'edit' ? <><Eye className="h-4 w-4" /> Visualizar</> : <><ArrowLeft className="h-4 w-4" /> Editar</>}
-            </Button>
-            <Button 
-              onClick={handlePrint}
-              className="bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold h-10 px-8 text-xs gap-2 shadow-lg shadow-blue-100"
-            >
-              <Printer className="h-4 w-4" /> Imprimir Agora
-            </Button>
-          </div>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
