@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/utils/utils';
+import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 import NotificationBell from './NotificationBell';
 import {
