@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Mail, Phone, CreditCard, Home, MapPin, Lock, ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Register = () => {
@@ -45,8 +45,12 @@ const Register = () => {
     return val.replace(/\D/g, "").replace(/^(\d{5})(\d)/, "$1-$2").slice(0, 9);
   };
 
-  const fetchAddress = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, "");
+  const toTitleCase = (val: string) => {
+    return val.replace(/\b\w/g, char => char.toUpperCase()).replace(/(\w)(\w+)/g, (match, p1, p2) => p1 + p2.toLowerCase());
+  };
+
+  const fetchAddress = async () => {
+    const cleanCEP = formData.cep.replace(/\D/g, "");
     if (cleanCEP.length !== 8) return;
 
     setIsFetchingCEP(true);
@@ -59,10 +63,10 @@ const Register = () => {
       } else {
         setFormData(prev => ({
           ...prev,
-          address: data.logradouro,
-          neighborhood: data.bairro,
-          city: data.localidade,
-          state: data.uf
+          address: data.logradouro || prev.address,
+          neighborhood: data.bairro || prev.neighborhood,
+          city: data.localidade || prev.city,
+          state: data.uf || prev.state
         }));
         showSuccess("Endereço preenchido!");
       }
@@ -127,7 +131,7 @@ const Register = () => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2 col-span-2 md:col-span-1">
                     <Label className="font-bold">Nome Completo</Label>
-                    <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className="rounded-xl h-12" />
+                    <Input value={formData.name} onChange={e => setFormData({...formData, name: toTitleCase(e.target.value)})} required className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">CPF</Label>
@@ -150,25 +154,32 @@ const Register = () => {
                   <div className="space-y-2">
                     <Label className="font-bold">CEP</Label>
                     <div className="relative">
-                      <Input value={formData.cep} onChange={e => setFormData({...formData, cep: maskCEP(e.target.value)})} onBlur={() => fetchAddress(formData.cep)} maxLength={9} placeholder="00000-000" className="rounded-xl h-12" />
-                      {isFetchingCEP && <RefreshCw className="absolute right-3 top-3 h-5 w-5 animate-spin text-blue-600" />}
+                      <Input 
+                        value={formData.cep} 
+                        onChange={e => setFormData({...formData, cep: maskCEP(e.target.value)})} 
+                        onBlur={fetchAddress} 
+                        maxLength={9} 
+                        placeholder="00000-000" 
+                        className="rounded-xl h-12 pr-10" 
+                      />
+                      {isFetchingCEP && <RefreshCw className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-blue-600" />}
                     </div>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label className="font-bold">Logradouro e Número</Label>
-                    <Input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Rua, Av + Número" className="rounded-xl h-12" />
+                    <Input value={formData.address} onChange={e => setFormData({...formData, address: toTitleCase(e.target.value)})} placeholder="Rua, Av + Número" className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Bairro</Label>
-                    <Input value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} className="rounded-xl h-12" />
+                    <Input value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: toTitleCase(e.target.value)})} className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2 md:col-span-3">
                     <Label className="font-bold">Cidade</Label>
-                    <Input value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="rounded-xl h-12" />
+                    <Input value={formData.city} onChange={e => setFormData({...formData, city: toTitleCase(e.target.value)})} className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Estado (UF)</Label>
-                    <Input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} maxLength={2} className="rounded-xl h-12" />
+                    <Input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value.toUpperCase()})} maxLength={2} className="rounded-xl h-12" />
                   </div>
                 </div>
               </div>

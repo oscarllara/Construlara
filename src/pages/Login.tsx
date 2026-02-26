@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, UserPlus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Mail, Lock, UserPlus, Shield } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    role: ''
   });
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [step, setStep] = useState(1);
@@ -24,21 +26,28 @@ const Login = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.role) {
+      showError("Por favor, selecione seu nível de acesso.");
+      return;
+    }
+
     const saved = localStorage.getItem('app_users');
     const users = saved ? JSON.parse(saved) : [];
-    const found = users.find((u: any) => u.email.toLowerCase() === formData.email.toLowerCase());
+    const found = users.find((u: any) => 
+      u.email.toLowerCase() === formData.email.toLowerCase() && 
+      u.role === formData.role
+    );
 
     // Login simplificado para teste/demonstração
     if (found || (formData.email && formData.password)) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userEmail', formData.email);
-      // Se for um usuário real do banco, pega o cargo dele, senão assume Cliente
-      localStorage.setItem('userRole', found?.role || 'Cliente');
+      localStorage.setItem('userRole', formData.role);
       
       showSuccess(`Bem-vindo de volta!`);
-      navigate(found?.role === 'Gestor' ? '/' : '/loja');
+      navigate(formData.role === 'Gestor' ? '/' : '/loja');
     } else {
-      showError("Credenciais inválidas ou usuário não encontrado.");
+      showError("Credenciais inválidas para este nível de acesso.");
     }
   };
 
@@ -103,7 +112,23 @@ const Login = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Acesso</Label>
+                  <Select onValueChange={(v) => setFormData({...formData, role: v})}>
+                    <SelectTrigger className="rounded-2xl h-14 bg-slate-50/50 border-slate-100 font-medium pl-11 relative">
+                      <Shield className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                      <SelectValue placeholder="Selecione o cargo..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                      <SelectItem value="Cliente">Cliente</SelectItem>
+                      <SelectItem value="Vendas">Vendas</SelectItem>
+                      <SelectItem value="Entregador">Entregador</SelectItem>
+                      <SelectItem value="Gestor">Gestor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all mt-2">
                   Entrar
                 </Button>
 
