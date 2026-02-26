@@ -7,123 +7,126 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, User, Briefcase } from 'lucide-react';
+import { Mail, Lock, User, Briefcase, KeyRound } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [step, setStep] = useState(1); // 1: Email, 2: Code, 3: New Password
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [newPass, setNewPass] = useState('');
+  
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!role) {
-      showError("Por favor, selecione seu nível de acesso.");
+      showError("Selecione seu nível de acesso.");
       return;
     }
-    if (email && password) {
+    
+    const saved = localStorage.getItem('app_users');
+    const users = saved ? JSON.parse(saved) : [];
+    const found = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+
+    if (found || (email && password)) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRole', role);
       localStorage.setItem('userEmail', email);
-      // Salva o nome se for um novo login para persistência simples
-      if (name) {
-        const savedUsers = localStorage.getItem('app_users');
-        const users = savedUsers ? JSON.parse(savedUsers) : [];
-        if (!users.find((u: any) => u.email === email)) {
-          users.push({ name, email, role, status: 'active' });
-          localStorage.setItem('app_users', JSON.stringify(users));
-        }
-      }
-      
-      showSuccess(`Bem-vindo de volta, ${name || role}!`);
+      showSuccess(`Bem-vindo de volta!`);
       navigate(role === 'Cliente' ? '/loja' : '/');
     } else {
       showError("Credenciais inválidas.");
     }
   };
 
+  const handleRecovery = () => {
+    if (step === 1) {
+      showSuccess("Código de 6 dígitos enviado para seu WhatsApp cadastrado!");
+      setStep(2);
+    } else if (step === 2) {
+      if (recoveryCode.length === 6) {
+        setStep(3);
+      } else {
+        showError("Insira o código de 6 dígitos.");
+      }
+    } else {
+      showSuccess("Senha alterada com sucesso! Entre agora.");
+      setIsForgotMode(false);
+      setStep(1);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 relative overflow-hidden">
-      <div className="w-full max-w-[520px] space-y-8 relative z-10">
-        <div className="text-center space-y-4">
-          <div className="h-48 w-full flex items-center justify-center mx-auto">
-            <img src="/logoconstrulara.png" alt="Construlara" className="h-full w-auto object-contain drop-shadow-2xl" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">CONSTRULARA</h1>
-            <p className="text-blue-600 text-sm font-black italic tracking-wide">"Um passo a frente em sua obra!"</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+      <div className="w-full max-w-[480px] space-y-8">
+        <div className="text-center">
+          <img src="/logoconstrulara.png" alt="Construlara" className="h-40 mx-auto drop-shadow-2xl" />
         </div>
 
-        <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white">
-          <CardHeader className="space-y-2 pb-6 pt-10 px-12">
-            <CardTitle className="text-3xl font-black text-slate-900">Entrar</CardTitle>
-            <CardDescription className="text-base font-medium">Acesse sua conta Construlara.</CardDescription>
+        <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white overflow-hidden">
+          <CardHeader className="pb-4 pt-10 px-10">
+            <CardTitle className="text-3xl font-black text-slate-900">
+              {isForgotMode ? "Recuperar Senha" : "Entrar"}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="px-12 pb-12 space-y-8">
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label className="text-xs font-black text-slate-400 uppercase">Nome</Label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Seu nome completo" 
-                    className="flex h-14 w-full rounded-2xl border border-slate-200 bg-white px-12 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+          <CardContent className="px-10 pb-12 space-y-6">
+            {!isForgotMode ? (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black text-slate-400 uppercase">E-mail</Label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="rounded-2xl h-14" />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-black text-slate-400 uppercase">E-mail</Label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input 
-                    type="email" 
-                    placeholder="nome@construlara.com" 
-                    className="pl-12 rounded-2xl h-14 border-slate-200"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label className="text-xs font-black text-slate-400 uppercase">Senha</Label>
+                  <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="rounded-2xl h-14" />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-black text-slate-400 uppercase">Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input 
-                    type="password" 
-                    placeholder="••••••••"
-                    className="pl-12 rounded-2xl h-14 border-slate-200"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label className="text-xs font-black text-slate-400 uppercase">Acesso</Label>
+                  <Select onValueChange={setRole}>
+                    <SelectTrigger className="rounded-2xl h-14"><SelectValue placeholder="Cargo..." /></SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="Cliente">Cliente</SelectItem>
+                      <SelectItem value="Vendas">Vendas</SelectItem>
+                      <SelectItem value="Gestor">Gestor</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg mt-2">Acessar</Button>
+                <div className="flex justify-between pt-2">
+                  <button type="button" onClick={() => setIsForgotMode(true)} className="text-xs font-bold text-slate-400 hover:text-blue-600">Esqueci a senha</button>
+                  <Link to="/cadastro" className="text-xs font-bold text-blue-600">Criar conta grátis</Link>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-5">
+                {step === 1 && (
+                  <div className="space-y-2">
+                    <Label className="font-bold">Informe seu E-mail</Label>
+                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                )}
+                {step === 2 && (
+                  <div className="space-y-2 text-center">
+                    <Label className="font-bold">Código de 6 dígitos</Label>
+                    <Input maxLength={6} value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="h-14 text-center text-2xl font-black tracking-[1rem] rounded-xl" />
+                  </div>
+                )}
+                {step === 3 && (
+                  <div className="space-y-2">
+                    <Label className="font-bold">Nova Senha</Label>
+                    <Input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} className="h-12 rounded-xl" />
+                  </div>
+                )}
+                <Button onClick={handleRecovery} className="w-full bg-blue-700 h-12 rounded-xl font-bold">
+                  {step === 1 ? "Enviar Código" : step === 2 ? "Validar Código" : "Salvar Nova Senha"}
+                </Button>
+                <button onClick={() => setIsForgotMode(false)} className="w-full text-sm font-bold text-slate-400">Voltar ao Login</button>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-black text-slate-400 uppercase">Nível de Acesso</Label>
-                <Select onValueChange={(value) => setRole(value)}>
-                  <SelectTrigger className="rounded-2xl h-14 border-slate-200 pl-12">
-                    <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <SelectValue placeholder="Selecione seu cargo..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    <SelectItem value="Cliente">Cliente</SelectItem>
-                    <SelectItem value="Entregador">Entregador</SelectItem>
-                    <SelectItem value="Vendas">Vendas</SelectItem>
-                    <SelectItem value="Gestor">Gestor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white h-14 rounded-2xl font-black text-lg shadow-2xl mt-4">
-                Acessar Sistema
-              </Button>
-            </form>
+            )}
           </CardContent>
         </Card>
       </div>
