@@ -15,12 +15,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye } from 'lucide-react';
+import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye, ScrollText } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 import { differenceInDays, parse, format, isValid } from 'date-fns';
+import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
   rental: any;
@@ -32,6 +33,7 @@ interface RentalDetailsDialogProps {
 const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDetailsDialogProps) => {
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
   const [equipment, setEquipment] = useState<Equipment | null>(null);
+  const [viewContractMode, setViewContractMode] = useState(false);
   
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
@@ -50,6 +52,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     if (rental && open) {
       setStatus(rental.status);
       setNotes(rental.notes || "");
+      setViewContractMode(false);
       
       const toISODate = (dateStr: string) => {
         if (!dateStr) return "";
@@ -136,7 +139,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       notes: notes + (notes ? "\n" : "") + `Devolvido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
-    // Atualizar Equipamento para Disponível
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       const allEquip = JSON.parse(savedEquip);
@@ -147,19 +149,35 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess("Devolução processada e valor ajustado com sucesso!");
+    showSuccess("Devolução processada!");
     onOpenChange(false);
-    window.dispatchEvent(new Event('order-placed')); // Atualiza dashboards
+    window.dispatchEvent(new Event('order-placed'));
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   if (!rental) return null;
 
+  const currentClient = allClients.find(c => c.id === rental.clientId || c.name === rental.client);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+      <DialogContent className={cn(
+        "rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white transition-all duration-300",
+        viewContractMode ? "sm:max-w-[900px] max-h-[95vh]" : "sm:max-w-[800px]"
+      )}>
         <div className="bg-blue-700 p-8 text-white">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-black">CONTRATO {rental.id.toUpperCase()}</h2>
+            <div className="flex items-center gap-3">
+              {viewContractMode && (
+                <Button variant="ghost" size="icon" onClick={() => setViewContractMode(false)} className="text-white hover:bg-white/10 rounded-full h-10 w-10">
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
+              )}
+              <h2 className="text-2xl font-black">CONTRATO {rental.id.toUpperCase()}</h2>
+            </div>
             <Badge className={cn(
               "rounded-xl font-bold px-4 py-1 border-none",
               status === 'completed' ? "bg-emerald-500" : "bg-white/20"
@@ -167,8 +185,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           </div>
         </div>
 
-        <div className="p-8 space-y-6">
-          {showReturnForm ? (
+        <div className="p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+          {viewContractMode ? (
+            <div className="space-y-6 animate-in fade-in zoom-in-95">
+              <div className="flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md p-4 rounded-2xl z-10 border border-slate-100 shadow-sm">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Visualização do Contrato Formal</p>
+                <Button onClick={handlePrint} className="bg-slate-900 text-white rounded-xl font-bold h-10 px-6 gap-2">
+                  <Printer className="h-4 w-4" /> Imprimir Documento
+                </Button>
+              </div>
+              <RentalContract rental={rental} client={currentClient} />
+            </div>
+          ) : showReturnForm ? (
             <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Processar Devolução</h3>
               <div className="grid gap-4">
@@ -236,15 +264,25 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </div>
               )}
 
-              <div className="flex gap-3">
-                {isInternal && status !== 'completed' && (
-                  <Button onClick={handleStartReturn} className="flex-1 bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-50">
-                    <RotateCcw className="mr-2 h-5 w-5" /> Devolver Item Agora
-                  </Button>
-                )}
-                <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-2xl h-14 font-bold px-8 flex-1">
-                  Fechar
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={() => setViewContractMode(true)} 
+                  variant="outline"
+                  className="w-full h-14 rounded-2xl font-black border-blue-100 text-blue-700 hover:bg-blue-50 gap-2"
+                >
+                  <ScrollText className="h-5 w-5" /> Ver Contrato Formal
                 </Button>
+                
+                <div className="flex gap-3">
+                  {isInternal && status !== 'completed' && (
+                    <Button onClick={handleStartReturn} className="flex-1 bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-50">
+                      <RotateCcw className="mr-2 h-5 w-5" /> Devolver Item Agora
+                    </Button>
+                  )}
+                  <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl h-14 font-bold px-8 flex-1">
+                    Fechar Detalhes
+                  </Button>
+                </div>
               </div>
             </>
           )}

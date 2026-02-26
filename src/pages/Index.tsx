@@ -90,7 +90,7 @@ const Index = () => {
     { title: "Equipamentos", value: counts.equipments.toString(), icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos", description: "Ver catálogo" },
     { title: "Produtos", value: counts.products.toString(), icon: Package, color: "text-orange-600", bg: "bg-orange-50", path: "/loja", description: "Ver materiais" },
     { title: "Meus Aluguéis", value: counts.myRentals.toString(), icon: Receipt, color: "text-emerald-600", bg: "bg-emerald-50", path: "/alugueis", description: "Meus contratos" },
-    { title: "Meus Pedidos", value: counts.myOrders.toString(), icon: ShoppingBag, color: "text-indigo-600", bg: "bg-indigo-50", path: "/perfil", description: "Histórico de compras" },
+    { title: "Meus Pedidos", value: counts.myOrders.toString(), icon: ShoppingBag, color: "text-indigo-600", bg: "bg-indigo-50", path: "/perfil?tab=orders", description: "Histórico de compras" },
   ];
 
   const activeStats = isInternal ? internalStats : clientStats;
