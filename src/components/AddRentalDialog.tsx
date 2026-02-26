@@ -52,7 +52,10 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     setClients(allUsers);
 
     const savedEquip = localStorage.getItem('app_equipments');
-    if (savedEquip) setEquipments(JSON.parse(savedEquip));
+    if (savedEquip) {
+      const allEquip: Equipment[] = JSON.parse(savedEquip);
+      setEquipments(allEquip);
+    }
 
     if (isCliente && userEmail) {
       const me = allUsers.find((u: any) => u.email?.toLowerCase().trim() === userEmail);
@@ -69,6 +72,8 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       loadData();
       if (initialEquipmentId) {
         setFormData(prev => ({ ...prev, equipmentId: initialEquipmentId }));
+      } else {
+        setFormData(prev => ({ ...prev, equipmentId: "" }));
       }
     }
   }, [open, initialEquipmentId]);
@@ -160,7 +165,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     const client = clients.find(c => c.id === formData.clientId);
     const equipment = equipments.find(e => e.id === formData.equipmentId);
 
-    // Se não encontrar o objeto cliente, extrai o nome do email ou usa 'Usuário'
     const fallbackName = userEmail ? userEmail.split('@')[0] : 'Usuário';
     const clientName = client ? client.name : fallbackName;
 
@@ -197,19 +201,16 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
   };
 
   const displayClientName = () => {
-    // 1. Tenta pelo ID selecionado no formData
     const client = clients.find(c => c.id === formData.clientId);
     if (client) return client.name;
-    
-    // 2. Se não encontrou pelo ID (ex: id temporário 'logged-user'), tenta buscar pelo e-mail logado
     const meByEmail = clients.find(c => c.email?.toLowerCase().trim() === userEmail);
     if (meByEmail) return meByEmail.name;
-
-    // 3. Fallback final: Primeira parte do e-mail
     if (isCliente && userEmail) return userEmail.split('@')[0];
-    
     return 'Identificando...';
   };
+
+  // Filtra apenas equipamentos disponíveis para o seletor
+  const availableEquipments = equipments.filter(e => e.status === 'available' || e.id === formData.equipmentId);
 
   return (
     <>
@@ -260,11 +261,25 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                <Hammer className="h-4 w-4 text-slate-400" /> Equipamento Selecionado
+                <Hammer className="h-4 w-4 text-slate-400" /> Equipamento
               </Label>
-              <div className="h-12 flex items-center px-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-slate-700">
-                {equipments.find(e => e.id === formData.equipmentId)?.name || 'Carregando...'}
-              </div>
+              {initialEquipmentId ? (
+                <div className="h-12 flex items-center px-4 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-slate-700">
+                  {equipments.find(e => e.id === formData.equipmentId)?.name || 'Carregando...'}
+                </div>
+              ) : (
+                <Select value={formData.equipmentId} onValueChange={(v) => setFormData({...formData, equipmentId: v})}>
+                  <SelectTrigger className="rounded-2xl border-slate-200 h-12 bg-white">
+                    <SelectValue placeholder="Escolha um equipamento disponível..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    {availableEquipments.map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.name} ({e.serialNumber})</SelectItem>
+                    ))}
+                    {availableEquipments.length === 0 && <div className="p-4 text-center text-xs text-slate-400">Nenhum equipamento disponível</div>}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

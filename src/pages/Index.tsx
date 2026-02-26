@@ -16,6 +16,7 @@ const Index = () => {
   
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const isInternal = isLoggedIn && ['Gestor', 'Vendas', 'Entregador'].includes(userRole);
 
   const [counts, setCounts] = useState({
@@ -23,7 +24,9 @@ const Index = () => {
     products: 0,
     activeRentals: 0,
     clients: 0,
-    overdue: 0
+    overdue: 0,
+    myOrders: 0,
+    myRentals: 0
   });
 
   useEffect(() => {
@@ -41,12 +44,26 @@ const Index = () => {
         const savedUsers = localStorage.getItem('app_users');
         const users = (savedUsers && savedUsers !== "undefined") ? JSON.parse(savedUsers) : [];
 
+        const savedOrders = localStorage.getItem('app_orders');
+        const orders = (savedOrders && savedOrders !== "undefined") ? JSON.parse(savedOrders) : [];
+
+        // Filtros para o cliente logado
+        const myRentalsCount = rentals.filter((r: any) => 
+          r && (r.clientEmail?.toLowerCase().trim() === userEmail || r.client?.toLowerCase() === userEmail.split('@')[0])
+        ).length;
+
+        const myOrdersCount = orders.filter((o: any) => 
+          o && o.userEmail?.toLowerCase().trim() === userEmail
+        ).length;
+
         setCounts({
           equipments: Array.isArray(equipments) ? equipments.length : 0,
           products: Array.isArray(products) ? products.length : 0,
           activeRentals: Array.isArray(rentals) ? rentals.filter((r: any) => r && r.status === 'active').length : 0,
           clients: Array.isArray(users) ? users.length : 0,
-          overdue: Array.isArray(rentals) ? rentals.filter((r: any) => r && r.status === 'overdue').length : 0
+          overdue: Array.isArray(rentals) ? rentals.filter((r: any) => r && r.status === 'overdue').length : 0,
+          myOrders: myOrdersCount,
+          myRentals: myRentalsCount
         });
       } catch (e) {
         console.error("Erro ao carregar estatísticas:", e);
@@ -55,8 +72,12 @@ const Index = () => {
 
     loadStats();
     window.addEventListener('storage', loadStats);
-    return () => window.removeEventListener('storage', loadStats);
-  }, []);
+    window.addEventListener('order-placed', loadStats);
+    return () => {
+      window.removeEventListener('storage', loadStats);
+      window.removeEventListener('order-placed', loadStats);
+    };
+  }, [userEmail]);
 
   const internalStats = [
     { title: "Equipamentos", value: counts.equipments.toString(), icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos" },
@@ -66,8 +87,10 @@ const Index = () => {
   ];
 
   const clientStats = [
-    { title: "Equipamentos", value: counts.equipments.toString(), icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos", description: "Ferramentas para locação" },
-    { title: "Produtos", value: counts.products.toString(), icon: Package, color: "text-orange-600", bg: "bg-orange-50", path: "/loja", description: "Materiais para sua obra" },
+    { title: "Equipamentos", value: counts.equipments.toString(), icon: Hammer, color: "text-blue-600", bg: "bg-blue-50", path: "/equipamentos", description: "Ver catálogo" },
+    { title: "Produtos", value: counts.products.toString(), icon: Package, color: "text-orange-600", bg: "bg-orange-50", path: "/loja", description: "Ver materiais" },
+    { title: "Meus Aluguéis", value: counts.myRentals.toString(), icon: Receipt, color: "text-emerald-600", bg: "bg-emerald-50", path: "/alugueis", description: "Meus contratos" },
+    { title: "Meus Pedidos", value: counts.myOrders.toString(), icon: ShoppingBag, color: "text-indigo-600", bg: "bg-indigo-50", path: "/perfil", description: "Histórico de compras" },
   ];
 
   const activeStats = isInternal ? internalStats : clientStats;
@@ -167,13 +190,13 @@ const Index = () => {
           </div>
         </section>
 
-        <div className={`grid gap-6 ${isInternal ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 max-w-4xl mx-auto'}`}>
+        <div className={`grid gap-6 ${isInternal || !isLoggedIn ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
           {activeStats.map((stat, i) => (
             <Card key={i} onClick={() => navigate(stat.path)} className="border-none shadow-sm rounded-[2.5rem] hover:shadow-xl hover:-translate-y-2 transition-all cursor-pointer group bg-white">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="space-y-1">
                   <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">{stat.title}</CardTitle>
-                  {!isInternal && <p className="text-[10px] text-slate-400 font-bold">{(stat as any).description}</p>}
+                  {stat.description && <p className="text-[10px] text-slate-400 font-bold">{stat.description}</p>}
                 </div>
                 <div className={`${stat.bg} p-4 rounded-2xl transition-transform group-hover:rotate-12`}>
                   <stat.icon className={`h-6 w-6 ${stat.color}`} />
