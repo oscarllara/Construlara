@@ -117,7 +117,7 @@ const ProfilePage = () => {
 
   const financialSummary = useMemo(() => {
     const movements = [
-      ...userOrders.map(o => ({ 
+      ...userOrders.filter(o => o.status !== 'Cancelado').map(o => ({ 
         id: o.id, 
         type: 'order', 
         label: 'Compra', 
@@ -229,6 +229,18 @@ const ProfilePage = () => {
         setIsOrderDialogOpen(false);
         showSuccess("Pedido cancelado com sucesso.");
       }
+    }
+  };
+
+  const handleSaveOrderEdit = (updatedOrder: any) => {
+    const savedOrders = localStorage.getItem('app_orders');
+    if (savedOrders) {
+      const orders = JSON.parse(savedOrders);
+      const updatedList = orders.map((o: any) => o.id === updatedOrder.id ? updatedOrder : o);
+      localStorage.setItem('app_orders', JSON.stringify(updatedList));
+      loadProfileData();
+      setIsOrderDialogOpen(false);
+      showSuccess("Pedido atualizado e valores financeiros recalculados!");
     }
   };
 
@@ -475,7 +487,13 @@ const ProfilePage = () => {
       </div>
 
       <RentalDetailsDialog rental={selectedRental} open={isRentalDialogOpen} onOpenChange={setIsRentalDialogOpen} onUpdate={loadProfileData} />
-      <EditOrderDialog order={selectedOrder} open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen} onCancel={handleCancelOrder} />
+      <EditOrderDialog 
+        order={selectedOrder} 
+        open={isOrderDialogOpen} 
+        onOpenChange={setIsOrderDialogOpen} 
+        onCancel={handleCancelOrder}
+        onSave={handleSaveOrderEdit}
+      />
     </AppLayout>
   );
 };

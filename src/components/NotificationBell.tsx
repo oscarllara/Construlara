@@ -42,7 +42,6 @@ const NotificationBell = () => {
           rentals.forEach((rental: any) => {
             if (rental.status === 'completed' || !rental.end) return;
             
-            // Verifica se o aluguel é do usuário logado ou se o usuário é gestor
             const isGestor = localStorage.getItem('userRole') === 'Gestor';
             const isMyRental = (rental.clientEmail || "").toLowerCase().trim() === userEmail;
             
@@ -58,7 +57,7 @@ const NotificationBell = () => {
                 description: `O item ${rental.item} (${rental.client}) venceu em ${rental.end}.`,
                 type: 'danger',
                 date: rental.end,
-                path: '/alugueis'
+                path: '/perfil?tab=rentals'
               });
             } else if (daysLeft <= 2) {
               newNotifications.push({
@@ -67,14 +66,14 @@ const NotificationBell = () => {
                 description: `O item ${rental.item} deve ser devolvido em breve (${rental.end}).`,
                 type: 'warning',
                 date: rental.end,
-                path: '/alugueis'
+                path: '/perfil?tab=rentals'
               });
             }
           });
         }
       }
 
-      // 2. Pedidos Recentes (Últimas 24h)
+      // 2. Pedidos Recentes
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders) {
         const orders = JSON.parse(savedOrders);
@@ -90,7 +89,7 @@ const NotificationBell = () => {
               description: `Seu pedido ${order.id} está em processamento.`,
               type: 'success',
               date: order.date,
-              path: '/perfil'
+              path: '/perfil?tab=orders'
             });
           });
         }
