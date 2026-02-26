@@ -231,6 +231,18 @@ const ProfilePage = () => {
     }
   };
 
+  const handleSaveOrderEdit = (updatedOrder: any) => {
+    const savedOrders = localStorage.getItem('app_orders');
+    if (savedOrders) {
+      const orders = JSON.parse(savedOrders);
+      const updatedList = orders.map((o: any) => o.id === updatedOrder.id ? updatedOrder : o);
+      localStorage.setItem('app_orders', JSON.stringify(updatedList));
+      loadProfileData();
+      setIsOrderDialogOpen(false);
+      showSuccess("Pedido atualizado!");
+    }
+  };
+
   const handleUpdateRentalInStorage = (updatedRental: any) => {
     const savedRentals = localStorage.getItem('app_rentals');
     if (savedRentals) {
@@ -490,6 +502,7 @@ const ProfilePage = () => {
         open={isOrderDialogOpen} 
         onOpenChange={setIsOrderDialogOpen} 
         onCancel={handleCancelOrder}
+        onSave={handleSaveOrderEdit}
       />
     </AppLayout>
   );
