@@ -5,15 +5,23 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, Info, SearchX, CheckCircle2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, Info, SearchX, CheckCircle2, UserCheck, Users } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { UserAccount } from '@/components/UserTable';
 
 const CartPage = () => {
   const [cart, setCart] = useState<any[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'Pix' | 'Loja'>('Pix');
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [allClients, setAllClients] = useState<UserAccount[]>([]);
   const navigate = useNavigate();
+
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const isInternal = ['Gestor', 'Vendas'].includes(userRole);
+  const currentUserEmail = localStorage.getItem('userEmail') || '';
 
   useEffect(() => {
     try {
@@ -24,10 +32,19 @@ const CartPage = () => {
       } else {
         setCart([]);
       }
+
+      // Se for gestor/vendas, carregar lista de clientes
+      if (isInternal) {
+        const savedUsers = localStorage.getItem('app_users');
+        if (savedUsers) {
+          const users: UserAccount[] = JSON.parse(savedUsers);
+          setAllClients(users.filter(u => u.role === 'Cliente'));
+        }
+      }
     } catch (e) { 
       setCart([]); 
     }
-  }, []);
+  }, [isInternal]);
 
   const saveCart = (newCart: any[]) => {
     setCart(newCart);
@@ -65,11 +82,26 @@ const CartPage = () => {
   const handleCheckout = () => {
     if (cart.length === 0) return;
 
+    // Validação de Cliente para Gestor/Vendas
+    let finalUserEmail = currentUserEmail;
+    let clientName = "Cliente";
+
+    if (isInternal) {
+      if (!selectedClientId) {
+        showError("Você deve identificar o cliente para este pedido.");
+        return;
+      }
+      const client = allClients.find(c => c.id === selectedClientId);
+      if (client) {
+        finalUserEmail = client.email;
+        clientName = client.name;
+      }
+    }
+
     try {
       const orderId = `ORD-${Date.now()}`;
       const now = new Date();
       const orderDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-      const userEmail = localStorage.getItem('userEmail') || '';
       
       const savedOrders = localStorage.getItem('app_orders');
       const currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
@@ -77,7 +109,8 @@ const CartPage = () => {
       const newOrder = {
         id: orderId,
         date: orderDate,
-        userEmail: userEmail,
+        userEmail: finalUserEmail,
+        clientName: clientName,
         items: [...cart],
         total: cartTotal,
         paidAmount: 0,
@@ -98,14 +131,15 @@ const CartPage = () => {
         payInfo = `%0A*PAGAMENTO:* Pagar na Loja%0A`;
       }
 
-      const msg = `*PEDIDO - CONSTRULARA*%0A*ID:* ${orderId}${payInfo}*Itens:*%0A${itemsList}%0A*Total:* R$ ${cartTotal.toFixed(2)}`;
+      const msg = `*PEDIDO - CONSTRULARA*%0A*CLIENTE:* ${clientName}%0A*ID:* ${orderId}${payInfo}*Itens:*%0A${itemsList}%0A*Total:* R$ ${cartTotal.toFixed(2)}`;
       window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
 
-      showSuccess("Pedido realizado!");
+      showSuccess(isInternal ? `Venda registrada para ${clientName}!` : "Pedido realizado!");
       window.dispatchEvent(new Event('cart-updated'));
       window.dispatchEvent(new Event('order-placed'));
       
-      setTimeout(() => navigate('/perfil?tab=orders'), 500);
+      if (isInternal) navigate('/relatorios');
+      else navigate('/perfil?tab=orders');
     } catch (e) {
       showError("Erro ao finalizar pedido.");
     }
@@ -127,7 +161,34 @@ const CartPage = () => {
         <div className="flex items-center gap-4"><Button variant="ghost" onClick={() => navigate('/loja')} className="rounded-xl h-10 w-10"><ArrowLeft className="h-6 w-6" /></Button><h2 className="text-3xl font-black">Meu Carrinho</h2></div>
         
         <div className="grid lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
+            {isInternal && (
+              <Card className="p-8 rounded-[3rem] border-4 border-blue-600/10 bg-blue-50/30 space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+                    <UserCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 leading-none">Venda Assistida</h3>
+                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Identifique o cliente para faturar</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold text-slate-700">Selecione o Cliente</Label>
+                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                    <SelectTrigger className="h-14 rounded-2xl border-blue-200 bg-white shadow-sm">
+                      <SelectValue placeholder="Buscar cliente na base..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl max-h-[300px]">
+                      {allClients.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name} ({c.email})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Card>
+            )}
+
             <div className="space-y-4">
               {cart.map(item => {
                 if (!item) return null;
@@ -204,10 +265,10 @@ const CartPage = () => {
               <div className="pt-6 border-t flex justify-between items-end"><span className="font-black text-slate-900">Total</span><span className="text-3xl font-black text-blue-700">R$ {cartTotal.toFixed(2)}</span></div>
             </div>
             <Button onClick={handleCheckout} className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl transition-all active:scale-95">
-              Finalizar Pedido
+              {isInternal ? "Registrar Venda" : "Finalizar Pedido"}
             </Button>
-            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
-              Você será redirecionado para o WhatsApp para confirmar seu pedido.
+            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+              {isInternal ? "A venda será vinculada ao histórico financeiro do cliente selecionado." : "Você será redirecionado para o WhatsApp para confirmar seu pedido."}
             </p>
           </Card>
         </div>

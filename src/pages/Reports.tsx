@@ -56,7 +56,7 @@ const ReportsPage = () => {
     { name: 'Manutenção', value: (equipments || []).filter(e => e && e.status === 'maintenance').length, color: '#64748b' },
   ], [equipments]);
 
-  // Lógica Financeira Corrigida: Débito é saldo remanescente, independente do status físico
+  // Lógica Financeira Corrigida: Filtra apenas o que é de cliente
   const financialStats = useMemo(() => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
@@ -163,7 +163,7 @@ const ReportsPage = () => {
       })),
       ...safeOrders.filter(o => o).map(o => ({
         id: o.id,
-        client: (o.userEmail || 'Desconhecido').split('@')[0],
+        client: o.clientName || (o.userEmail || 'Desconhecido').split('@')[0],
         description: `Pedido ${o.id}`,
         date: o.date || '---',
         total: Number(o.total) || 0,

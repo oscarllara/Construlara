@@ -65,13 +65,16 @@ const UserTable = ({ users, onToggleStatus, onDelete, onEdit, onOpenFinance }: U
       const orders = savedOrders ? JSON.parse(savedOrders) : [];
       const rentals = savedRentals ? JSON.parse(savedRentals) : [];
 
-      if (!Array.isArray(orders) || !Array.isArray(rentals)) return 0;
-
       const userEmail = (user.email || "").toLowerCase();
+      const userName = (user.name || "").toLowerCase();
 
-      // Filtra todas as faturas do usuário que possuem saldo devedor (Total > Pago)
+      // Filtra pedidos deste cliente específico
       const userOrders = orders.filter((o: any) => o && (o.userEmail || "").toLowerCase() === userEmail);
-      const userRentals = rentals.filter((r: any) => r && (r.clientId === user.id || (r.client || "").toLowerCase() === (user.name || "").toLowerCase()));
+      
+      // Filtra aluguéis deste cliente específico
+      const userRentals = rentals.filter((r: any) => 
+        r && (r.clientId === user.id || (r.clientEmail || "").toLowerCase() === userEmail || (r.client || "").toLowerCase() === userName)
+      );
 
       const totalOrdersDebt = userOrders.reduce((acc: number, o: any) => {
         const remaining = (Number(o.total) || 0) - (Number(o.paidAmount) || 0);
