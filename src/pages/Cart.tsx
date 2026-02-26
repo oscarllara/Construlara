@@ -38,7 +38,7 @@ const CartPage = () => {
         const savedUsers = localStorage.getItem('app_users');
         if (savedUsers) {
           const users: UserAccount[] = JSON.parse(savedUsers);
-          setAllClients(users.filter(u => u.role === 'Cliente'));
+          setAllClients(Array.isArray(users) ? users.filter(u => u.role === 'Cliente') : []);
         }
       }
     } catch (e) { 
@@ -65,7 +65,8 @@ const CartPage = () => {
   const handleUpdateQuantity = (id: string, delta: number) => {
     const newCart = cart.map(item => {
       if (item && item.id === id && !item.isFractional) {
-        const newQty = Math.max(1, (Number(item.quantity) || 1) + delta);
+        const currentQty = Number(item.quantity) || 1;
+        const newQty = Math.max(1, currentQty + delta);
         return { ...item, quantity: newQty };
       }
       return item;
@@ -80,7 +81,7 @@ const CartPage = () => {
   };
 
   const handleCheckout = () => {
-    if (cart.length === 0) return;
+    if (!Array.isArray(cart) || cart.length === 0) return;
 
     // Validação de Cliente para Gestor/Vendas
     let finalUserEmail = currentUserEmail;
@@ -111,7 +112,7 @@ const CartPage = () => {
         date: orderDate,
         userEmail: finalUserEmail,
         clientName: clientName,
-        items: [...cart],
+        items: [...cart.filter(i => i !== null)],
         total: cartTotal,
         paidAmount: 0,
         paymentMethod: paymentMethod,
@@ -122,7 +123,7 @@ const CartPage = () => {
       localStorage.removeItem('app_cart');
       setCart([]);
       
-      const itemsList = cart.map(it => `• ${it.name} (${it.isFractional ? (Number(it.totalAmount) || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 1) + ' un'})`).join('%0A');
+      const itemsList = cart.filter(i => i !== null).map(it => `• ${it.name} (${it.isFractional ? (Number(it.totalAmount) || 0).toFixed(2) + (it.unitLabel || 'm²') : (Number(it.quantity) || 1) + ' un'})`).join('%0A');
       
       let payInfo = "";
       if (paymentMethod === 'Pix') {
@@ -145,7 +146,7 @@ const CartPage = () => {
     }
   };
 
-  if (cart.length === 0) return (
+  if (!Array.isArray(cart) || cart.length === 0) return (
     <AppLayout>
       <div className="max-w-2xl mx-auto text-center py-32 space-y-6">
         <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto"><ShoppingBag className="h-12 w-12 text-slate-200" /></div>
@@ -193,11 +194,13 @@ const CartPage = () => {
               {cart.map(item => {
                 if (!item) return null;
                 const unitPrice = item.isPromo ? (Number(item.promoPrice) || Number(item.price) || 0) : (Number(item.price) || 0);
-                const totalItem = unitPrice * (item.isFractional ? Number(item.totalAmount) : Number(item.quantity));
+                const itemAmount = item.isFractional ? Number(item.totalAmount) : Number(item.quantity);
+                const totalItem = unitPrice * (itemAmount || 0);
+                
                 return (
                   <Card key={item.id} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
                     <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
-                      {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package className="h-10 w-10 text-slate-200" />}
+                      {item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.name} /> : <Package className="h-10 w-10 text-slate-200" />}
                     </div>
                     <div className="flex-1">
                       <h4 className="font-black text-slate-900">{item.name}</h4>
