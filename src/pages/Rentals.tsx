@@ -88,7 +88,7 @@ const RentalsPage = () => {
           {isAdmin && (
             <Button 
               onClick={() => setIsAddOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 shadow-lg h-12 px-6"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black gap-2 shadow-lg shadow-blue-50 h-12 px-6 transition-all active:scale-95"
             >
               <PlusCircle className="h-5 w-5" /> Novo Aluguel
             </Button>
@@ -109,12 +109,12 @@ const RentalsPage = () => {
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow className="hover:bg-transparent border-slate-100">
-                <TableHead className="font-bold text-slate-900 py-6 pl-8">Equipamento</TableHead>
-                {!isCliente && <TableHead className="font-bold text-slate-900">Cliente</TableHead>}
-                <TableHead className="font-bold text-slate-900">Período</TableHead>
-                <TableHead className="font-bold text-slate-900">Valor</TableHead>
-                <TableHead className="font-bold text-slate-900">Status</TableHead>
-                <TableHead className="text-right pr-8 font-bold text-slate-900">Ações</TableHead>
+                <TableHead className="font-black text-slate-900 py-6 pl-8">Equipamento</TableHead>
+                {!isCliente && <TableHead className="font-black text-slate-900">Cliente</TableHead>}
+                <TableHead className="font-black text-slate-900">Período</TableHead>
+                <TableHead className="font-black text-slate-900">Valor</TableHead>
+                <TableHead className="font-black text-slate-900">Status</TableHead>
+                <TableHead className="text-right pr-8 font-black text-slate-900">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,19 +124,19 @@ const RentalsPage = () => {
                 filtered.map((rental) => (
                   <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
                     <TableCell className="py-5 pl-8 font-bold text-slate-700">{rental.item}</TableCell>
-                    {!isCliente && <TableCell className="font-bold text-slate-900">{rental.client}</TableCell>}
+                    {!isCliente && <TableCell className="font-black text-slate-900">{rental.client}</TableCell>}
                     <TableCell className="text-xs font-bold text-slate-500">{rental.start} - {rental.end}</TableCell>
                     <TableCell className="text-lg font-black text-blue-700">R$ {Number(rental.total || 0).toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className={cn(
-                        "rounded-xl border-none font-bold px-3 py-1",
+                        "rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1",
                         rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                        rental.status === 'overdue' ? "bg-red-100 text-red-700" :
+                        rental.status === 'overdue' ? "bg-rose-100 text-rose-700" :
                         rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
                       )}>{rental.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right pr-8">
-                      <Button variant="ghost" className="text-blue-600 font-bold" onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}>Detalhes</Button>
+                      <Button variant="ghost" className="text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 rounded-xl" onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}>Detalhes</Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -153,7 +153,7 @@ const RentalsPage = () => {
         localStorage.setItem('app_rentals', JSON.stringify(newList));
         setRentals(newList);
         setIsAddOpen(false);
-        showSuccess("Contrato criado!");
+        showSuccess("Contrato criado com sucesso!");
       }} />
 
       <RentalDetailsDialog rental={selectedRental} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} onUpdate={handleUpdateRental} />
