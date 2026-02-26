@@ -5,14 +5,14 @@ import AppLayout from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, Info, SearchX } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, Info, SearchX, CheckCircle2 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const CartPage = () => {
   const [cart, setCart] = useState<any[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'whatsapp' | 'store'>('whatsapp');
+  const [paymentMethod, setPaymentMethod] = useState<'Pix' | 'Loja'>('Pix');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,7 +67,8 @@ const CartPage = () => {
 
     try {
       const orderId = `ORD-${Date.now()}`;
-      const orderDate = new Date().toLocaleDateString('pt-BR');
+      const now = new Date();
+      const orderDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
       const userEmail = localStorage.getItem('userEmail') || '';
       
       const savedOrders = localStorage.getItem('app_orders');
@@ -89,14 +90,22 @@ const CartPage = () => {
       setCart([]);
       
       const itemsList = cart.map(it => `• ${it.name} (${it.isFractional ? (Number(it.totalAmount) || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 1) + ' un'})`).join('%0A');
-      const msg = `*PEDIDO - CONSTRULARA*%0A*ID:* ${orderId}%0A*Itens:*%0A${itemsList}%0A*Total:* R$ ${cartTotal.toFixed(2)}`;
+      
+      let payInfo = "";
+      if (paymentMethod === 'Pix') {
+        payInfo = `%0A*PAGAMENTO PIX:*%0AChave CNPJ: 16403481000116%0ABTM DESIGN%0A`;
+      } else {
+        payInfo = `%0A*PAGAMENTO:* Pagar na Loja%0A`;
+      }
+
+      const msg = `*PEDIDO - CONSTRULARA*%0A*ID:* ${orderId}${payInfo}*Itens:*%0A${itemsList}%0A*Total:* R$ ${cartTotal.toFixed(2)}`;
       window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
 
       showSuccess("Pedido realizado!");
       window.dispatchEvent(new Event('cart-updated'));
       window.dispatchEvent(new Event('order-placed'));
       
-      setTimeout(() => navigate('/perfil'), 500);
+      setTimeout(() => navigate('/perfil?tab=orders'), 500);
     } catch (e) {
       showError("Erro ao finalizar pedido.");
     }
@@ -116,47 +125,90 @@ const CartPage = () => {
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
         <div className="flex items-center gap-4"><Button variant="ghost" onClick={() => navigate('/loja')} className="rounded-xl h-10 w-10"><ArrowLeft className="h-6 w-6" /></Button><h2 className="text-3xl font-black">Meu Carrinho</h2></div>
+        
         <div className="grid lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-4">
-            {cart.map(item => {
-              if (!item) return null;
-              const unitPrice = item.isPromo ? (Number(item.promoPrice) || Number(item.price) || 0) : (Number(item.price) || 0);
-              const totalItem = unitPrice * (item.isFractional ? Number(item.totalAmount) : Number(item.quantity));
-              return (
-                <Card key={item.id} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
-                  <div className="h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
-                    {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package className="h-10 w-10 text-slate-200" />}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-black text-slate-900">{item.name}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.category}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border">
-                      {!item.isFractional ? (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, -1)} className="h-8 w-8"><Minus className="h-3 w-3" /></Button>
-                          <span className="font-black">{item.quantity}</span>
-                          <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, 1)} className="h-8 w-8"><Plus className="h-3 w-3" /></Button>
-                        </>
-                      ) : (
-                        <span className="px-4 font-black text-blue-700">{Number(item.totalAmount || 0).toFixed(2)} {item.unitLabel}</span>
-                      )}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-4">
+              {cart.map(item => {
+                if (!item) return null;
+                const unitPrice = item.isPromo ? (Number(item.promoPrice) || Number(item.price) || 0) : (Number(item.price) || 0);
+                const totalItem = unitPrice * (item.isFractional ? Number(item.totalAmount) : Number(item.quantity));
+                return (
+                  <Card key={item.id} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
+                    <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
+                      {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package className="h-10 w-10 text-slate-200" />}
                     </div>
-                    <p className="font-black text-lg text-slate-900">R$ {totalItem.toFixed(2)}</p>
-                    <button onClick={() => handleRemove(item.id)} className="text-[10px] font-bold text-red-500 hover:underline">REMOVER</button>
+                    <div className="flex-1">
+                      <h4 className="font-black text-slate-900">{item.name}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.category}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border">
+                        {!item.isFractional ? (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, -1)} className="h-8 w-8"><Minus className="h-3 w-3" /></Button>
+                            <span className="font-black">{item.quantity}</span>
+                            <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, 1)} className="h-8 w-8"><Plus className="h-3 w-3" /></Button>
+                          </>
+                        ) : (
+                          <span className="px-4 font-black text-blue-700">{Number(item.totalAmount || 0).toFixed(2)} {item.unitLabel}</span>
+                        )}
+                      </div>
+                      <p className="font-black text-lg text-slate-900">R$ {totalItem.toFixed(2)}</p>
+                      <button onClick={() => handleRemove(item.id)} className="text-[10px] font-bold text-red-500 hover:underline">REMOVER</button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-black text-slate-900">Forma de Pagamento</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => setPaymentMethod('Pix')}
+                  className={cn(
+                    "p-6 rounded-[2rem] border-2 text-left transition-all flex flex-col gap-2",
+                    paymentMethod === 'Pix' ? "border-blue-600 bg-blue-50" : "border-slate-100 bg-white hover:border-slate-200"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Pix' ? "text-blue-600" : "text-slate-200")} />
+                    <span className="font-black text-blue-700">PIX</span>
                   </div>
-                </Card>
-              );
-            })}
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Aprovação imediata</p>
+                  <p className="text-xs font-medium text-slate-600 mt-2">16403481000116<br/>BTM DESIGN</p>
+                </button>
+                <button 
+                  onClick={() => setPaymentMethod('Loja')}
+                  className={cn(
+                    "p-6 rounded-[2rem] border-2 text-left transition-all flex flex-col gap-2",
+                    paymentMethod === 'Loja' ? "border-blue-600 bg-blue-50" : "border-slate-100 bg-white hover:border-slate-200"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Loja' ? "text-blue-600" : "text-slate-200")} />
+                    <span className="font-black text-slate-900 uppercase">Na Loja</span>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Pague ao retirar</p>
+                  <p className="text-xs font-medium text-slate-600 mt-2">Dinheiro, Cartão ou Pix direto no caixa.</p>
+                </button>
+              </div>
+            </div>
           </div>
-          <Card className="p-8 rounded-[3rem] shadow-xl bg-white border-none h-fit space-y-8">
+
+          <Card className="p-8 rounded-[3rem] shadow-xl bg-white border-none h-fit space-y-8 sticky top-32">
             <h3 className="font-black text-2xl">Resumo</h3>
             <div className="space-y-4">
               <div className="flex justify-between font-bold text-slate-400"><span>Subtotal</span><span>R$ {cartTotal.toFixed(2)}</span></div>
               <div className="pt-6 border-t flex justify-between items-end"><span className="font-black text-slate-900">Total</span><span className="text-3xl font-black text-blue-700">R$ {cartTotal.toFixed(2)}</span></div>
             </div>
-            <Button onClick={handleCheckout} className="w-full bg-blue-700 h-16 rounded-[2rem] font-black text-xl shadow-2xl">Finalizar Pedido</Button>
+            <Button onClick={handleCheckout} className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl transition-all active:scale-95">
+              Finalizar Pedido
+            </Button>
+            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
+              Você será redirecionado para o WhatsApp para confirmar seu pedido.
+            </p>
           </Card>
         </div>
       </div>

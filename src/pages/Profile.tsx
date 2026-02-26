@@ -17,8 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { showSuccess, showError } from '@/utils/toast';
-import { cn } from '@/utils/utils';
+import { cn } from '@/lib/utils';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
+import EditOrderDialog from '@/components/EditOrderDialog';
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,11 +31,12 @@ const ProfilePage = () => {
   const [activeFinanceFilter, setActiveFinanceFilter] = useState<'all' | 'debt' | 'paid'>('all');
   const [selectedRental, setSelectedRental] = useState<any>(null);
   const [isRentalDialogOpen, setIsRentalDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  // Atualiza a aba se o parâmetro na URL mudar
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
@@ -211,6 +213,25 @@ const ProfilePage = () => {
     e.target.setSelectionRange(val.length, val.length);
   };
 
+  const handleEditOrder = (order: any) => {
+    setSelectedOrder(order);
+    setIsOrderDialogOpen(true);
+  };
+
+  const handleCancelOrder = (orderId: string) => {
+    if (window.confirm("Deseja realmente cancelar este pedido?")) {
+      const savedOrders = localStorage.getItem('app_orders');
+      if (savedOrders) {
+        const orders = JSON.parse(savedOrders);
+        const updated = orders.map((o: any) => o.id === orderId ? { ...o, status: 'Cancelado' } : o);
+        localStorage.setItem('app_orders', JSON.stringify(updated));
+        loadProfileData();
+        setIsOrderDialogOpen(false);
+        showSuccess("Pedido cancelado com sucesso.");
+      }
+    }
+  };
+
   if (isLoading || !userData) return <div className="min-h-screen flex items-center justify-center">Carregando perfil...</div>;
 
   return (
@@ -375,6 +396,9 @@ const ProfilePage = () => {
                                   const r = userRentals.find(x => x.id === move.id);
                                   setSelectedRental(r);
                                   setIsRentalDialogOpen(true);
+                                } else {
+                                  const o = userOrders.find(x => x.id === move.id);
+                                  handleEditOrder(o);
                                 }
                               }}
                               className="h-10 w-10 rounded-xl hover:bg-slate-50 text-slate-400 group-hover:text-blue-600"
@@ -409,6 +433,9 @@ const ProfilePage = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="text-xl font-black text-blue-700 mr-4">R$ {Number(order.total || 0).toFixed(2)}</p>
+                      <Button variant="outline" size="sm" onClick={() => handleEditOrder(order)} className="rounded-xl font-bold gap-2 hover:bg-blue-50 hover:text-blue-700 h-10 px-4 border-slate-100">
+                        <Pencil className="h-4 w-4" /> Editar Pedido
+                      </Button>
                     </div>
                   </Card>
                 ))}
@@ -448,6 +475,7 @@ const ProfilePage = () => {
       </div>
 
       <RentalDetailsDialog rental={selectedRental} open={isRentalDialogOpen} onOpenChange={setIsRentalDialogOpen} onUpdate={loadProfileData} />
+      <EditOrderDialog order={selectedOrder} open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen} onCancel={handleCancelOrder} />
     </AppLayout>
   );
 };
