@@ -78,9 +78,6 @@ const ProfilePage = () => {
           instagram: "https://instagram.com/",
           photo: ""
         };
-      } else {
-        if (!foundUser.facebook) foundUser.facebook = "https://facebook.com/";
-        if (!foundUser.instagram) foundUser.instagram = "https://instagram.com/";
       }
 
       setUserData({ ...foundUser });
@@ -113,6 +110,8 @@ const ProfilePage = () => {
 
   useEffect(() => {
     loadProfileData();
+    window.addEventListener('order-placed', loadProfileData);
+    return () => window.removeEventListener('order-placed', loadProfileData);
   }, []);
 
   const financialSummary = useMemo(() => {
@@ -232,15 +231,14 @@ const ProfilePage = () => {
     }
   };
 
-  const handleSaveOrderEdit = (updatedOrder: any) => {
-    const savedOrders = localStorage.getItem('app_orders');
-    if (savedOrders) {
-      const orders = JSON.parse(savedOrders);
-      const updatedList = orders.map((o: any) => o.id === updatedOrder.id ? updatedOrder : o);
-      localStorage.setItem('app_orders', JSON.stringify(updatedList));
+  const handleUpdateRentalInStorage = (updatedRental: any) => {
+    const savedRentals = localStorage.getItem('app_rentals');
+    if (savedRentals) {
+      const rentals = JSON.parse(savedRentals);
+      const updatedList = rentals.map((r: any) => r.id === updatedRental.id ? updatedRental : r);
+      localStorage.setItem('app_rentals', JSON.stringify(updatedList));
       loadProfileData();
-      setIsOrderDialogOpen(false);
-      showSuccess("Pedido atualizado e valores financeiros recalculados!");
+      window.dispatchEvent(new Event('order-placed'));
     }
   };
 
@@ -486,13 +484,12 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <RentalDetailsDialog rental={selectedRental} open={isRentalDialogOpen} onOpenChange={setIsRentalDialogOpen} onUpdate={loadProfileData} />
+      <RentalDetailsDialog rental={selectedRental} open={isRentalDialogOpen} onOpenChange={setIsRentalDialogOpen} onUpdate={handleUpdateRentalInStorage} />
       <EditOrderDialog 
         order={selectedOrder} 
         open={isOrderDialogOpen} 
         onOpenChange={setIsOrderDialogOpen} 
         onCancel={handleCancelOrder}
-        onSave={handleSaveOrderEdit}
       />
     </AppLayout>
   );

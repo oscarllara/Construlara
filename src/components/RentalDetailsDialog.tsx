@@ -21,7 +21,6 @@ import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 import { differenceInDays, parse, format, isValid } from 'date-fns';
-import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
   rental: any;
@@ -43,7 +42,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnStatus, setReturnStatus] = useState<'available' | 'maintenance'>('available');
-  const [viewMode, setViewMode] = useState<'edit' | 'contract'>('edit');
+
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const isInternal = ['Gestor', 'Vendas', 'Entregador'].includes(userRole);
 
   useEffect(() => {
     if (rental && open) {
@@ -64,7 +65,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setModality(rental.modality || "Diária");
       setTotalValue(rental.total?.toString() || "0");
       setShowReturnForm(false);
-      setViewMode('edit');
       
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) setAllClients(JSON.parse(savedUsers));
@@ -72,7 +72,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
         const allEquip: Equipment[] = JSON.parse(savedEquip);
-        const found = allEquip.find(e => e.name === rental.item || e.id === rental.equipmentId);
+        const found = allEquip.find(e => e.id === rental.equipmentId || e.name === rental.item);
         setEquipment(found || null);
       }
     }
@@ -93,7 +93,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
-      // Lógica de Tabela Progressiva (Igual ao AddRentalDialog)
       if (totalDays >= 20) {
         displayModality = "Mensal";
         calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
@@ -115,7 +114,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   const handleStartReturn = () => {
     const today = new Date().toISOString().split('T')[0];
-    setEndDate(today); // Isso vai disparar o useEffect acima e atualizar o totalValue
+    setEndDate(today); 
     setShowReturnForm(true);
   };
 
@@ -126,20 +125,23 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       return `${d}/${m}/${y}`;
     };
 
+    const finalTotal = parseFloat(totalValue);
+
     const updatedRental = {
       ...rental,
       status: 'completed',
       end: formatDate(endDate),
-      total: parseFloat(totalValue),
+      total: finalTotal,
       modality: modality,
       notes: notes + (notes ? "\n" : "") + `Devolvido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
+    // Atualizar Equipamento para Disponível
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       const allEquip = JSON.parse(savedEquip);
       const newEquip = allEquip.map((e: any) => 
-        e.id === rental.equipmentId ? { ...e, status: returnStatus, lastClient: undefined } : e
+        (e.id === rental.equipmentId || e.name === rental.item) ? { ...e, status: returnStatus, lastClient: undefined } : e
       );
       localStorage.setItem('app_equipments', JSON.stringify(newEquip));
     }
@@ -147,6 +149,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     onUpdate(updatedRental);
     showSuccess("Devolução processada e valor ajustado com sucesso!");
     onOpenChange(false);
+    window.dispatchEvent(new Event('order-placed')); // Atualiza dashboards
   };
 
   if (!rental) return null;
@@ -157,7 +160,10 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
         <div className="bg-blue-700 p-8 text-white">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black">CONTRATO {rental.id.toUpperCase()}</h2>
-            <Badge className="bg-white/20 text-white rounded-xl font-bold px-4 py-1">{status}</Badge>
+            <Badge className={cn(
+              "rounded-xl font-bold px-4 py-1 border-none",
+              status === 'completed' ? "bg-emerald-500" : "bg-white/20"
+            )}>{status}</Badge>
           </div>
         </div>
 
@@ -166,18 +172,24 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Processar Devolução</h3>
               <div className="grid gap-4">
-                <div className="bg-white p-4 rounded-2xl">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Ajustado (Até Hoje)</p>
+                <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Final Ajustado</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Calculado até hoje ({format(new Date(), 'dd/MM/yyyy')})</p>
+                  </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Estado do Equipamento</Label>
+                  <Label className="font-bold text-emerald-900">Estado do Equipamento no Recebimento</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Pronto p/ Uso</Button>
                     <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Manutenção</Button>
                   </div>
                 </div>
-                <Button onClick={handleProcessReturn} className="bg-emerald-600 h-14 rounded-2xl font-black text-white w-full">Finalizar Recebimento</Button>
+                <div className="flex gap-3 pt-2">
+                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Voltar</Button>
+                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Confirmar Recebimento</Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -189,24 +201,50 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                     <p className="text-lg font-black text-slate-900">{rental.client}</p>
                   </div>
                   <div className="bg-slate-50 p-6 rounded-[2rem]">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Item</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Item Locado</p>
                     <p className="text-lg font-black text-slate-900">{rental.item}</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1"><Label className="text-[10px] font-bold">Início</Label><Input type="date" value={startDate} disabled className="rounded-xl h-10" /></div>
-                    <div className="space-y-1"><Label className="text-[10px] font-bold">Devolução</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-xl h-10" /></div>
+                    <div className="space-y-1"><Label className="text-[10px] font-bold">Data de Início</Label><Input type="date" value={startDate} disabled className="rounded-xl h-10" /></div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold">Data de Devolução</Label>
+                      <Input 
+                        type="date" 
+                        value={endDate} 
+                        onChange={e => setEndDate(e.target.value)} 
+                        disabled={status === 'completed' || !isInternal}
+                        className="rounded-xl h-10" 
+                      />
+                    </div>
                   </div>
-                  <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
-                    <p className="text-[10px] font-black text-blue-400 uppercase">{modality}</p>
-                    <p className="text-3xl font-black text-blue-700">R$ {totalValue}</p>
+                  <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] font-black text-blue-400 uppercase">{modality}</p>
+                      <p className="text-3xl font-black text-blue-700">R$ {totalValue}</p>
+                    </div>
+                    {status === 'completed' && <CheckCircle2 className="h-8 w-8 text-emerald-500" />}
                   </div>
                 </div>
               </div>
+
+              {notes && (
+                <div className="bg-slate-50 p-4 rounded-2xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Observações do Contrato</p>
+                  <p className="text-xs font-medium text-slate-600 whitespace-pre-wrap">{notes}</p>
+                </div>
+              )}
+
               <div className="flex gap-3">
-                <Button onClick={handleStartReturn} disabled={status === 'completed'} className="flex-1 bg-emerald-600 h-14 rounded-2xl font-black text-white">Devolver Item Agora</Button>
-                <Button variant="outline" onClick={() => onUpdate({ ...rental, status, total: parseFloat(totalValue), notes })} className="rounded-2xl h-14 font-bold px-8">Salvar Alterações</Button>
+                {isInternal && status !== 'completed' && (
+                  <Button onClick={handleStartReturn} className="flex-1 bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-50">
+                    <RotateCcw className="mr-2 h-5 w-5" /> Devolver Item Agora
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-2xl h-14 font-bold px-8 flex-1">
+                  Fechar
+                </Button>
               </div>
             </>
           )}
