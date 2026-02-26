@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, User, Hammer, Receipt, Clock, SearchX } from 'lucide-react';
+import { Search, Calendar, User, Hammer, Receipt, Clock, SearchX, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRentalDialog from '@/components/AddRentalDialog';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
@@ -35,8 +35,9 @@ const RentalsPage = () => {
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const isCliente = userRole === 'Cliente';
+  const isAdmin = ['Gestor', 'Vendas'].includes(userRole);
 
-  useEffect(() => {
+  const loadRentals = () => {
     try {
       const saved = localStorage.getItem('app_rentals');
       if (saved && saved !== "undefined") {
@@ -46,136 +47,50 @@ const RentalsPage = () => {
         setRentals(INITIAL_RENTALS);
         localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
       }
-    } catch (e) {
-      console.error("Erro ao carregar aluguéis:", e);
-      setRentals(INITIAL_RENTALS);
-    }
+    } catch (e) { setRentals(INITIAL_RENTALS); }
+  };
+
+  useEffect(() => {
+    loadRentals();
   }, []);
 
-  const saveRentals = (newRentals: any[]) => {
-    setRentals(newRentals);
-    localStorage.setItem('app_rentals', JSON.stringify(newRentals));
-  };
-
-  const handleAddRental = (data: any) => {
-    const newRental = {
-      id: `r-${Date.now()}`,
-      client: data.clientName,
-      clientId: data.clientId,
-      clientEmail: userEmail,
-      item: data.itemName,
-      equipmentId: data.equipmentId,
-      start: data.start,
-      end: data.end,
-      status: 'active',
-      total: data.totalValue,
-      modality: data.modality,
-      notes: ''
-    };
-
-    const savedEquip = localStorage.getItem('app_equipments');
-    if (savedEquip) {
-      try {
-        const allEquip = JSON.parse(savedEquip);
-        const updatedEquip = allEquip.map((e: any) => 
-          e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
-        );
-        localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
-      } catch (e) { console.error(e); }
-    }
-
-    saveRentals([newRental, ...rentals]);
-    setIsAddOpen(false);
-    showSuccess("Contrato gerado com sucesso!");
-  };
-
   const handleUpdateRental = (updated: any) => {
-    const newRentals = rentals.map(r => r.id === updated.id ? updated : r);
-    
-    if (updated.status === 'completed') {
-      const savedEquip = localStorage.getItem('app_equipments');
-      if (savedEquip) {
-        try {
-          const allEquip = JSON.parse(savedEquip);
-          const updatedEquip = allEquip.map((e: any) => 
-            e.id === updated.equipmentId ? { ...e, status: 'available' } : e
-          );
-          localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
-        } catch (e) { console.error(e); }
-      }
+    const saved = localStorage.getItem('app_rentals');
+    if (saved) {
+      const current = JSON.parse(saved);
+      const updatedList = current.map((r: any) => r.id === updated.id ? updated : r);
+      localStorage.setItem('app_rentals', JSON.stringify(updatedList));
+      setRentals(updatedList);
     }
-
-    saveRentals(newRentals);
     setIsDetailsOpen(false);
-    showSuccess("Contrato atualizado.");
   };
 
   const filtered = useMemo(() => {
-    let currentUser: any = null;
-    if (isCliente) {
-      try {
-        const savedUsers = localStorage.getItem('app_users');
-        if (savedUsers && savedUsers !== "undefined") {
-          const users = JSON.parse(savedUsers);
-          currentUser = users.find((u: any) => u.email?.toLowerCase().trim() === userEmail);
-        }
-      } catch (e) { console.error(e); }
-    }
-
     return (rentals || []).filter(r => {
       if (!r) return false;
-
-      // Filtro de privacidade para Clientes
       if (isCliente) {
-        const isMyRentalByEmail = r.clientEmail && r.clientEmail.toLowerCase().trim() === userEmail;
-        const isMyRentalById = r.clientId && currentUser && r.clientId === currentUser.id;
-        const isMyRentalByName = r.client && currentUser && r.client.toLowerCase() === currentUser.name?.toLowerCase();
-        
-        if (!isMyRentalByEmail && !isMyRentalById && !isMyRentalByName) return false;
+        const isMyRental = (r.clientEmail && r.clientEmail.toLowerCase().trim() === userEmail) || (r.client && r.client.toLowerCase().includes(userEmail.split('@')[0]));
+        if (!isMyRental) return false;
       }
-
-      // Filtro de busca
       const search = searchTerm.toLowerCase();
-      const clientName = (r.client || "").toLowerCase();
-      const itemName = (r.item || "").toLowerCase();
-      
-      return clientName.includes(search) || itemName.includes(search);
+      return (r.client || "").toLowerCase().includes(search) || (r.item || "").toLowerCase().includes(search);
     });
   }, [rentals, searchTerm, isCliente, userEmail]);
-
-  const getModalityBadge = (modality: string) => {
-    const styles: Record<string, string> = {
-      'Diária': "bg-blue-50 text-blue-700 border-blue-100",
-      'Semanal': "bg-purple-50 text-purple-700 border-purple-100",
-      'Quinzena': "bg-amber-50 text-amber-700 border-amber-100",
-      'Mês': "bg-emerald-50 text-emerald-700 border-emerald-100"
-    };
-    return (
-      <Badge variant="outline" className={cn("rounded-lg font-bold text-[10px] uppercase", styles[modality] || "bg-slate-50")}>
-        {modality}
-      </Badge>
-    );
-  };
 
   return (
     <AppLayout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black text-slate-900">
-              {isCliente ? 'Meus Aluguéis' : 'Contratos de Aluguel'}
-            </h2>
-            <p className="text-slate-500 font-medium">
-              {isCliente ? 'Acompanhe seus prazos e devoluções' : 'Controle de locações e prazos de devolução'}
-            </p>
+            <h2 className="text-3xl font-black text-slate-900">{isCliente ? 'Meus Aluguéis' : 'Contratos de Aluguel'}</h2>
+            <p className="text-slate-500 font-medium">Controle de locações e prazos de devolução</p>
           </div>
-          {!isCliente && (
+          {isAdmin && (
             <Button 
               onClick={() => setIsAddOpen(true)}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold gap-2 shadow-lg shadow-red-100 h-12 px-6"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 shadow-lg h-12 px-6"
             >
-              <Receipt className="h-5 w-5" />
-              Novo Contrato
+              <PlusCircle className="h-5 w-5" /> Novo Aluguel
             </Button>
           )}
         </div>
@@ -183,8 +98,8 @@ const RentalsPage = () => {
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
-            placeholder="Buscar por item ou código..." 
-            className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-blue-500"
+            placeholder="Buscar por item ou cliente..." 
+            className="pl-12 h-12 rounded-2xl border-slate-200"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -196,83 +111,32 @@ const RentalsPage = () => {
               <TableRow className="hover:bg-transparent border-slate-100">
                 <TableHead className="font-bold text-slate-900 py-6 pl-8">Equipamento</TableHead>
                 {!isCliente && <TableHead className="font-bold text-slate-900">Cliente</TableHead>}
-                <TableHead className="font-bold text-slate-900">Modalidade</TableHead>
                 <TableHead className="font-bold text-slate-900">Período</TableHead>
-                <TableHead className="font-bold text-slate-900">Valor Total</TableHead>
+                <TableHead className="font-bold text-slate-900">Valor</TableHead>
                 <TableHead className="font-bold text-slate-900">Status</TableHead>
                 <TableHead className="text-right pr-8 font-bold text-slate-900">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isCliente ? 6 : 7} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-slate-300 gap-3">
-                      <SearchX className="h-12 w-12 opacity-20" />
-                      <p className="font-bold text-slate-400">Nenhum contrato encontrado.</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={7} className="h-64 text-center text-slate-400">Nenhum contrato encontrado.</TableCell></TableRow>
               ) : (
                 filtered.map((rental) => (
                   <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
-                    <TableCell className="py-5 pl-8">
-                      <div className="flex items-center gap-2 font-bold text-slate-700">
-                        <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100">
-                          <Hammer className="h-4 w-4 text-blue-600" />
-                        </div>
-                        {rental.item}
-                      </div>
-                    </TableCell>
-                    {!isCliente && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-slate-400" />
-                          <span className="font-bold text-slate-900">{rental.client}</span>
-                        </div>
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      {getModalityBadge(rental.modality)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                          <Calendar className="h-3 w-3 text-blue-500" /> {rental.start}
-                        </span>
-                        <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                          <Clock className="h-3 w-3" /> {rental.end}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-lg font-black text-blue-700">R$ {Number(rental.total || 0).toFixed(2)}</span>
-                    </TableCell>
+                    <TableCell className="py-5 pl-8 font-bold text-slate-700">{rental.item}</TableCell>
+                    {!isCliente && <TableCell className="font-bold text-slate-900">{rental.client}</TableCell>}
+                    <TableCell className="text-xs font-bold text-slate-500">{rental.start} - {rental.end}</TableCell>
+                    <TableCell className="text-lg font-black text-blue-700">R$ {Number(rental.total || 0).toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className={cn(
                         "rounded-xl border-none font-bold px-3 py-1",
                         rental.status === 'active' ? "bg-blue-100 text-blue-700" :
                         rental.status === 'overdue' ? "bg-red-100 text-red-700" :
-                        rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                        "bg-orange-100 text-orange-700"
-                      )}>
-                        {rental.status === 'active' ? 'Ativo' : 
-                         rental.status === 'overdue' ? 'Atrasado' : 
-                         rental.status === 'completed' ? 'Devolvido' : 'Em Reparo'}
-                      </Badge>
+                        rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
+                      )}>{rental.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right pr-8">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="rounded-xl font-bold text-blue-600 hover:bg-blue-50"
-                        onClick={() => {
-                          setSelectedRental(rental);
-                          setIsDetailsOpen(true);
-                        }}
-                      >
-                        Detalhes
-                      </Button>
+                      <Button variant="ghost" className="text-blue-600 font-bold" onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}>Detalhes</Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -282,18 +146,17 @@ const RentalsPage = () => {
         </div>
       </div>
 
-      <AddRentalDialog 
-        open={isAddOpen} 
-        onOpenChange={setIsAddOpen} 
-        onAdd={handleAddRental} 
-      />
+      <AddRentalDialog open={isAddOpen} onOpenChange={setIsAddOpen} onAdd={(d) => {
+        const saved = localStorage.getItem('app_rentals');
+        const list = saved ? JSON.parse(saved) : [];
+        const newList = [{ ...d, id: `r-${Date.now()}`, status: 'active' }, ...list];
+        localStorage.setItem('app_rentals', JSON.stringify(newList));
+        setRentals(newList);
+        setIsAddOpen(false);
+        showSuccess("Contrato criado!");
+      }} />
 
-      <RentalDetailsDialog 
-        rental={selectedRental}
-        open={isDetailsOpen}
-        onOpenChange={setIsDetailsOpen}
-        onUpdate={handleUpdateRental}
-      />
+      <RentalDetailsDialog rental={selectedRental} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} onUpdate={handleUpdateRental} />
     </AppLayout>
   );
 };

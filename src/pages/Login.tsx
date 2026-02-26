@@ -33,21 +33,35 @@ const Login = () => {
 
     const saved = localStorage.getItem('app_users');
     const users = saved ? JSON.parse(saved) : [];
+    
+    // Procura o usuário exato com e-mail e cargo
     const found = users.find((u: any) => 
       u.email.toLowerCase() === formData.email.toLowerCase() && 
       u.role === formData.role
     );
 
-    // Login simplificado para teste/demonstração
-    if (found || (formData.email && formData.password)) {
+    // Validação Real: Se o usuário existe, a senha TEM que bater. 
+    // Se não existe no banco local, permitimos apenas se for um e-mail padrão de teste com senha '123456'
+    const isValidTestUser = formData.email.includes('@admin.com') && formData.password === '123456';
+
+    if (found) {
+      if (found.password === formData.password) {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('userRole', formData.role);
+        showSuccess(`Bem-vindo, ${found.name}!`);
+        navigate(formData.role === 'Gestor' ? '/' : '/loja');
+      } else {
+        showError("Senha incorreta.");
+      }
+    } else if (isValidTestUser) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userEmail', formData.email);
       localStorage.setItem('userRole', formData.role);
-      
-      showSuccess(`Bem-vindo de volta!`);
-      navigate(formData.role === 'Gestor' ? '/' : '/loja');
+      showSuccess(`Acesso administrativo de teste.`);
+      navigate('/');
     } else {
-      showError("Credenciais inválidas para este nível de acesso.");
+      showError("Usuário não cadastrado para este nível de acesso.");
     }
   };
 
