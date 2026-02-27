@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, Info, SearchX, CheckCircle2, UserCheck, Users } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, Info, SearchX, CheckCircle2, UserCheck, Users, AlertTriangle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ const CartPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<'Pix' | 'Loja'>('Pix');
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
+  const [hasError, setHasError] = useState(false);
   const navigate = useNavigate();
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
@@ -28,38 +29,48 @@ const CartPage = () => {
       const saved = localStorage.getItem('app_cart');
       if (saved && saved !== "undefined" && saved !== "null") {
         const parsed = JSON.parse(saved);
-        setCart(Array.isArray(parsed) ? parsed : []);
+        setCart(Array.isArray(parsed) ? parsed.filter(item => item && typeof item === 'object') : []);
       } else {
         setCart([]);
       }
 
-      // Se for gestor/vendas, carregar lista de clientes
       if (isInternal) {
         const savedUsers = localStorage.getItem('app_users');
         if (savedUsers) {
           const users: UserAccount[] = JSON.parse(savedUsers);
-          setAllClients(Array.isArray(users) ? users.filter(u => u.role === 'Cliente') : []);
+          setAllClients(Array.isArray(users) ? users.filter(u => u && u.role === 'Cliente') : []);
         }
       }
     } catch (e) { 
+      console.error("Erro ao carregar carrinho:", e);
+      setHasError(true);
       setCart([]); 
     }
   }, [isInternal]);
 
   const saveCart = (newCart: any[]) => {
-    setCart(newCart);
-    localStorage.setItem('app_cart', JSON.stringify(newCart));
-    window.dispatchEvent(new Event('cart-updated'));
+    try {
+      const cleanCart = newCart.filter(item => item !== null && item !== undefined);
+      setCart(cleanCart);
+      localStorage.setItem('app_cart', JSON.stringify(cleanCart));
+      window.dispatchEvent(new Event('cart-updated'));
+    } catch (e) {
+      showError("Erro ao salvar carrinho.");
+    }
   };
 
   const cartTotal = useMemo(() => {
     if (!Array.isArray(cart)) return 0;
-    return cart.reduce((acc, item) => {
-      if (!item) return acc;
-      const price = item.isPromo ? (Number(item.promoPrice) || Number(item.price) || 0) : (Number(item.price) || 0);
-      const amount = item.isFractional ? (Number(item.totalAmount) || 0) : (Number(item.quantity) || 0);
-      return acc + (price * amount);
-    }, 0);
+    try {
+      return cart.reduce((acc, item) => {
+        if (!item) return acc;
+        const price = item.isPromo ? (Number(item.promoPrice) || Number(item.price) || 0) : (Number(item.price) || 0);
+        const amount = item.isFractional ? (Number(item.totalAmount) || 0) : (Number(item.quantity) || 0);
+        return acc + (price * amount);
+      }, 0);
+    } catch (e) {
+      return 0;
+    }
   }, [cart]);
 
   const handleUpdateQuantity = (id: string, delta: number) => {
@@ -80,10 +91,17 @@ const CartPage = () => {
     showSuccess("Item removido.");
   };
 
+  const resetCart = () => {
+    localStorage.removeItem('app_cart');
+    setCart([]);
+    setHasError(false);
+    showSuccess("Carrinho redefinido.");
+    window.dispatchEvent(new Event('cart-updated'));
+  };
+
   const handleCheckout = () => {
     if (!Array.isArray(cart) || cart.length === 0) return;
 
-    // Validação de Cliente para Gestor/Vendas
     let finalUserEmail = currentUserEmail;
     let clientName = "Cliente";
 
@@ -146,6 +164,17 @@ const CartPage = () => {
     }
   };
 
+  if (hasError) return (
+    <AppLayout>
+      <div className="max-w-2xl mx-auto text-center py-32 space-y-6">
+        <div className="h-24 w-24 bg-red-50 rounded-[2.5rem] flex items-center justify-center mx-auto"><AlertTriangle className="h-12 w-12 text-red-500" /></div>
+        <h2 className="text-3xl font-black">Ops! Dados corrompidos detectados</h2>
+        <p className="text-slate-500 font-bold">Encontramos um erro nos dados salvos do seu carrinho.</p>
+        <Button onClick={resetCart} className="bg-red-600 rounded-2xl px-10 h-14 font-black">Limpar Dados e Recomeçar</Button>
+      </div>
+    </AppLayout>
+  );
+
   if (!Array.isArray(cart) || cart.length === 0) return (
     <AppLayout>
       <div className="max-w-2xl mx-auto text-center py-32 space-y-6">
@@ -180,9 +209,9 @@ const CartPage = () => {
                     <SelectTrigger className="h-14 rounded-2xl border-blue-200 bg-white shadow-sm">
                       <SelectValue placeholder="Buscar cliente na base..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl max-h-[300px]">
+                    <SelectContent className="rounded-2xl max-h-[300px] bg-white border shadow-xl">
                       {allClients.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name} ({c.email})</SelectItem>
+                        <SelectItem key={c.id} value={c.id || "unknown"}>{c.name || "Sem Nome"} ({c.email || ""})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -191,20 +220,20 @@ const CartPage = () => {
             )}
 
             <div className="space-y-4">
-              {cart.map(item => {
-                if (!item) return null;
+              {cart.map((item, idx) => {
+                if (!item || !item.id) return null;
                 const unitPrice = item.isPromo ? (Number(item.promoPrice) || Number(item.price) || 0) : (Number(item.price) || 0);
                 const itemAmount = item.isFractional ? Number(item.totalAmount) : Number(item.quantity);
                 const totalItem = unitPrice * (itemAmount || 0);
                 
                 return (
-                  <Card key={item.id} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
+                  <Card key={`${item.id}-${idx}`} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
                     <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
                       {item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.name} /> : <Package className="h-10 w-10 text-slate-200" />}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-black text-slate-900">{item.name}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.category}</p>
+                      <h4 className="font-black text-slate-900">{item.name || "Item sem nome"}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.category || "Geral"}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border">
@@ -215,7 +244,7 @@ const CartPage = () => {
                             <Button variant="ghost" size="icon" onClick={() => handleUpdateQuantity(item.id, 1)} className="h-8 w-8"><Plus className="h-3 w-3" /></Button>
                           </>
                         ) : (
-                          <span className="px-4 font-black text-blue-700">{Number(item.totalAmount || 0).toFixed(2)} {item.unitLabel}</span>
+                          <span className="px-4 font-black text-blue-700">{Number(item.totalAmount || 0).toFixed(2)} {item.unitLabel || "un"}</span>
                         )}
                       </div>
                       <p className="font-black text-lg text-slate-900">R$ {totalItem.toFixed(2)}</p>
