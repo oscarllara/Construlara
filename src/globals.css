@@ -42,54 +42,54 @@
   animation: bounce-slow 3s infinite;
 }
 
-/* Garantir que o SelectContent tenha fundo branco */
 [data-radix-popper-content-wrapper] {
   z-index: 100 !important;
 }
 
-/* Estilos de Impressão Ultra-Limpos para A4 */
+/* Estilos de Impressão */
 @media print {
   @page {
-    size: A4;
-    margin: 0; /* Remove margens do navegador para controle total */
+    size: auto;
+    margin: 5mm;
   }
 
-  /* Esconde tudo */
   body * {
     visibility: hidden;
   }
   
-  /* Mostra apenas o contrato e garante que ele ignore o posicionamento do modal */
+  /* Contrato A4 */
   #printable-contract, #printable-contract * {
     visibility: visible;
   }
-
   #printable-contract {
-    position: fixed !important; /* Fixa no topo absoluto da folha */
+    position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 210mm !important; /* Largura exata do A4 */
-    height: auto !important;
-    margin: 0 !important;
-    padding: 2cm !important; /* Margem interna de segurança para o texto */
-    display: block !important;
-    box-shadow: none !important;
-    border: none !important;
+    width: 210mm !important;
+    padding: 2cm !important;
     background: white !important;
-    z-index: 9999 !important;
   }
 
-  /* Remove qualquer overlay ou fundo escuro do modal que possa aparecer */
-  [role="dialog"], [data-state="open"] {
+  /* Cupom Térmico (80mm) */
+  #printable-coupon, #printable-coupon * {
+    visibility: visible;
+  }
+  #printable-coupon {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 80mm !important;
+    padding: 2mm !important;
+    background: white !important;
+    font-family: 'Courier New', Courier, monospace !important;
+  }
+
+  [role="dialog"] {
     background: transparent !important;
-    border: none !important;
     box-shadow: none !important;
-    position: static !important;
-    transform: none !important;
   }
 }
 
-/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -99,7 +99,4 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #e2e8f0;
   border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
 }

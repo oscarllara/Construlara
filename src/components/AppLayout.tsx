@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { getRandomTip } from '@/utils/betoTips';
@@ -12,9 +12,49 @@ interface AppLayoutProps {
 
 const AppLayout = ({ children }: AppLayoutProps) => {
   const [tip, setTip] = useState("");
+  const prevOrderCount = useRef<number>(0);
+  const prevRentalCount = useRef<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setTip(getRandomTip());
+    
+    // Inicializa contadores
+    const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
+    const rentals = JSON.parse(localStorage.getItem('app_rentals') || '[]');
+    prevOrderCount.current = orders.length;
+    prevRentalCount.current = rentals.length;
+
+    // Configura o som (Beep curto de notificação)
+    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+  }, []);
+
+  useEffect(() => {
+    const checkNewEntries = () => {
+      const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
+      const rentals = JSON.parse(localStorage.getItem('app_rentals') || '[]');
+      
+      const userRole = localStorage.getItem('userRole');
+      const isInternal = ['Gestor', 'Vendas'].includes(userRole || '');
+
+      // Se for Gestor/Vendas e o número de itens aumentou, toca o som
+      if (isInternal) {
+        if (orders.length > prevOrderCount.current || rentals.length > prevRentalCount.current) {
+          audioRef.current?.play().catch(e => console.log("Áudio bloqueado pelo navegador até interação."));
+        }
+      }
+
+      prevOrderCount.current = orders.length;
+      prevRentalCount.current = rentals.length;
+    };
+
+    window.addEventListener('order-placed', checkNewEntries);
+    window.addEventListener('storage', checkNewEntries);
+    
+    return () => {
+      window.removeEventListener('order-placed', checkNewEntries);
+      window.removeEventListener('storage', checkNewEntries);
+    };
   }, []);
 
   const refreshTip = () => {
@@ -24,11 +64,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className="relative flex min-h-screen flex-col bg-slate-50/50">
       <Navbar />
-      {/* Adicionado pb-32 para garantir que o conteúdo não fique atrás do Beto */}
       <main className="flex-1 container py-8 pb-32 relative">
         {children}
         
-        {/* Mascote Beto Flutuante - pointer-events-none no pai para não bloquear cliques */}
         <div className="fixed bottom-8 right-8 z-50 pointer-events-none select-none hidden md:block">
           <div 
             className="relative group pointer-events-auto cursor-help"
