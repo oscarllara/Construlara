@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, Package, CheckCircle2, UserCheck, AlertTriangle } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, CheckCircle2, UserCheck } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,6 @@ const CartPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<'Pix' | 'Loja'>('Pix');
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const navigate = useNavigate();
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
@@ -25,52 +24,35 @@ const CartPage = () => {
   const currentUserEmail = localStorage.getItem('userEmail') || '';
 
   useEffect(() => {
-    const loadCartData = () => {
-      try {
-        const savedCart = localStorage.getItem('app_cart');
-        if (savedCart && savedCart !== "undefined" && savedCart !== "null") {
-          const parsed = JSON.parse(savedCart);
-          setCart(Array.isArray(parsed) ? parsed.filter(i => i && typeof i === 'object') : []);
-        } else {
-          setCart([]);
-        }
-
-        if (isInternal) {
-          const savedUsers = localStorage.getItem('app_users');
-          if (savedUsers) {
-            const users = JSON.parse(savedUsers);
-            setAllClients(Array.isArray(users) ? users.filter(u => u && u.role === 'Cliente') : []);
-          }
-        }
-        setIsDataLoaded(true);
-      } catch (e) {
-        setCart([]);
-        setIsDataLoaded(true);
-      }
-    };
-
-    loadCartData();
+    const saved = localStorage.getItem('app_cart');
+    if (saved) setCart(JSON.parse(saved));
+    if (isInternal) {
+      const savedUsers = localStorage.getItem('app_users');
+      if (savedUsers) setAllClients(JSON.parse(savedUsers).filter((u: any) => u.role === 'Cliente'));
+    }
   }, [isInternal]);
 
   const saveCart = (newCart: any[]) => {
-    const cleanCart = newCart.filter(i => i !== null);
-    setCart(cleanCart);
-    localStorage.setItem('app_cart', JSON.stringify(cleanCart));
+    setCart(newCart);
+    localStorage.setItem('app_cart', JSON.stringify(newCart));
     window.dispatchEvent(new Event('cart-updated'));
   };
 
   const total = useMemo(() => {
     return cart.reduce((acc, item) => {
-      if (!item) return acc;
-      const price = Number(item.isPromo ? (item.promoPrice || item.price) : item.price) || 0;
-      const amount = Number(item.isFractional ? item.totalAmount : item.quantity) || 0;
+      const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
+      const amount = item.isFractional ? item.totalAmount : item.quantity;
       return acc + (price * amount);
     }, 0);
   }, [cart]);
 
   const handleUpdateQty = (id: string, delta: number) => {
     const updated = cart.map(item => {
-      if (item && item.id === id && !item.isFractional) {
+      if (item.id === id) {
+        if (item.isFractional) {
+          const step = item.packageSize || 1;
+          return { ...item, totalAmount: Math.max(step, (Number(item.totalAmount) || step) + (delta * step)) };
+        }
         return { ...item, quantity: Math.max(1, (Number(item.quantity) || 1) + delta) };
       }
       return item;
@@ -78,168 +60,75 @@ const CartPage = () => {
     saveCart(updated);
   };
 
-  const handleRemove = (id: string) => {
-    saveCart(cart.filter(i => i && i.id !== id));
-    showSuccess("Item removido.");
-  };
-
   const handleCheckout = () => {
     if (cart.length === 0) return;
-
     let finalEmail = currentUserEmail;
     let finalName = "Cliente";
 
     if (isInternal) {
-      if (!selectedClientId) {
-        showError("Selecione o cliente.");
-        return;
-      }
+      if (!selectedClientId) return showError("Selecione o cliente.");
       const c = allClients.find(client => client.id === selectedClientId);
-      if (c) {
-        finalEmail = c.email;
-        finalName = c.name;
-      }
+      if (c) { finalEmail = c.email; finalName = c.name; }
     }
 
-    try {
-      const orderId = `ORD-${Date.now()}`;
-      const date = new Date().toLocaleDateString('pt-BR');
-      const saved = localStorage.getItem('app_orders');
-      const orders = saved ? JSON.parse(saved) : [];
+    const orderId = `ORD-${Date.now()}`;
+    const date = new Date().toLocaleDateString('pt-BR');
+    const savedOrders = JSON.parse(localStorage.getItem('app_orders') || '[]');
 
-      const newOrder = {
-        id: orderId,
-        date,
-        userEmail: finalEmail,
-        clientName: finalName,
-        items: [...cart],
-        total: total,
-        paidAmount: 0,
-        paymentMethod,
-        status: 'Pendente'
-      };
-
-      localStorage.setItem('app_orders', JSON.stringify([newOrder, ...orders]));
-      
-      // Montagem da mensagem do WhatsApp DETALHADA
-      let itemsText = cart.map(item => {
-        const qty = item.isFractional ? item.totalAmount : item.quantity;
-        const unit = item.unitLabel || 'un';
-        const price = (item.isPromo ? (item.promoPrice || item.price) : item.price);
-        return `• ${item.name}%0A  ${qty} ${unit} x R$ ${price.toFixed(2)} = R$ ${(qty * price).toFixed(2)}`;
-      }).join('%0A%0A');
-
-      const whatsappMsg = `*NOVO PEDIDO - CONSTRULARA*%0A%0A` +
-        `*ID:* ${orderId}%0A` +
-        `*Data:* ${date}%0A` +
-        `*Cliente:* ${finalName}%0A` +
-        `*Pagamento:* ${paymentMethod}%0A%0A` +
-        `*ITENS:*%0A${itemsText}%0A%0A` +
-        `*TOTAL DO PEDIDO: R$ ${total.toFixed(2)}*%0A%0A` +
-        `_Enviado via Sistema Construlara_`;
-
-      window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
-
-      localStorage.removeItem('app_cart');
-      setCart([]);
-      showSuccess("Pedido enviado com sucesso!");
-      window.dispatchEvent(new Event('cart-updated'));
-      window.dispatchEvent(new Event('order-placed'));
-      navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
-    } catch (e) { showError("Falha ao finalizar."); }
+    const newOrder = { id: orderId, date, userEmail: finalEmail, clientName: finalName, items: [...cart], total, paidAmount: 0, paymentMethod, status: 'Pendente' };
+    localStorage.setItem('app_orders', JSON.stringify([newOrder, ...savedOrders]));
+    
+    let itemsText = cart.map(it => `• ${it.name}: ${it.isFractional ? it.totalAmount.toFixed(2) + (it.unitLabel || 'm²') : it.quantity + ' un'}`).join('%0A');
+    const whatsappMsg = `*PEDIDO CONSTRULARA*%0A*ID:* ${orderId}%0A*Cliente:* ${finalName}%0A*Pagamento:* ${paymentMethod}%0A%0A*Itens:*%0A${itemsText}%0A%0A*TOTAL: R$ ${total.toFixed(2)}*`;
+    
+    window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
+    localStorage.removeItem('app_cart');
+    showSuccess("Pedido realizado!");
+    window.dispatchEvent(new Event('order-placed'));
+    navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
   };
-
-  if (!isDataLoaded) return <AppLayout><div>Carregando...</div></AppLayout>;
 
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/loja')} className="rounded-xl h-10 w-10"><ArrowLeft className="h-6 w-6" /></Button>
-          <h2 className="text-3xl font-black">Finalizar Compra</h2>
-        </div>
-        
+        <h2 className="text-3xl font-black">Meu Carrinho</h2>
         <div className="grid lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-8">
             {isInternal && (
-              <div className="bg-blue-50 p-8 rounded-[3rem] border-2 border-blue-100 space-y-4">
-                <div className="flex items-center gap-2 text-blue-700">
-                  <UserCheck className="h-5 w-5" />
-                  <span className="font-black text-sm uppercase">Faturar para Cliente</span>
-                </div>
+              <div className="bg-blue-50 p-6 rounded-[2rem] border-2 border-blue-100 space-y-4">
+                <Label className="font-bold flex items-center gap-2"><UserCheck className="h-4 w-4" /> Cliente da Venda</Label>
                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                  <SelectTrigger className="h-14 rounded-2xl bg-white border-blue-200">
+                  <SelectTrigger className="h-12 bg-white rounded-xl">
                     <SelectValue placeholder="Selecione o cliente..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    {allClients.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
+                  <SelectContent className="rounded-xl">
+                    {allClients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             )}
-
             <div className="space-y-4">
-              <h3 className="text-xl font-black text-slate-900">Itens no Carrinho</h3>
-              {cart.map((item, i) => (
-                <Card key={item?.id || i} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
-                  <div className="h-20 w-20 bg-slate-50 rounded-2xl overflow-hidden shrink-0">
-                    <img src={item?.image || '/placeholder.svg'} className="w-full h-full object-cover" alt={item?.name} />
-                  </div>
+              {cart.map(item => (
+                <Card key={item.id} className="p-6 rounded-3xl border-none shadow-sm flex items-center gap-6 bg-white">
                   <div className="flex-1">
-                    <h4 className="font-black text-slate-900">{item?.name}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">{item?.category}</p>
+                    <h4 className="font-black text-slate-900">{item.name}</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">{item.category}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-xl border">
-                      {!item?.isFractional ? (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, -1)} className="h-8 w-8"><Minus className="h-3 w-3" /></Button>
-                          <span className="font-black">{item?.quantity}</span>
-                          <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, 1)} className="h-8 w-8"><Plus className="h-3 w-3" /></Button>
-                        </>
-                      ) : (
-                        <span className="px-4 font-black text-blue-700">{Number(item?.totalAmount).toFixed(2)} {item?.unitLabel}</span>
-                      )}
-                    </div>
-                    <p className="font-black text-lg text-slate-900">R$ {( (item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? item.totalAmount : item.quantity) ).toFixed(2)}</p>
-                    <button onClick={() => handleRemove(item.id)} className="text-[10px] font-bold text-red-500 hover:underline">REMOVER</button>
+                  <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-xl border">
+                    <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, -1)}><Minus className="h-3 w-3" /></Button>
+                    <span className="font-black">{item.isFractional ? item.totalAmount.toFixed(2) : item.quantity}</span>
+                    <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, 1)}><Plus className="h-3 w-3" /></Button>
                   </div>
+                  <p className="font-black text-lg text-blue-700 w-24 text-right">R$ {( (item.isPromo ? (item.promoPrice || item.price) : item.price) * (item.isFractional ? item.totalAmount : item.quantity) ).toFixed(2)}</p>
+                  <Button variant="ghost" onClick={() => saveCart(cart.filter(i => i.id !== item.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
                 </Card>
               ))}
             </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xl font-black text-slate-900">Método de Pagamento</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setPaymentMethod('Pix')} className={cn("p-6 rounded-[2.5rem] border-2 text-left transition-all", paymentMethod === 'Pix' ? "border-blue-600 bg-blue-50" : "bg-white border-slate-100")}>
-                  <div className="flex justify-between font-black text-blue-700">PIX <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Pix' ? "opacity-100" : "opacity-0")} /></div>
-                  <p className="text-xs text-slate-500 mt-2">Pagamento instantâneo via CNPJ</p>
-                </button>
-                <button onClick={() => setPaymentMethod('Loja')} className={cn("p-6 rounded-[2.5rem] border-2 text-left transition-all", paymentMethod === 'Loja' ? "border-blue-600 bg-blue-50" : "bg-white border-slate-100")}>
-                  <div className="flex justify-between font-black text-slate-900">NA LOJA <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Loja' ? "opacity-100" : "opacity-0")} /></div>
-                  <p className="text-xs text-slate-500 mt-2">Pague ao retirar seu pedido</p>
-                </button>
-              </div>
-            </div>
           </div>
-
-          <div className="space-y-6">
-            <Card className="p-8 rounded-[3rem] shadow-xl bg-white border-none space-y-6 sticky top-32">
-              <h3 className="font-black text-2xl">Resumo Final</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-slate-400 font-bold"><span>Itens</span><span>{cart.length}</span></div>
-                <div className="flex justify-between text-3xl font-black text-blue-700 pt-6 border-t">
-                  <span>Total</span>
-                  <span>R$ {total.toFixed(2)}</span>
-                </div>
-              </div>
-              <Button onClick={handleCheckout} className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl transition-all active:scale-95">
-                {isInternal ? "Finalizar Venda" : "Enviar via WhatsApp"}
-              </Button>
-            </Card>
-          </div>
+          <Card className="p-8 rounded-[3rem] shadow-xl bg-white border-none h-fit space-y-8">
+            <h3 className="font-black text-2xl text-center">Total: R$ {total.toFixed(2)}</h3>
+            <Button onClick={handleCheckout} className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl">Finalizar via WhatsApp</Button>
+          </Card>
         </div>
       </div>
     </AppLayout>
