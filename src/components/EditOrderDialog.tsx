@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ShoppingBag, Package, Trash2, Clock, CheckCircle2, CreditCard, Plus, Minus, Save, Printer } from 'lucide-react';
+import { ShoppingBag, Package, Trash2, Clock, CheckCircle2, CreditCard, Plus, Minus, Save, Printer, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OrderCoupon from './OrderCoupon';
 
@@ -90,16 +90,18 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
   };
 
   const handlePrint = () => {
+    // Forçamos a renderização do componente de cupom antes de abrir o print
     setIsPrinting(true);
+    // Delay necessário para o browser detectar o elemento antes de abrir o print dialog
     setTimeout(() => {
       window.print();
-      setIsPrinting(false);
-    }, 100);
+      setTimeout(() => setIsPrinting(false), 500);
+    }, 300);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+      <DialogContent className="sm:max-w-[650px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
         <div className="bg-blue-700 p-8 text-white">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black">DETALHES DO PEDIDO</h2>
@@ -115,12 +117,16 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
           <p className="text-blue-100 text-xs font-bold mt-1 uppercase tracking-widest">ID: {order.id} • {order.date}</p>
         </div>
 
-        <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+        <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {isPrinting ? (
-            <div className="animate-pulse flex flex-col items-center justify-center py-10 gap-4">
-              <Printer className="h-12 w-12 text-slate-300" />
-              <p className="font-bold text-slate-400">Preparando cupom para impressão...</p>
-              <div className="hidden">
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center animate-pulse">
+              <Printer className="h-16 w-16 text-blue-600" />
+              <div>
+                <p className="font-black text-slate-900 text-lg">Preparando Impressão</p>
+                <p className="text-slate-400 font-medium">O cupom térmico será enviado para sua impressora.</p>
+              </div>
+              {/* O cupom precisa estar no DOM mas visível apenas para o print */}
+              <div className="opacity-0 pointer-events-none absolute">
                 <OrderCoupon order={order} />
               </div>
             </div>
@@ -128,21 +134,21 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
             <>
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Package className="h-4 w-4" /> Itens do Pedido
+                  <Package className="h-4 w-4" /> Itens no Pedido
                 </h3>
                 <div className="space-y-3">
                   {editedItems.map((item: any, idx: number) => (
-                    <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                    <div key={idx} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-black text-slate-900 text-sm">{item.name}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">Preço Un: R$ {(item.promoPrice || item.price).toFixed(2)}</p>
+                          <p className="font-black text-slate-900">{item.name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Valor Unitário: R$ {(item.promoPrice || item.price).toFixed(2)}</p>
                         </div>
-                        <p className="font-black text-blue-700">R$ {((item.promoPrice || item.price) * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}</p>
+                        <p className="font-black text-blue-700 text-lg">R$ {((item.promoPrice || item.price) * (item.isFractional ? item.totalAmount : item.quantity)).toFixed(2)}</p>
                       </div>
                       
                       {isPending && (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                           <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1">
                             <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(idx, -1)} className="h-8 w-8 rounded-lg"><Minus className="h-3 w-3" /></Button>
                             <Input 
@@ -152,9 +158,7 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
                             />
                             <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(idx, 1)} className="h-8 w-8 rounded-lg"><Plus className="h-3 w-3" /></Button>
                           </div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase">
-                            {item.unitLabel || 'un'}
-                          </span>
+                          <Badge variant="outline" className="h-6 rounded-lg text-[10px] font-black uppercase tracking-widest border-slate-200">{item.unitLabel || 'un'}</Badge>
                         </div>
                       )}
                     </div>
@@ -162,61 +166,45 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" /> Pagamento
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    variant={editedPayment === 'Pix' ? 'default' : 'outline'} 
-                    onClick={() => setEditedPayment('Pix')}
-                    disabled={!isPending}
-                    className={cn("rounded-xl h-12 font-bold", editedPayment === 'Pix' && "bg-blue-600")}
-                  >
-                    Pix
-                  </Button>
-                  <Button 
-                    variant={editedPayment === 'Loja' ? 'default' : 'outline'} 
-                    onClick={() => setEditedPayment('Loja')}
-                    disabled={!isPending}
-                    className={cn("rounded-xl h-12 font-bold", editedPayment === 'Loja' && "bg-blue-600")}
-                  >
-                    Loja
-                  </Button>
-                </div>
-              </div>
-
               <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex justify-between items-center">
-                <p className="text-xs font-black text-blue-400 uppercase">Total Geral</p>
-                <p className="text-2xl font-black text-blue-700">R$ {currentTotal.toFixed(2)}</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-black text-blue-400 uppercase">Pagamento</p>
+                  <p className="font-bold text-blue-900">{order.paymentMethod}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-black text-blue-400 uppercase">Total Geral</p>
+                  <p className="text-3xl font-black text-blue-700">R$ {currentTotal.toFixed(2)}</p>
+                </div>
               </div>
             </>
           )}
         </div>
 
-        <DialogFooter className="p-8 pt-0 gap-3">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl font-bold flex-1 h-12">Fechar</Button>
-          {isPending && (
-            <>
-              <Button 
-                variant="destructive" 
-                onClick={() => onCancel(order.id)}
-                className="rounded-xl font-bold flex-1 h-12 bg-red-600 hover:bg-red-700"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleSave}
-                className="rounded-xl font-bold flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                Salvar Alterações
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+        {!isPrinting && (
+          <DialogFooter className="p-8 pt-0 gap-3">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold flex-1 h-14">Fechar</Button>
+            {isPending && (
+              <>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => onCancel(order.id)}
+                  className="rounded-2xl font-bold flex-1 h-14 bg-red-600 hover:bg-red-700"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSave}
+                  className="rounded-2xl font-bold flex-1 h-14 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-50"
+                >
+                  Salvar Alterações
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        )}
         
-        {/* Elemento oculto para impressão do cupom */}
-        <div className="hidden">
+        {/* Componente Oculto para Impressão */}
+        <div className="hidden print:block">
            <OrderCoupon order={order} />
         </div>
       </DialogContent>

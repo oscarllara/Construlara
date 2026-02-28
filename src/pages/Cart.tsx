@@ -44,7 +44,6 @@ const CartPage = () => {
         }
         setIsDataLoaded(true);
       } catch (e) {
-        console.error("Erro ao carregar dados:", e);
         setCart([]);
         setIsDataLoaded(true);
       }
@@ -121,13 +120,29 @@ const CartPage = () => {
       };
 
       localStorage.setItem('app_orders', JSON.stringify([newOrder, ...orders]));
+      
+      // Montagem da mensagem do WhatsApp DETALHADA
+      let itemsText = cart.map(item => {
+        const qty = item.isFractional ? item.totalAmount : item.quantity;
+        const unit = item.unitLabel || 'un';
+        const price = (item.isPromo ? (item.promoPrice || item.price) : item.price);
+        return `• ${item.name}%0A  ${qty} ${unit} x R$ ${price.toFixed(2)} = R$ ${(qty * price).toFixed(2)}`;
+      }).join('%0A%0A');
+
+      const whatsappMsg = `*NOVO PEDIDO - CONSTRULARA*%0A%0A` +
+        `*ID:* ${orderId}%0A` +
+        `*Data:* ${date}%0A` +
+        `*Cliente:* ${finalName}%0A` +
+        `*Pagamento:* ${paymentMethod}%0A%0A` +
+        `*ITENS:*%0A${itemsText}%0A%0A` +
+        `*TOTAL DO PEDIDO: R$ ${total.toFixed(2)}*%0A%0A` +
+        `_Enviado via Sistema Construlara_`;
+
+      window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
+
       localStorage.removeItem('app_cart');
       setCart([]);
-
-      const msg = `*PEDIDO - CONSTRULARA*%0A*ID:* ${orderId}%0A*CLIENTE:* ${finalName}%0A*TOTAL:* R$ ${total.toFixed(2)}`;
-      window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
-
-      showSuccess("Pedido realizado!");
+      showSuccess("Pedido enviado com sucesso!");
       window.dispatchEvent(new Event('cart-updated'));
       window.dispatchEvent(new Event('order-placed'));
       navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
@@ -136,22 +151,12 @@ const CartPage = () => {
 
   if (!isDataLoaded) return <AppLayout><div>Carregando...</div></AppLayout>;
 
-  if (cart.length === 0) return (
-    <AppLayout>
-      <div className="max-w-2xl mx-auto text-center py-32 space-y-6">
-        <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto"><ShoppingBag className="h-12 w-12 text-slate-200" /></div>
-        <h2 className="text-3xl font-black">Seu carrinho está vazio</h2>
-        <Button onClick={() => navigate('/loja')} className="bg-blue-600 rounded-2xl px-10 h-14 font-black">Explorar Loja</Button>
-      </div>
-    </AppLayout>
-  );
-
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-10">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/loja')} className="rounded-xl h-10 w-10"><ArrowLeft className="h-6 w-6" /></Button>
-          <h2 className="text-3xl font-black">Carrinho de Compras</h2>
+          <h2 className="text-3xl font-black">Finalizar Compra</h2>
         </div>
         
         <div className="grid lg:grid-cols-3 gap-10">
@@ -160,13 +165,13 @@ const CartPage = () => {
               <div className="bg-blue-50 p-8 rounded-[3rem] border-2 border-blue-100 space-y-4">
                 <div className="flex items-center gap-2 text-blue-700">
                   <UserCheck className="h-5 w-5" />
-                  <span className="font-black text-sm uppercase">Identificar Cliente</span>
+                  <span className="font-black text-sm uppercase">Faturar para Cliente</span>
                 </div>
                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                  <SelectTrigger className="h-14 rounded-2xl bg-white border-blue-200 shadow-sm">
-                    <SelectValue placeholder="Selecione o cliente para faturar..." />
+                  <SelectTrigger className="h-14 rounded-2xl bg-white border-blue-200">
+                    <SelectValue placeholder="Selecione o cliente..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl bg-white">
+                  <SelectContent className="rounded-2xl">
                     {allClients.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -176,6 +181,7 @@ const CartPage = () => {
             )}
 
             <div className="space-y-4">
+              <h3 className="text-xl font-black text-slate-900">Itens no Carrinho</h3>
               {cart.map((item, i) => (
                 <Card key={item?.id || i} className="p-6 rounded-[2rem] border-none shadow-sm flex items-center gap-6 bg-white">
                   <div className="h-20 w-20 bg-slate-50 rounded-2xl overflow-hidden shrink-0">
@@ -183,7 +189,7 @@ const CartPage = () => {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-black text-slate-900">{item?.name}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item?.category}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">{item?.category}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-xl border">
@@ -205,15 +211,15 @@ const CartPage = () => {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-xl font-black text-slate-900">Pagamento</h3>
+              <h3 className="text-xl font-black text-slate-900">Método de Pagamento</h3>
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setPaymentMethod('Pix')} className={cn("p-6 rounded-[2rem] border-2 text-left transition-all", paymentMethod === 'Pix' ? "border-blue-600 bg-blue-50" : "bg-white border-slate-100")}>
+                <button onClick={() => setPaymentMethod('Pix')} className={cn("p-6 rounded-[2.5rem] border-2 text-left transition-all", paymentMethod === 'Pix' ? "border-blue-600 bg-blue-50" : "bg-white border-slate-100")}>
                   <div className="flex justify-between font-black text-blue-700">PIX <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Pix' ? "opacity-100" : "opacity-0")} /></div>
-                  <p className="text-xs text-slate-500 mt-2">CNPJ: 16.403.481/0001-16</p>
+                  <p className="text-xs text-slate-500 mt-2">Pagamento instantâneo via CNPJ</p>
                 </button>
-                <button onClick={() => setPaymentMethod('Loja')} className={cn("p-6 rounded-[2rem] border-2 text-left transition-all", paymentMethod === 'Loja' ? "border-blue-600 bg-blue-50" : "bg-white border-slate-100")}>
-                  <div className="flex justify-between font-black text-slate-900">LOJA <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Loja' ? "opacity-100" : "opacity-0")} /></div>
-                  <p className="text-xs text-slate-500 mt-2">Pague ao retirar o pedido</p>
+                <button onClick={() => setPaymentMethod('Loja')} className={cn("p-6 rounded-[2.5rem] border-2 text-left transition-all", paymentMethod === 'Loja' ? "border-blue-600 bg-blue-50" : "bg-white border-slate-100")}>
+                  <div className="flex justify-between font-black text-slate-900">NA LOJA <CheckCircle2 className={cn("h-5 w-5", paymentMethod === 'Loja' ? "opacity-100" : "opacity-0")} /></div>
+                  <p className="text-xs text-slate-500 mt-2">Pague ao retirar seu pedido</p>
                 </button>
               </div>
             </div>
@@ -221,13 +227,16 @@ const CartPage = () => {
 
           <div className="space-y-6">
             <Card className="p-8 rounded-[3rem] shadow-xl bg-white border-none space-y-6 sticky top-32">
-              <h3 className="font-black text-2xl">Resumo do Pedido</h3>
-              <div className="flex justify-between text-3xl font-black text-blue-700 pt-6 border-t">
-                <span>Total</span>
-                <span>R$ {total.toFixed(2)}</span>
+              <h3 className="font-black text-2xl">Resumo Final</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between text-slate-400 font-bold"><span>Itens</span><span>{cart.length}</span></div>
+                <div className="flex justify-between text-3xl font-black text-blue-700 pt-6 border-t">
+                  <span>Total</span>
+                  <span>R$ {total.toFixed(2)}</span>
+                </div>
               </div>
               <Button onClick={handleCheckout} className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl transition-all active:scale-95">
-                {isInternal ? "Registrar Venda" : "Finalizar Pedido"}
+                {isInternal ? "Finalizar Venda" : "Enviar via WhatsApp"}
               </Button>
             </Card>
           </div>
