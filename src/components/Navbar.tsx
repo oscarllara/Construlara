@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn } from 'lucide-react';
+import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -73,7 +73,7 @@ const Navbar = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
     showSuccess("Sessão encerrada.");
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -149,6 +149,10 @@ const Navbar = () => {
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                    <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
+                      <RefreshCw className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                      <span className="font-bold text-slate-600 group-hover:text-blue-700">Trocar Usuário</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group">
                       <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-red-600" />
                       <span className="font-bold text-slate-600 group-hover:text-red-700">Sair do Sistema</span>
