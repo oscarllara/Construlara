@@ -31,29 +31,48 @@ const ProfilePage = () => {
   const navigate = useNavigate();
 
   const loadData = () => {
-    // Carregar dados do usuário
-    const savedUsers = localStorage.getItem('app_users');
-    if (savedUsers) {
-      const users: UserAccount[] = JSON.parse(savedUsers);
-      const found = users.find(u => u.email.toLowerCase().trim() === userEmail);
-      if (found) setCurrentUser(found);
-    }
+    try {
+      // Carregar dados do usuário
+      const savedUsers = localStorage.getItem('app_users');
+      if (savedUsers) {
+        const users = JSON.parse(savedUsers);
+        if (Array.isArray(users)) {
+          const found = users.find(u => u && u.email && u.email.toLowerCase().trim() === userEmail);
+          if (found) setCurrentUser(found);
+        }
+      }
 
-    // Carregar Pedidos
-    const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
-    setUserOrders(orders.filter((o: any) => o.userEmail.toLowerCase().trim() === userEmail));
-    
-    // Carregar Aluguéis
-    const rentals = JSON.parse(localStorage.getItem('app_rentals') || '[]');
-    setUserRentals(rentals.filter((r: any) => (r.clientEmail || "").toLowerCase().trim() === userEmail));
+      // Carregar Pedidos
+      const savedOrders = localStorage.getItem('app_orders');
+      const orders = savedOrders ? JSON.parse(savedOrders) : [];
+      if (Array.isArray(orders)) {
+        setUserOrders(orders.filter((o: any) => o && o.userEmail && o.userEmail.toLowerCase().trim() === userEmail));
+      } else {
+        setUserOrders([]);
+      }
+      
+      // Carregar Aluguéis
+      const savedRentals = localStorage.getItem('app_rentals');
+      const rentals = savedRentals ? JSON.parse(savedRentals) : [];
+      if (Array.isArray(rentals)) {
+        setUserRentals(rentals.filter((r: any) => r && (r.clientEmail || "").toLowerCase().trim() === userEmail));
+      } else {
+        setUserRentals([]);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar dados do perfil:", e);
+    }
   };
 
   useEffect(() => { loadData(); }, [userEmail]);
 
   const financialSummary = useMemo(() => {
+    const safeOrders = Array.isArray(userOrders) ? userOrders : [];
+    const safeRentals = Array.isArray(userRentals) ? userRentals : [];
+
     const allItems = [
-      ...userOrders.map(o => ({ ...o, type: 'order' })),
-      ...userRentals.map(r => ({ ...r, type: 'rental' }))
+      ...safeOrders.map(o => ({ ...o, type: 'order' })),
+      ...safeRentals.map(r => ({ ...r, type: 'rental' }))
     ];
 
     const totalInvoiced = allItems.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
@@ -71,16 +90,18 @@ const ProfilePage = () => {
   }, [userOrders, userRentals]);
 
   const handleResendWhatsApp = (order: any) => {
+    if (!order) return;
     const pixData = localStorage.getItem('app_pix_info');
     const pixInfo = pixData ? JSON.parse(pixData) : { key: "16403481000116", name: "BTM Design", bank: "CC Crediplus" };
 
-    let itemsText = order.items.map((it: any) => `• ${it.name}: ${it.isFractional ? it.totalAmount.toFixed(2) + (it.unitLabel || 'm²') : it.quantity + ' un'}`).join('%0A');
+    const items = order.items || [];
+    let itemsText = items.map((it: any) => `• ${it.name}: ${it.isFractional ? (it.totalAmount || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 0) + ' un'}`).join('%0A');
     
     const pixText = order.paymentMethod === 'Pix' 
       ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
       : '';
 
-    const msg = `*REENVIO DE PEDIDO - CONSTRULARA*%0A*ID:* ${order.id}%0A*Data:* ${order.date}%0A*Total:* R$ ${Number(order.total).toFixed(2)}${pixText}%0A%0A*Itens:*%0A${itemsText}`;
+    const msg = `*REENVIO DE PEDIDO - CONSTRULARA*%0A*ID:* ${order.id}%0A*Data:* ${order.date}%0A*Total:* R$ ${Number(order.total || 0).toFixed(2)}${pixText}%0A%0A*Itens:*%0A${itemsText}`;
     
     window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
     showSuccess("Redirecionando para o WhatsApp...");
@@ -88,46 +109,66 @@ const ProfilePage = () => {
 
   const handleCancelOrder = (id: string) => {
     if (window.confirm("Deseja realmente cancelar este pedido?")) {
-      const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
-      const updated = orders.filter((o: any) => o.id !== id);
-      localStorage.setItem('app_orders', JSON.stringify(updated));
-      showSuccess("Pedido cancelado com sucesso.");
-      setIsOrderOpen(false);
-      loadData();
-      window.dispatchEvent(new Event('order-placed'));
+      try {
+        const savedOrders = localStorage.getItem('app_orders');
+        const orders = savedOrders ? JSON.parse(savedOrders) : [];
+        if (Array.isArray(orders)) {
+          const updated = orders.filter((o: any) => o && o.id !== id);
+          localStorage.setItem('app_orders', JSON.stringify(updated));
+          showSuccess("Pedido cancelado com sucesso.");
+          setIsOrderOpen(false);
+          loadData();
+          window.dispatchEvent(new Event('order-placed'));
+        }
+      } catch (e) {
+        showError("Erro ao cancelar pedido.");
+      }
     }
   };
 
   const handleSaveOrder = (updatedOrder: any) => {
-    const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
-    const updated = orders.map((o: any) => o.id === updatedOrder.id ? updatedOrder : o);
-    localStorage.setItem('app_orders', JSON.stringify(updated));
-    showSuccess("Pedido atualizado!");
-    setIsOrderOpen(false);
-    loadData();
-    window.dispatchEvent(new Event('order-placed'));
+    try {
+      const savedOrders = localStorage.getItem('app_orders');
+      const orders = savedOrders ? JSON.parse(savedOrders) : [];
+      if (Array.isArray(orders)) {
+        const updated = orders.map((o: any) => o && o.id === updatedOrder.id ? updatedOrder : o);
+        localStorage.setItem('app_orders', JSON.stringify(updated));
+        showSuccess("Pedido atualizado!");
+        setIsOrderOpen(false);
+        loadData();
+        window.dispatchEvent(new Event('order-placed'));
+      }
+    } catch (e) {
+      showError("Erro ao salvar alterações.");
+    }
   };
 
   const handlePayment = (amount: number) => {
     if (!selectedPaymentItem) return;
-    const type = selectedPaymentItem.type === 'order' ? 'app_orders' : 'app_rentals';
-    const saved = JSON.parse(localStorage.getItem(type) || '[]');
-    const updated = saved.map((item: any) => {
-      if (item.id === selectedPaymentItem.id) {
-        const nextPaid = Number(item.paidAmount || 0) + amount;
-        return { 
-          ...item, 
-          paidAmount: nextPaid, 
-          status: nextPaid >= Number(item.total) - 0.01 ? (type === 'app_orders' ? 'Pago' : 'completed') : item.status 
-        };
+    try {
+      const type = selectedPaymentItem.type === 'order' ? 'app_orders' : 'app_rentals';
+      const saved = JSON.parse(localStorage.getItem(type) || '[]');
+      if (Array.isArray(saved)) {
+        const updated = saved.map((item: any) => {
+          if (item && item.id === selectedPaymentItem.id) {
+            const nextPaid = Number(item.paidAmount || 0) + amount;
+            return { 
+              ...item, 
+              paidAmount: nextPaid, 
+              status: nextPaid >= Number(item.total || 0) - 0.01 ? (type === 'app_orders' ? 'Pago' : 'completed') : item.status 
+            };
+          }
+          return item;
+        });
+        localStorage.setItem(type, JSON.stringify(updated));
+        showSuccess("Pagamento registrado!");
+        setIsPaymentOpen(false);
+        loadData();
+        window.dispatchEvent(new Event('order-placed'));
       }
-      return item;
-    });
-    localStorage.setItem(type, JSON.stringify(updated));
-    showSuccess("Pagamento registrado!");
-    setIsPaymentOpen(false);
-    loadData();
-    window.dispatchEvent(new Event('order-placed'));
+    } catch (e) {
+      showError("Erro ao registrar pagamento.");
+    }
   };
 
   return (
@@ -255,12 +296,12 @@ const ProfilePage = () => {
                         </div>
                         <div>
                           <p className="font-black text-slate-900">{item.label}</p>
-                          <p className="text-[10px] font-bold text-slate-400">Total: R$ {item.total.toFixed(2)} • Pago: R$ {(item.paidAmount || 0).toFixed(2)}</p>
+                          <p className="text-[10px] font-bold text-slate-400">Total: R$ {(Number(item.total) || 0).toFixed(2)} • Pago: R$ {(Number(item.paidAmount) || 0).toFixed(2)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-xl font-black text-rose-600">R$ {(item.total - (item.paidAmount || 0)).toFixed(2)}</p>
+                          <p className="text-xl font-black text-rose-600">R$ {(Number(item.total || 0) - Number(item.paidAmount || 0)).toFixed(2)}</p>
                           <p className="text-[9px] font-black text-rose-400 uppercase tracking-tighter">Pendente</p>
                         </div>
                         <Button 
@@ -295,8 +336,8 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-blue-700">R$ {Number(order.total).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status}</Badge>
+                      <p className="font-black text-blue-700">R$ {Number(order.total || 0).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status || 'Pendente'}</Badge>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => { setSelectedOrder(order); setIsOrderOpen(true); }} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => handleResendWhatsApp(order)} className="text-emerald-600 hover:bg-emerald-50 rounded-xl" title="Reenviar Pedido"><MessageCircle className="h-5 w-5" /></Button>
@@ -324,8 +365,8 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-slate-900">R$ {Number(rental.total).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status}</Badge>
+                      <p className="font-black text-slate-900">R$ {Number(rental.total || 0).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status || 'Ativo'}</Badge>
                     </div>
                     <Button onClick={() => { setSelectedRental(rental); setIsRentalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Ver Contrato</Button>
                   </div>
@@ -337,7 +378,14 @@ const ProfilePage = () => {
       </div>
 
       <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={handleCancelOrder} onSave={handleSaveOrder} />
-      <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={() => {}} />
+      {isRentalOpen && (
+        <RentalDetailsDialog 
+          rental={selectedRental} 
+          open={isRentalOpen} 
+          onOpenChange={setIsRentalOpen} 
+          onUpdate={loadData} 
+        />
+      )}
       <PaymentActionDialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen} item={selectedPaymentItem ? { ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label } : null} onConfirm={handlePayment} />
     </AppLayout>
   );

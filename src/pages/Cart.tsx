@@ -31,22 +31,22 @@ const CartPage = () => {
   const currentUserEmail = localStorage.getItem('userEmail') || '';
 
   useEffect(() => {
-    const saved = localStorage.getItem('app_cart');
-    if (saved) setCart(JSON.parse(saved));
-    
-    const savedPix = localStorage.getItem('app_pix_info');
-    if (savedPix) setPixInfo(JSON.parse(savedPix));
+    try {
+      const saved = localStorage.getItem('app_cart');
+      if (saved) setCart(JSON.parse(saved));
+      
+      const savedPix = localStorage.getItem('app_pix_info');
+      if (savedPix) setPixInfo(JSON.parse(savedPix));
 
-    if (isInternal) {
-      const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) {
-        try {
+      if (isInternal) {
+        const savedUsers = localStorage.getItem('app_users');
+        if (savedUsers) {
           const parsed = JSON.parse(savedUsers);
           setAllClients(Array.isArray(parsed) ? parsed : []);
-        } catch (e) {
-          setAllClients([]);
         }
       }
+    } catch (e) {
+      console.error(e);
     }
   }, [isInternal]);
 
@@ -87,46 +87,56 @@ const CartPage = () => {
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
-    let finalEmail = currentUserEmail;
-    let finalName = "Cliente";
+    try {
+      let finalEmail = currentUserEmail;
+      let finalName = "Cliente";
 
-    if (isInternal) {
-      if (!selectedClientId) return showError("Selecione o cliente.");
-      const c = allClients.find(client => client.id === selectedClientId);
-      if (c) { finalEmail = c.email; finalName = c.name; }
+      if (isInternal) {
+        if (!selectedClientId) return showError("Selecione o cliente.");
+        const c = allClients.find(client => client.id === selectedClientId);
+        if (c) { 
+          finalEmail = c.email || ""; 
+          finalName = c.name || ""; 
+        }
+      }
+
+      const orderId = `ORD-${Date.now()}`;
+      const date = new Date().toLocaleDateString('pt-BR');
+      const savedOrdersRaw = localStorage.getItem('app_orders');
+      const savedOrders = savedOrdersRaw ? JSON.parse(savedOrdersRaw) : [];
+      const currentOrders = Array.isArray(savedOrders) ? savedOrders : [];
+
+      const newOrder = { 
+        id: orderId, 
+        date, 
+        userEmail: finalEmail, 
+        clientName: finalName, 
+        items: [...cart], 
+        total, 
+        paidAmount: 0, 
+        paymentMethod, 
+        status: 'Pendente' 
+      };
+      
+      localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
+      
+      let itemsText = cart.map(it => `• ${it.name}: ${it.isFractional ? (it.totalAmount || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 0) + ' un'}`).join('%0A');
+      
+      const pixText = paymentMethod === 'Pix' 
+        ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
+        : '';
+
+      const whatsappMsg = `*PEDIDO CONSTRULARA*%0A*ID:* ${orderId}%0A*Cliente:* ${finalName}%0A*Pagamento:* ${paymentMethod}%0A%0A*Itens:*%0A${itemsText}%0A%0A*TOTAL: R$ ${total.toFixed(2)}*${pixText}`;
+      
+      window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
+      localStorage.removeItem('app_cart');
+      showSuccess("Pedido realizado!");
+      window.dispatchEvent(new Event('order-placed'));
+      navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
+    } catch (e) {
+      showError("Erro ao finalizar pedido.");
+      console.error(e);
     }
-
-    const orderId = `ORD-${Date.now()}`;
-    const date = new Date().toLocaleDateString('pt-BR');
-    const savedOrders = JSON.parse(localStorage.getItem('app_orders') || '[]');
-
-    const newOrder = { 
-      id: orderId, 
-      date, 
-      userEmail: finalEmail, 
-      clientName: finalName, 
-      items: [...cart], 
-      total, 
-      paidAmount: 0, 
-      paymentMethod, 
-      status: 'Pendente' 
-    };
-    
-    localStorage.setItem('app_orders', JSON.stringify([newOrder, ...savedOrders]));
-    
-    let itemsText = cart.map(it => `• ${it.name}: ${it.isFractional ? it.totalAmount.toFixed(2) + (it.unitLabel || 'm²') : it.quantity + ' un'}`).join('%0A');
-    
-    const pixText = paymentMethod === 'Pix' 
-      ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
-      : '';
-
-    const whatsappMsg = `*PEDIDO CONSTRULARA*%0A*ID:* ${orderId}%0A*Cliente:* ${finalName}%0A*Pagamento:* ${paymentMethod}%0A%0A*Itens:*%0A${itemsText}%0A%0A*TOTAL: R$ ${total.toFixed(2)}*${pixText}`;
-    
-    window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
-    localStorage.removeItem('app_cart');
-    showSuccess("Pedido realizado!");
-    window.dispatchEvent(new Event('order-placed'));
-    navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
   };
 
   return (
@@ -196,7 +206,7 @@ const CartPage = () => {
                     <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                       <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, -1)} className="h-9 w-9 rounded-xl hover:bg-white"><Minus className="h-3 w-3" /></Button>
                       <div className="flex flex-col items-center min-w-[60px]">
-                        <span className="font-black text-slate-900 text-lg leading-none">{item.isFractional ? item.totalAmount.toFixed(2) : item.quantity}</span>
+                        <span className="font-black text-slate-900 text-lg leading-none">{item.isFractional ? (item.totalAmount || 0).toFixed(2) : (item.quantity || 0)}</span>
                         <span className="text-[9px] font-black uppercase text-slate-400">{item.unitLabel || 'un'}</span>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, 1)} className="h-9 w-9 rounded-xl hover:bg-white"><Plus className="h-3 w-3" /></Button>
