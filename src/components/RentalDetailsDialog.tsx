@@ -20,7 +20,9 @@ import {
   ScrollText, 
   CheckCircle2, 
   MessageCircle, 
-  Clock 
+  Clock,
+  AlertTriangle,
+  Send
 } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
@@ -137,10 +139,21 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     setShowReturnForm(true);
   };
 
-  const handleClientRequestReturn = () => {
+  const handleRequestReturnSystem = () => {
+    const updatedRental = {
+      ...rental,
+      status: 'pending_return',
+      notes: (notes ? notes + "\n" : "") + `Solicitação de devolução enviada pelo cliente em ${format(new Date(), 'dd/MM/yyyy HH:mm')}.`
+    };
+    onUpdate(updatedRental);
+    showSuccess("Solicitação de devolução enviada com sucesso!");
+    onOpenChange(false);
+    window.dispatchEvent(new Event('order-placed'));
+  };
+
+  const handleClientRequestReturnWhatsApp = () => {
     const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id || ''}%0A*Item:* ${rental?.item || ''}%0A*Locatário:* ${rental?.client || ''}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
     window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
-    showSuccess("Solicitação enviada via WhatsApp!");
   };
 
   const handleProcessReturn = () => {
@@ -159,7 +172,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       total: finalTotal,
       paidAmount: finalTotal,
       modality: modality,
-      notes: notes + (notes ? "\n" : "") + `Devolvido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
+      notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
     const savedEquip = localStorage.getItem('app_equipments');
@@ -174,7 +187,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess("Devolução e Liquidação processadas!");
+    showSuccess("Recebimento confirmado e contrato finalizado!");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
@@ -182,6 +195,17 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   if (!rental) return null;
 
   const currentClient = allClients.find(c => String(c.id) === String(rental.clientId) || c.name === rental.client);
+  const isPendingReturn = status === 'pending_return';
+
+  const getStatusLabel = (s: string) => {
+    switch (s) {
+      case 'active': return 'Ativo';
+      case 'overdue': return 'Em Atraso';
+      case 'pending_return': return 'Aguardando Recebimento';
+      case 'completed': return 'Finalizado';
+      default: return s;
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -199,13 +223,15 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
               )}
               <div>
                 <h2 className="text-3xl font-black tracking-tighter">CONTRATO {String(rental.id || "").toUpperCase()}</h2>
-                <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Locação Ativa</p>
+                <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Locação</p>
               </div>
             </div>
             <Badge className={cn(
               "rounded-full font-black text-xs px-5 py-1.5 border-none tracking-widest uppercase",
-              status === 'completed' ? "bg-emerald-500" : "bg-white/20"
-            )}>{status}</Badge>
+              status === 'completed' ? "bg-emerald-500" : 
+              isPendingReturn ? "bg-orange-500 animate-pulse" : 
+              status === 'overdue' ? "bg-red-500" : "bg-white/20"
+            )}>{getStatusLabel(status)}</Badge>
           </div>
         </div>
 
@@ -222,30 +248,42 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             </div>
           ) : showReturnForm ? (
             <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Processar Devolução</h3>
+              <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Confirmar Recebimento</h3>
               <div className="grid gap-4">
                 <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Final Ajustado</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Calculado até hoje</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Total a Liquidar</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Cálculo do período</p>
                   </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold text-emerald-900">Estado do Equipamento no Recebimento</Label>
+                  <Label className="font-bold text-emerald-900">O item está em perfeitas condições?</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Pronto p/ Uso</Button>
-                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Manutenção</Button>
+                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Sim, Disponível</Button>
+                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Não, Manutenção</Button>
                   </div>
                 </div>
                 <div className="flex gap-3 pt-2">
                   <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Voltar</Button>
-                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Confirmar Recebimento & Liquidação</Button>
+                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Finalizar Contrato</Button>
                 </div>
               </div>
             </div>
           ) : (
             <>
+              {isPendingReturn && (
+                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-4 items-center">
+                  <div className="h-12 w-12 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-orange-900">Devolução Solicitada pelo Cliente</p>
+                    <p className="text-xs font-bold text-orange-700">Aguardando conferência física e confirmação do gestor para encerrar o contrato.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
@@ -264,12 +302,12 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                       <Input type="date" value={startDate} disabled className="rounded-xl h-11 bg-white" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Devolução</Label>
+                      <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data de Devolução</Label>
                       <Input 
                         type="date" 
                         value={endDate} 
                         onChange={e => setEndDate(e.target.value)} 
-                        disabled={status === 'completed' || !isInternal}
+                        disabled={status === 'completed' || isPendingReturn || !isInternal}
                         className="rounded-xl h-11 bg-white" 
                       />
                     </div>
@@ -279,15 +317,12 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{modality}</p>
                       <p className="text-3xl font-black text-blue-700">R$ {totalValue}</p>
                     </div>
-                    {status === 'completed' ? (
-                      <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
-                        <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-                      </div>
-                    ) : (
-                      <div className="h-12 w-12 bg-blue-100 rounded-2xl flex items-center justify-center">
-                        <Clock className="h-7 w-7 text-blue-600" />
-                      </div>
-                    )}
+                    <div className={cn(
+                      "h-12 w-12 rounded-2xl flex items-center justify-center",
+                      status === 'completed' ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"
+                    )}>
+                      {status === 'completed' ? <CheckCircle2 className="h-7 w-7" /> : <Clock className="h-7 w-7" />}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -305,12 +340,25 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   <div className="grid grid-cols-1 gap-3">
                     {isInternal ? (
                       <Button onClick={handleStartReturn} className="w-full bg-emerald-600 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-emerald-50 text-base gap-2 hover:bg-emerald-700">
-                        <RotateCcw className="h-6 w-6" /> Devolver Item Agora
+                        <RotateCcw className="h-6 w-6" /> {isPendingReturn ? 'Confirmar Recebimento' : 'Processar Devolução'}
                       </Button>
                     ) : (
-                      <Button onClick={handleClientRequestReturn} className="w-full bg-blue-700 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-blue-100 text-base gap-2 hover:bg-blue-800">
-                        <MessageCircle className="h-6 w-6" /> Solicitar Devolução via WhatsApp
-                      </Button>
+                      <>
+                        {!isPendingReturn ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button onClick={handleRequestReturnSystem} className="bg-blue-700 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-blue-100 text-sm gap-2 hover:bg-blue-800">
+                              <Send className="h-5 w-5" /> Solicitar Devolução
+                            </Button>
+                            <Button variant="outline" onClick={handleClientRequestReturnWhatsApp} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-16 rounded-[2rem] font-black text-sm gap-2">
+                              <MessageCircle className="h-5 w-5" /> WhatsApp
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-slate-100 rounded-3xl text-center">
+                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Solicitação enviada. Aguarde o gestor.</p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}

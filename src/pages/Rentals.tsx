@@ -69,7 +69,6 @@ const RentalsPage = () => {
         const updatedList = Array.isArray(current) ? current.map((r: any) => r.id === updated.id ? updated : r) : [updated];
         localStorage.setItem('app_rentals', JSON.stringify(updatedList));
         setRentals(updatedList);
-        // Notifica outras abas (Relatórios, Perfil)
         window.dispatchEvent(new Event('order-placed'));
       } catch (e) { console.error(e); }
     }
@@ -80,7 +79,6 @@ const RentalsPage = () => {
     return (rentals || []).filter(r => {
       if (!r) return false;
       
-      // Filtro para clientes verem apenas seus aluguéis
       if (isCliente) {
         const isMyRental = (r.clientEmail && r.clientEmail.toLowerCase().trim() === userEmail) || 
                            (r.client && r.client.toLowerCase().includes(userEmail.split('@')[0]));
@@ -93,6 +91,21 @@ const RentalsPage = () => {
              (r.id || "").toLowerCase().includes(search);
     });
   }, [rentals, searchTerm, isCliente, userEmail]);
+
+  const getStatusBadge = (s: string) => {
+    switch (s) {
+      case 'active': 
+        return <Badge className="bg-blue-100 text-blue-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Ativo</Badge>;
+      case 'overdue': 
+        return <Badge className="bg-rose-100 text-rose-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Em Atraso</Badge>;
+      case 'pending_return': 
+        return <Badge className="bg-orange-100 text-orange-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 animate-pulse">Solicitado</Badge>;
+      case 'completed': 
+        return <Badge className="bg-emerald-100 text-emerald-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Finalizado</Badge>;
+      default: 
+        return <Badge className="bg-slate-100 text-slate-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">{s}</Badge>;
+    }
+  };
 
   return (
     <AppLayout>
@@ -174,12 +187,7 @@ const RentalsPage = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn(
-                          "rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1",
-                          rental.status === 'active' ? "bg-blue-100 text-blue-700" :
-                          rental.status === 'overdue' ? "bg-rose-100 text-rose-700" :
-                          rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
-                        )}>{rental.status}</Badge>
+                        {getStatusBadge(rental.status)}
                       </TableCell>
                       <TableCell className="text-right pr-8">
                         <Button 
