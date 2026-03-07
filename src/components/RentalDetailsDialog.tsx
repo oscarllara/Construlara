@@ -60,7 +60,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isInternal = ['Gestor', 'Vendas', 'Entregador'].includes(userRole);
 
-  // Carrega dados auxiliares (Clientes e Equipamentos)
   useEffect(() => {
     if (open) {
       const savedUsers = localStorage.getItem('app_users');
@@ -80,7 +79,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
   }, [open]);
 
-  // Inicializa o formulário sempre que o diálogo abrir
   useEffect(() => {
     if (rental && open) {
       setStatus(String(rental.status || "active"));
@@ -101,10 +99,8 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       };
       
       setStartDate(toISODate(rental.start));
-      
-      // REQUISITO: Abrir com a data de devolução como a data atual do computador
       const today = new Date().toISOString().split('T')[0];
-      setEndDate(today);
+      setEndDate(toISODate(rental.end) || today);
       
       setModality(String(rental.modality || "Diária"));
       setShowReturnForm(false);
@@ -112,7 +108,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
   }, [rental, open]);
 
-  // Encontra o equipamento atual no inventário
   const currentEquipment = useMemo(() => {
     if (!rental || allEquipments.length === 0) return null;
     return allEquipments.find(e => 
@@ -121,7 +116,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     ) || null;
   }, [rental, allEquipments]);
 
-  // Lógica de Recálculo Automático (Regras de Negócio)
   useEffect(() => {
     if (!startDate || !endDate || !currentEquipment) return;
 
@@ -131,13 +125,11 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       
       if (!isValid(start) || !isValid(end)) return;
 
-      // Dias corridos (inclusivo)
       const totalDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
       
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
-      // Aplicação das regras de precificação baseada nos dias
       if (totalDays >= 20) {
         displayModality = "Mensal";
         calculatedTotal = currentEquipment.monthlyRate || (currentEquipment.dailyRate * 20);
@@ -154,13 +146,16 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
       setModality(displayModality);
       setTotalValue(calculatedTotal.toFixed(2));
-    } catch (e) { 
-      console.error("Erro no recálculo de valor:", e); 
-    }
+    } catch (e) { }
   }, [startDate, endDate, currentEquipment]);
 
-  const handleStartReturn = () => {
-    setShowReturnForm(true);
+  const handleStartReturn = () => setShowReturnForm(true);
+
+  const handleRequestReturnSystem = () => {
+    const updatedRental = { ...rental, status: 'pending_return' };
+    onUpdate(updatedRental);
+    showSuccess("Solicitação de devolução enviada! Aguarde a conferência.");
+    onOpenChange(false);
   };
 
   const handleProcessReturn = () => {
@@ -178,13 +173,11 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       start: formatDateToBR(startDate),
       end: formatDateToBR(endDate),
       total: finalTotal,
-      // REQUISITO: Diferenciar entre recebido ou a receber (débito)
       paidAmount: paymentOption === 'paid' ? finalTotal : (rental.paidAmount || 0),
       modality: modality,
-      notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - ${paymentOption === 'paid' ? 'Pagamento efetuado' : 'Lançado no débito'} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
+      notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - ${paymentOption === 'paid' ? 'Pagamento efetuado' : 'Lançado no débito'}`
     };
 
-    // Atualiza status do equipamento no inventário global
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       try {
@@ -195,18 +188,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             : e
         );
         localStorage.setItem('app_equipments', JSON.stringify(newEquip));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     onUpdate(updatedRental);
-    showSuccess(paymentOption === 'paid' ? "Contrato liquidado e recebido!" : "Recebido. Valor acumulado no débito do cliente.");
+    showSuccess("Contrato encerrado com sucesso.");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
-  };
-
-  const setTodayDate = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setEndDate(today);
   };
 
   if (!rental) return null;
@@ -214,21 +202,11 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const currentClient = allClients.find(c => String(c.id) === String(rental.clientId) || c.name === rental.client);
   const isPendingReturn = status === 'pending_return';
 
-  const getStatusLabel = (s: string) => {
-    switch (s) {
-      case 'active': return 'Ativo';
-      case 'overdue': return 'Em Atraso';
-      case 'pending_return': return 'Solicitado pelo Cliente';
-      case 'completed': return 'Finalizado';
-      default: return s;
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white transition-all duration-300",
-        viewContractMode ? "sm:max-w-[900px] max-h-[95vh]" : "sm:max-w-[800px]"
+        "rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white",
+        viewContractMode ? "sm:max-w-[900px]" : "sm:max-w-[800px]"
       )}>
         <div className="bg-blue-700 p-10 text-white">
           <div className="flex justify-between items-start">
@@ -238,190 +216,76 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   <ArrowLeft className="h-6 w-6" />
                 </Button>
               )}
-              <div>
-                <h2 className="text-3xl font-black tracking-tighter">CONTRATO {String(rental.id || "").toUpperCase()}</h2>
-                <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Devolução</p>
-              </div>
+              <h2 className="text-3xl font-black tracking-tighter">CONTRATO {String(rental.id || "").toUpperCase()}</h2>
             </div>
-            <Badge className={cn(
-              "rounded-full font-black text-xs px-5 py-1.5 border-none tracking-widest uppercase",
-              status === 'completed' ? "bg-emerald-500" : 
-              isPendingReturn ? "bg-orange-500 animate-pulse" : 
-              status === 'overdue' ? "bg-red-500" : "bg-white/20"
-            )}>{getStatusLabel(status)}</Badge>
+            <Badge className="bg-white/20 text-white border-none uppercase text-[10px] font-black px-4 py-1">
+              {status === 'completed' ? 'Finalizado' : isPendingReturn ? 'Solicitado' : 'Ativo'}
+            </Badge>
           </div>
         </div>
 
         <div className="p-10 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {viewContractMode ? (
-            <div className="space-y-6 animate-in fade-in zoom-in-95">
-              <div className="flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md p-4 rounded-2xl z-10 border border-slate-100 shadow-sm">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Contrato Formal para Impressão</p>
-                <Button onClick={() => window.print()} className="bg-slate-900 text-white rounded-xl font-bold h-10 px-6 gap-2">
-                  <Printer className="h-4 w-4" /> Imprimir
-                </Button>
-              </div>
-              <RentalContract rental={rental} client={currentClient} />
-            </div>
+            <RentalContract rental={rental} client={currentClient} />
           ) : showReturnForm ? (
-            <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Fechamento de Caixa</h3>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase">Uso Computado</p>
-                  <p className="text-xs font-bold text-slate-500">{format(parseISO(startDate), 'dd/MM/yyyy')} até {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><RotateCcw className="h-6 w-6 text-emerald-600" /> Fechamento de Caixa</h3>
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex justify-between items-center">
+                <p className="font-bold text-slate-600">Valor Total Estimado:</p>
+                <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase text-slate-400">Estado do Item:</Label>
+                  <div className="flex gap-2">
+                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className="flex-1 rounded-xl h-12 font-bold">Pronto</Button>
+                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className="flex-1 rounded-xl h-12 font-bold">Oficina</Button>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase text-slate-400">Pagamento:</Label>
+                  <div className="flex gap-2">
+                    <Button variant={paymentOption === 'paid' ? 'default' : 'outline'} onClick={() => setPaymentOption('paid')} className="flex-1 rounded-xl h-12 font-bold">Recebido</Button>
+                    <Button variant={paymentOption === 'credit' ? 'default' : 'outline'} onClick={() => setPaymentOption('credit')} className="flex-1 rounded-xl h-12 font-bold">Débito</Button>
+                  </div>
                 </div>
               </div>
-              
-              <div className="grid gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center shadow-sm">
-                  <div>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor do Período ({modality})</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Calculado até {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
-                  </div>
-                  <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Equipamento Retornando:</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'available' && "bg-emerald-600")}>Pronto</Button>
-                      <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'maintenance' && "bg-orange-600")}>Oficina</Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Liquidação Financeira:</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant={paymentOption === 'paid' ? 'default' : 'outline'} onClick={() => setPaymentOption('paid')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase gap-2", paymentOption === 'paid' && "bg-blue-700")}>
-                        <Banknote className="h-4 w-4" /> Pago
-                      </Button>
-                      <Button variant={paymentOption === 'credit' ? 'default' : 'outline'} onClick={() => setPaymentOption('credit')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase gap-2", paymentOption === 'credit' && "bg-blue-700")}>
-                        <CreditCard className="h-4 w-4" /> Débito
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t border-emerald-200">
-                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Corrigir Data</Button>
-                  <Button 
-                    onClick={handleProcessReturn} 
-                    className={cn(
-                      "flex-[2] h-14 rounded-2xl font-black text-white shadow-xl transition-all",
-                      paymentOption === 'paid' ? "bg-emerald-600 shadow-emerald-100" : "bg-blue-700 shadow-blue-100"
-                    )}
-                  >
-                    {paymentOption === 'paid' ? 'Efetivar Recebimento' : 'Lançar em Crediário'}
-                  </Button>
-                </div>
+              <div className="flex gap-3 pt-6 border-t">
+                <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 h-14 rounded-2xl font-bold">Voltar</Button>
+                <Button onClick={handleProcessReturn} className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black shadow-lg shadow-emerald-100">Finalizar e Receber</Button>
               </div>
             </div>
           ) : (
             <>
               {isPendingReturn && (
-                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-4 items-center animate-pulse">
-                  <div className="h-12 w-12 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
-                    <AlertTriangle className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-orange-900">Solicitação de Devolução</p>
-                    <p className="text-xs font-bold text-orange-700">O cliente informou que deseja devolver. Confira o item e encerre o contrato abaixo.</p>
-                  </div>
+                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-4 items-center">
+                  <AlertTriangle className="h-6 w-6 text-orange-600" />
+                  <p className="text-sm font-bold text-orange-900">O cliente solicitou a devolução deste item.</p>
                 </div>
               )}
-
               <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Locatário</p>
-                    <p className="text-xl font-black text-slate-900">{rental.client || "---"}</p>
-                  </div>
-                  <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Equipamento</p>
-                    <p className="text-xl font-black text-slate-900">{rental.item || "---"}</p>
-                  </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Equipamento</p>
+                  <p className="text-xl font-black text-slate-900">{rental.item}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">Locatário</p>
+                  <p className="text-lg font-bold text-slate-700">{rental.client}</p>
                 </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Início</Label>
-                      <Input type="date" value={startDate} disabled className="rounded-xl h-11 bg-slate-100/50 font-medium" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Devolução</Label>
-                        {isInternal && status !== 'completed' && (
-                          <button 
-                            onClick={setTodayDate}
-                            className="text-[9px] font-black text-blue-700 hover:text-blue-900 uppercase tracking-tighter"
-                          >
-                            Hoje
-                          </button>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <Input 
-                          type="date" 
-                          value={endDate} 
-                          onChange={e => setEndDate(e.target.value)} 
-                          disabled={status === 'completed' || !isInternal}
-                          className="rounded-xl h-11 bg-white pr-10 border-blue-200 focus:ring-blue-500" 
-                        />
-                        <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 flex justify-between items-center shadow-sm">
-                    <div>
-                      <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{modality}</p>
-                      <p className="text-3xl font-black text-blue-700">R$ {totalValue}</p>
-                    </div>
-                    <div className={cn(
-                      "h-12 w-12 rounded-2xl flex items-center justify-center",
-                      status === 'completed' ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"
-                    )}>
-                      {status === 'completed' ? <CheckCircle2 className="h-7 w-7" /> : <Clock className="h-7 w-7" />}
-                    </div>
-                  </div>
+                <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 text-center">
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{modality}</p>
+                  <p className="text-4xl font-black text-blue-700">R$ {totalValue}</p>
+                  <p className="text-[10px] font-bold text-blue-400 mt-1">Estimado até {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
                 </div>
               </div>
-
               <div className="space-y-3">
-                <Button 
-                  onClick={() => setViewContractMode(true)} 
-                  variant="outline"
-                  className="w-full h-16 rounded-[2rem] font-black border-slate-100 text-blue-700 hover:bg-blue-50 gap-2 text-base transition-all"
-                >
-                  <ScrollText className="h-5 w-5" /> Abrir Contrato Digital
-                </Button>
-                
+                <Button onClick={() => setViewContractMode(true)} variant="outline" className="w-full h-16 rounded-[2rem] font-black text-blue-700 gap-2"><ScrollText className="h-5 w-5" /> Abrir Contrato Digital</Button>
                 {status !== 'completed' && (
-                  <div className="grid grid-cols-1 gap-3">
-                    {isInternal ? (
-                      <Button onClick={handleStartReturn} className="w-full bg-emerald-600 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-emerald-50 text-base gap-2 hover:bg-emerald-700">
-                        <RotateCcw className="h-6 w-6" /> Receber Item e Encerrar
-                      </Button>
-                    ) : (
-                      <>
-                        {!isPendingReturn ? (
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button onClick={handleRequestReturnSystem} className="bg-blue-700 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-blue-100 text-sm gap-2 hover:bg-blue-800">
-                              <Send className="h-5 w-5" /> Solicitar Devolução
-                            </Button>
-                            <Button variant="outline" onClick={() => window.open(`https://wa.me/5532999625979?text=Gostaria de agendar a devolução do item: ${rental.item}`, '_blank')} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-16 rounded-[2rem] font-black text-sm gap-2">
-                              <MessageCircle className="h-5 w-5" /> WhatsApp
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="p-4 bg-slate-100 rounded-3xl text-center">
-                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Aguardando conferência do gestor.</p>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                  isInternal ? (
+                    <Button onClick={handleStartReturn} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-16 rounded-[2rem] font-black gap-2 shadow-xl shadow-emerald-100"><RotateCcw className="h-6 w-6" /> Receber e Finalizar</Button>
+                  ) : (
+                    !isPendingReturn && (
+                      <Button onClick={handleRequestReturnSystem} className="w-full bg-blue-700 hover:bg-blue-800 text-white h-16 rounded-[2rem] font-black gap-2 shadow-xl shadow-blue-100"><Send className="h-5 w-5" /> Solicitar Devolução</Button>
+                    )
+                  )
                 )}
               </div>
             </>
@@ -429,9 +293,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
         </div>
 
         <DialogFooter className="p-10 pt-0">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full rounded-2xl h-14 font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50">
-            Fechar
-          </Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full rounded-2xl h-14 font-black text-slate-400 uppercase tracking-widest">Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

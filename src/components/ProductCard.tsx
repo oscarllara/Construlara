@@ -51,14 +51,11 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   
-  const canSeePrice = true; 
   const canEdit = isLoggedIn && ['Gestor', 'Vendas'].includes(userRole);
-
   const hasPromo = product.isPromo && product.promoPrice;
   const currentPrice = hasPromo ? product.promoPrice! : product.price;
 
   const isPackaged = product.isFractional && product.packageSize && product.packageSize > 0;
-  // Categorias que possuem calculadora (Pisos e Argamassa)
   const hasCalculator = product.category === "Pisos e revestimentos" || product.category === "Argamassa";
   
   const currentQuantity = quantity === "" ? 0 : Number(quantity);
@@ -94,10 +91,11 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   };
 
   const handleCalcResult = (value: number) => {
-    // Se for Argamassa, o resultado já é em sacos, então definimos como quantidade
     if (product.category === "Argamassa") {
-      setQuantity(Math.ceil(value));
-      setDesiredAmount(value.toFixed(2));
+      // Para argamassa, a calculadora retorna o total de sacos necessários
+      const bags = Math.ceil(value);
+      setQuantity(bags);
+      setDesiredAmount(bags.toString());
     } else {
       setDesiredAmount(value.toFixed(2));
     }
@@ -114,7 +112,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
           variant="ghost" 
           size="icon" 
           onClick={() => onEdit(product)}
-          className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-blue-50 hover:text-blue-600 z-20"
+          className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20"
         >
           <Pencil className="h-4 w-4" />
         </Button>
@@ -128,17 +126,9 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </div>
       )}
       
-      <div 
-        className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center shrink-0 cursor-zoom-in"
-        onClick={() => setIsZoomOpen(true)}
-      >
+      <div className="aspect-square overflow-hidden bg-slate-100 relative flex items-center justify-center cursor-zoom-in" onClick={() => setIsZoomOpen(true)}>
         {!imgError && product.image ? (
-          <>
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={() => setImgError(true)} />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-              <Maximize2 className="text-white opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8" />
-            </div>
-          </>
+          <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" onError={() => setImgError(true)} />
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-300">
             <Package className="h-16 w-16 mb-2" />
@@ -148,61 +138,37 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       </div>
 
       <CardHeader className="p-6 pb-2">
-        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase mb-1">
           <Tag className="h-3 w-3" /> {product.category} • {product.code}
         </div>
-        <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-blue-700 transition-colors">
-          {product.name}
-        </h3>
+        <h3 className="text-lg font-black text-slate-900 group-hover:text-blue-700 transition-colors">{product.name}</h3>
       </CardHeader>
       
       <CardContent className="px-6 pb-4 flex-1 space-y-4">
         <p className="text-xs text-slate-500 font-medium line-clamp-2">{product.description}</p>
-        
-        <div className="flex flex-col">
-          {canSeePrice ? (
-            <>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
-                <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase border border-blue-100">
-                  / {product.unitLabel || 'un'}
-                </span>
-              </div>
-              {hasPromo && <span className="text-xs text-slate-400 line-through font-bold">De R$ {product.price.toFixed(2)}</span>}
-            </>
-          ) : (
-            <div className="flex items-center gap-2 text-slate-400 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
-              <Lock className="h-4 w-4" />
-              <span className="text-xs font-black uppercase tracking-widest">Preço sob consulta</span>
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>
+          <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">/ {product.unitLabel || 'un'}</span>
         </div>
 
         {isPackaged && (
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">Quanto você precisa ({product.unitLabel})?</Label>
+                <Label className="text-[10px] font-black text-blue-600 uppercase">Quanto você precisa?</Label>
                 {hasCalculator && (
                   <Dialog open={isCalcOpen} onOpenChange={setIsCalcOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-blue-700 hover:bg-blue-100 rounded-lg gap-1">
-                        <CalcIcon className="h-3 w-3" /> Calcular
-                      </Button>
+                      <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-blue-700 hover:bg-blue-100 rounded-lg gap-1"><CalcIcon className="h-3 w-3" /> Calcular</Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden">
-                      <Calculators onResult={handleCalcResult} hideHeader />
-                    </DialogContent>
+                    <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden"><Calculators onResult={handleCalcResult} hideHeader /></DialogContent>
                   </Dialog>
                 )}
               </div>
               <Input type="number" placeholder={`Ex: 23 ${product.unitLabel}`} value={desiredAmount} onChange={(e) => setDesiredAmount(e.target.value)} className="h-10 rounded-xl border-blue-200 bg-white font-bold" />
             </div>
             {calculatedPacks > 0 && (
-              <div className="flex items-start gap-2 text-blue-800">
-                <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold leading-tight">Serão necessárias <strong>{calculatedPacks} embalagens</strong>, totalizando <strong>{totalAmount.toFixed(2)}{product.unitLabel}</strong>.</p>
-              </div>
+              <p className="text-[10px] font-bold text-blue-800 leading-tight flex gap-2"><Info className="h-4 w-4 shrink-0" /> Serão necessárias {calculatedPacks} embalagens ({totalAmount.toFixed(2)}{product.unitLabel}).</p>
             )}
           </div>
         )}
@@ -211,47 +177,26 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       <CardFooter className="p-6 pt-0 flex flex-col gap-4">
         {!isPackaged && (
           <div className="flex items-center justify-between w-full bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-            <Button variant="ghost" size="icon" onClick={handleDecrement} className="h-9 w-9 rounded-xl"><Minus className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={handleDecrement} className="h-9 w-9 rounded-xl"><Minus className="h-3 w-3" /></Button>
             <Input type="number" value={quantity} onChange={(e) => handleQuantityChange(e.target.value)} className="w-16 h-9 text-center font-black text-lg border-none bg-transparent focus-visible:ring-0" />
-            <Button variant="ghost" size="icon" onClick={handleIncrement} className="h-9 w-9 rounded-xl"><Plus className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={handleIncrement} className="h-9 w-9 rounded-xl"><Plus className="h-3 w-3" /></Button>
           </div>
         )}
-
         <div className="w-full space-y-2">
-          {canSeePrice && (
-            <div className="flex justify-between items-end px-1">
-              <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
-              <span className="text-xl font-black text-slate-900">R$ {totalPrice.toFixed(2)}</span>
-            </div>
-          )}
-          <Button 
-            onClick={handleAction}
-            disabled={(isPackaged && !desiredAmount) || (!isPackaged && currentQuantity === 0)}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-black gap-3 h-14 transition-all shadow-xl shadow-blue-100 hover:-translate-y-1 active:scale-95"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            {!isLoggedIn ? 'Entrar para Comprar' : isPackaged ? `Levar ${calculatedPacks} caixas` : 'Comprar'}
+          <div className="flex justify-between items-end px-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
+            <span className="text-xl font-black text-slate-900">R$ {totalPrice.toFixed(2)}</span>
+          </div>
+          <Button onClick={handleAction} disabled={(isPackaged && !desiredAmount) || (!isPackaged && currentQuantity === 0)} className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-black gap-3 h-14 shadow-xl shadow-blue-100 hover:-translate-y-1 transition-all">
+            <ShoppingCart className="h-5 w-5" /> {isPackaged ? `Levar ${calculatedPacks} caixas` : 'Adicionar ao Carrinho'}
           </Button>
         </div>
       </CardFooter>
 
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-        <DialogContent className="max-w-[95vw] md:max-w-[700px] p-0 border-none bg-transparent shadow-none overflow-hidden flex items-center justify-center">
-          <div className="relative w-full flex flex-col items-center justify-center p-4">
-            <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden w-full aspect-square max-w-[600px] flex items-center justify-center border-8 border-white">
-              <img 
-                src={product.image} 
-                alt={product.name} 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-            <div className="mt-6 bg-white/90 backdrop-blur-md px-10 py-5 rounded-[2.5rem] shadow-xl text-center border border-white/50 max-w-[90%]">
-              <h2 className="text-2xl font-black text-slate-900 leading-tight">{product.name}</h2>
-              <div className="flex items-center justify-center gap-3 mt-2">
-                <Badge className="bg-blue-50 text-blue-700 border-none text-[10px] font-black uppercase px-3 py-1">{product.category}</Badge>
-                {canSeePrice && <span className="text-lg font-black text-blue-700">R$ {currentPrice.toFixed(2)}</span>}
-              </div>
-            </div>
+        <DialogContent className="max-w-[95vw] md:max-w-[700px] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+          <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden w-full max-w-[600px] aspect-square flex items-center justify-center p-4">
+            <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
           </div>
         </DialogContent>
       </Dialog>
