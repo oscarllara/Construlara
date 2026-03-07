@@ -46,55 +46,49 @@
   z-index: 100 !important;
 }
 
-/* Estilos de Impressão */
+/* Estilos de Impressão Otimizados */
 @media print {
   @page {
     size: auto;
-    margin: 0;
+    margin: 10mm;
   }
 
-  body {
-    background-color: white !important;
+  /* Esconde tudo no corpo do documento */
+  body * {
+    visibility: hidden;
   }
 
-  /* Oculta TUDO exceto os itens de impressão específicos */
-  body > * {
-    display: none !important;
+  /* Torna visível apenas o contrato ou cupom e seus filhos */
+  #printable-contract, #printable-contract *,
+  #printable-coupon, #printable-coupon * {
+    visibility: visible;
   }
 
-  /* Exibe o diálogo mas oculta seu conteúdo padrão, mantendo apenas os elementos de impressão */
-  [role="dialog"] {
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
+  /* Posiciona o conteúdo de impressão no topo da página */
+  #printable-contract, #printable-coupon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
     background: white !important;
     border: none !important;
     box-shadow: none !important;
-  }
-
-  [role="dialog"] > * {
-    display: none !important;
-  }
-
-  /* Exibe apenas os cupons e contratos */
-  .print\:block, #printable-coupon, #printable-contract {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  #printable-coupon {
-    width: 80mm !important;
+    padding: 0 !important;
     margin: 0 !important;
-    padding: 5mm !important;
   }
 
   #printable-contract {
-    width: 210mm !important;
-    margin: 0 !important;
-    padding: 20mm !important;
+    width: 210mm; /* A4 width approx */
+  }
+
+  #printable-coupon {
+    width: 80mm; /* Termic width */
+  }
+
+  /* Remove fundos cinzas e sombras durante a impressão */
+  .bg-slate-50, .bg-slate-100, .shadow-2xl, .shadow-xl {
+    background-color: white !important;
+    box-shadow: none !important;
   }
 }
 
