@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye, ScrollText, CheckCircle2 } from 'lucide-react';
+import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye, ScrollText, CheckCircle2, MessageCircle } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
@@ -122,6 +122,12 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     setShowReturnForm(true);
   };
 
+  const handleClientRequestReturn = () => {
+    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental.id}%0A*Item:* ${rental.item}%0A*Locatário:* ${rental.client}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
+    window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
+    showSuccess("Solicitação enviada via WhatsApp!");
+  };
+
   const handleProcessReturn = () => {
     const formatDate = (dateStr: string) => {
       if (!dateStr) return "";
@@ -171,24 +177,27 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
         "rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white transition-all duration-300",
         viewContractMode ? "sm:max-w-[900px] max-h-[95vh]" : "sm:max-w-[800px]"
       )}>
-        <div className="bg-blue-700 p-8 text-white">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
+        <div className="bg-blue-700 p-10 text-white">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-4">
               {viewContractMode && (
                 <Button variant="ghost" size="icon" onClick={() => setViewContractMode(false)} className="text-white hover:bg-white/10 rounded-full h-10 w-10">
                   <ArrowLeft className="h-6 w-6" />
                 </Button>
               )}
-              <h2 className="text-2xl font-black">CONTRATO {rental.id.toUpperCase()}</h2>
+              <div>
+                <h2 className="text-3xl font-black tracking-tighter">CONTRATO {rental.id.toUpperCase()}</h2>
+                <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Locação Ativa</p>
+              </div>
             </div>
             <Badge className={cn(
-              "rounded-xl font-bold px-4 py-1 border-none",
+              "rounded-full font-black text-xs px-5 py-1.5 border-none tracking-widest uppercase",
               status === 'completed' ? "bg-emerald-500" : "bg-white/20"
             )}>{status}</Badge>
           </div>
         </div>
 
-        <div className="p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <div className="p-10 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {viewContractMode ? (
             <div className="space-y-6 animate-in fade-in zoom-in-95">
               <div className="flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md p-4 rounded-2xl z-10 border border-slate-100 shadow-sm">
@@ -225,71 +234,94 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             </div>
           ) : (
             <>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <div className="bg-slate-50 p-6 rounded-[2rem]">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Locatário</p>
-                    <p className="text-lg font-black text-slate-900">{rental.client}</p>
+                  <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Locatário</p>
+                    <p className="text-xl font-black text-slate-900">{rental.client}</p>
                   </div>
-                  <div className="bg-slate-50 p-6 rounded-[2rem]">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Item Locado</p>
-                    <p className="text-lg font-black text-slate-900">{rental.item}</p>
+                  <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Locado</p>
+                    <p className="text-xl font-black text-slate-900">{rental.item}</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1"><Label className="text-[10px] font-bold">Data de Início</Label><Input type="date" value={startDate} disabled className="rounded-xl h-10" /></div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-bold">Data de Devolução</Label>
+                      <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Início</Label>
+                      <Input type="date" value={startDate} disabled className="rounded-xl h-11 bg-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Devolução</Label>
                       <Input 
                         type="date" 
                         value={endDate} 
                         onChange={e => setEndDate(e.target.value)} 
                         disabled={status === 'completed' || !isInternal}
-                        className="rounded-xl h-10" 
+                        className="rounded-xl h-11 bg-white" 
                       />
                     </div>
                   </div>
-                  <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex justify-between items-center">
+                  <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 flex justify-between items-center shadow-sm">
                     <div>
-                      <p className="text-[10px] font-black text-blue-400 uppercase">{modality}</p>
+                      <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{modality}</p>
                       <p className="text-3xl font-black text-blue-700">R$ {totalValue}</p>
                     </div>
-                    {status === 'completed' && <CheckCircle2 className="h-8 w-8 text-emerald-500" />}
+                    {status === 'completed' ? (
+                      <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                        <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+                      </div>
+                    ) : (
+                      <div className="h-12 w-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                        <Clock className="h-7 w-7 text-blue-600" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {notes && (
-                <div className="bg-slate-50 p-4 rounded-2xl">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Observações do Contrato</p>
-                  <p className="text-xs font-medium text-slate-600 whitespace-pre-wrap">{notes}</p>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3">
+              <div className="space-y-3">
                 <Button 
                   onClick={() => setViewContractMode(true)} 
                   variant="outline"
-                  className="w-full h-14 rounded-2xl font-black border-blue-100 text-blue-700 hover:bg-blue-50 gap-2"
+                  className="w-full h-16 rounded-[2rem] font-black border-slate-100 text-blue-700 hover:bg-blue-50 gap-2 text-base transition-all"
                 >
                   <ScrollText className="h-5 w-5" /> Ver Contrato Formal
                 </Button>
                 
-                <div className="flex gap-3">
-                  {isInternal && status !== 'completed' && (
-                    <Button onClick={handleStartReturn} className="flex-1 bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-50">
-                      <RotateCcw className="mr-2 h-5 w-5" /> Devolver Item Agora
-                    </Button>
-                  )}
-                  <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl h-14 font-bold px-8 flex-1">
-                    Fechar Detalhes
-                  </Button>
-                </div>
+                {status !== 'completed' && (
+                  <div className="grid grid-cols-1 gap-3">
+                    {isInternal ? (
+                      <Button onClick={handleStartReturn} className="w-full bg-emerald-600 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-emerald-50 text-base gap-2 hover:bg-emerald-700">
+                        <RotateCcw className="h-6 w-6" /> Devolver Item Agora
+                      </Button>
+                    ) : (
+                      <Button onClick={handleClientRequestReturn} className="w-full bg-blue-700 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-blue-100 text-base gap-2 hover:bg-blue-800">
+                        <MessageCircle className="h-6 w-6" /> Solicitar Devolução via WhatsApp
+                      </Button>
+                    )}
+                    <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
+                      {isInternal ? "Finaliza o contrato e ajusta o saldo financeiro" : "A devolução depende da conferência física do gestor"}
+                    </p>
+                  </div>
+                )}
               </div>
+
+              {notes && (
+                <div className="bg-orange-50/50 p-6 rounded-[2rem] border border-orange-100">
+                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Observações Importantes</p>
+                  <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">{notes}</p>
+                </div>
+              )}
             </>
           )}
         </div>
+
+        <DialogFooter className="p-10 pt-0">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full rounded-2xl h-14 font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50">
+            Fechar Detalhes
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
