@@ -28,7 +28,7 @@ interface AddProductDialogProps {
   defaultCategory?: string;
 }
 
-const DEFAULT_UNITS = ["un", "m²", "m", "kg", "L", "cx"];
+const DEFAULT_UNITS = ["un", "m²", "m", "kg", "L", "cx", "saco"];
 
 const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, defaultCategory }: AddProductDialogProps) => {
   const [units, setUnits] = useState<string[]>(DEFAULT_UNITS);
@@ -90,6 +90,18 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
     }
   }, [product, open, defaultCategory, categories]);
 
+  // Regra automática para Argamassa
+  useEffect(() => {
+    if (formData.category === "Argamassa" && !product) {
+      setFormData(prev => ({
+        ...prev,
+        isFractional: true,
+        packageSize: "1",
+        unitLabel: "saco"
+      }));
+    }
+  }, [formData.category, product]);
+
   const handleAddUnit = (newUnit: string) => {
     if (units.includes(newUnit)) return;
     const newUnits = [...units, newUnit];
@@ -131,7 +143,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               <div className="space-y-2">
                 <Label className="text-slate-700 font-bold text-sm">Nome do Produto</Label>
                 <Input 
-                  placeholder="Ex: Porcelanato 60x60" 
+                  placeholder="Ex: Argamassa AC-III 20kg" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="rounded-2xl border-slate-200 h-12"
@@ -140,7 +152,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               <div className="space-y-2">
                 <Label className="text-slate-700 font-bold text-sm">Código/SKU</Label>
                 <Input 
-                  placeholder="PR-001" 
+                  placeholder="AR-001" 
                   value={formData.code}
                   onChange={(e) => setFormData({...formData, code: e.target.value})}
                   className="rounded-2xl border-slate-200 h-12"

@@ -58,7 +58,8 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const currentPrice = hasPromo ? product.promoPrice! : product.price;
 
   const isPackaged = product.isFractional && product.packageSize && product.packageSize > 0;
-  const isFloorCategory = product.category === "Pisos e revestimentos";
+  // Categorias que possuem calculadora (Pisos e Argamassa)
+  const hasCalculator = product.category === "Pisos e revestimentos" || product.category === "Argamassa";
   
   const currentQuantity = quantity === "" ? 0 : Number(quantity);
 
@@ -80,7 +81,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       setQuantity("");
       return;
     }
-    const num = parseInt(val);
+    const num = parseFloat(val);
     if (!isNaN(num)) setQuantity(num);
   };
 
@@ -93,7 +94,13 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   };
 
   const handleCalcResult = (value: number) => {
-    setDesiredAmount(value.toFixed(2));
+    // Se for Argamassa, o resultado já é em sacos, então definimos como quantidade
+    if (product.category === "Argamassa") {
+      setQuantity(Math.ceil(value));
+      setDesiredAmount(value.toFixed(2));
+    } else {
+      setDesiredAmount(value.toFixed(2));
+    }
     setIsCalcOpen(false);
   };
 
@@ -176,11 +183,11 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">Quanto você precisa ({product.unitLabel})?</Label>
-                {isFloorCategory && (
+                {hasCalculator && (
                   <Dialog open={isCalcOpen} onOpenChange={setIsCalcOpen}>
                     <DialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-blue-700 hover:bg-blue-100 rounded-lg gap-1">
-                        <CalcIcon className="h-3 w-3" /> Calcular Área
+                        <CalcIcon className="h-3 w-3" /> Calcular
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[600px] rounded-[3rem] p-0 border-none overflow-hidden">
