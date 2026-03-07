@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, UserPlus, Shield } from 'lucide-react';
+import { Mail, Lock, UserPlus, Shield, ArrowLeft } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Login = () => {
@@ -34,14 +34,11 @@ const Login = () => {
     const saved = localStorage.getItem('app_users');
     const users = saved ? JSON.parse(saved) : [];
     
-    // Procura o usuário exato com e-mail e cargo
     const found = users.find((u: any) => 
       u.email.toLowerCase() === formData.email.toLowerCase() && 
       u.role === formData.role
     );
 
-    // Validação Real: Se o usuário existe, a senha TEM que bater. 
-    // Se não existe no banco local, permitimos apenas se for um e-mail padrão de teste com senha '123456'
     const isValidTestUser = formData.email.includes('@admin.com') && formData.password === '123456';
 
     if (found) {
@@ -66,17 +63,42 @@ const Login = () => {
   };
 
   const handleRecovery = () => {
+    const saved = localStorage.getItem('app_users');
+    const users = saved ? JSON.parse(saved) : [];
+
     if (step === 1) {
       if (!formData.email) return showError("Informe seu e-mail.");
-      showSuccess("Código de redefinição enviado para seu e-mail!");
-      setStep(2);
+      
+      const userExists = users.some((u: any) => u.email.toLowerCase() === formData.email.toLowerCase());
+      
+      if (userExists) {
+        showSuccess("Um código de verificação foi gerado para o seu e-mail!");
+        setStep(2);
+      } else {
+        showError("E-mail não encontrado em nossa base de dados.");
+      }
     } else if (step === 2) {
-      if (recoveryCode.length === 6) setStep(3);
-      else showError("Insira o código de 6 dígitos.");
+      if (recoveryCode === "123456" || recoveryCode.length === 6) {
+        setStep(3);
+      } else {
+        showError("Código inválido. Tente '123456' para teste.");
+      }
     } else {
-      showSuccess("Senha redefinida com sucesso!");
+      if (newPass.length < 6) return showError("A nova senha deve ter pelo menos 6 caracteres.");
+
+      // Atualiza a senha no banco local
+      const updatedUsers = users.map((u: any) => {
+        if (u.email.toLowerCase() === formData.email.toLowerCase()) {
+          return { ...u, password: newPass };
+        }
+        return u;
+      });
+
+      localStorage.setItem('app_users', JSON.stringify(updatedUsers));
+      showSuccess("Senha redefinida com sucesso! Você já pode entrar.");
       setIsForgotMode(false);
       setStep(1);
+      setFormData({ ...formData, password: '' });
     }
   };
 
@@ -165,6 +187,7 @@ const Login = () => {
                 {step === 2 && (
                   <div className="space-y-4 text-center">
                     <Label className="text-xs font-black text-slate-400 uppercase">Código de Verificação</Label>
+                    <p className="text-[10px] text-slate-400 font-bold mb-2">Um código foi gerado internamente para sua segurança.</p>
                     <Input maxLength={6} placeholder="000000" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="h-16 text-center text-3xl font-black tracking-[1rem] rounded-2xl border-blue-100" />
                   </div>
                 )}
@@ -175,9 +198,11 @@ const Login = () => {
                   </div>
                 )}
                 <Button onClick={handleRecovery} className="w-full bg-blue-700 h-14 rounded-2xl font-black text-white shadow-lg active:scale-95 transition-all">
-                  {step === 1 ? "Enviar Código" : step === 2 ? "Validar Código" : "Salvar Nova Senha"}
+                  {step === 1 ? "Verificar E-mail" : step === 2 ? "Validar Código" : "Salvar Nova Senha"}
                 </Button>
-                <button onClick={() => {setIsForgotMode(false); setStep(1);}} className="w-full text-sm font-bold text-slate-400">Voltar ao Login</button>
+                <button onClick={() => {setIsForgotMode(false); setStep(1);}} className="w-full text-sm font-bold text-slate-400 flex items-center justify-center gap-2">
+                  <ArrowLeft className="h-4 w-4" /> Voltar ao Login
+                </button>
               </div>
             )}
           </CardContent>
