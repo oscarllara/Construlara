@@ -48,9 +48,19 @@ const ProfilePage = () => {
   }, [userOrders, userRentals]);
 
   const handleResendWhatsApp = (order: any) => {
+    const pixData = localStorage.getItem('app_pix_info');
+    const pixInfo = pixData ? JSON.parse(pixData) : { key: "16403481000116", name: "BTM Design", bank: "CC Crediplus" };
+
     let itemsText = order.items.map((it: any) => `• ${it.name}: ${it.isFractional ? it.totalAmount.toFixed(2) + (it.unitLabel || 'm²') : it.quantity + ' un'}`).join('%0A');
-    const msg = `*REENVIO DE PEDIDO*%0A*ID:* ${order.id}%0A*Total:* R$ ${Number(order.total).toFixed(2)}%0A%0A*Itens:*%0A${itemsText}`;
+    
+    const pixText = order.paymentMethod === 'Pix' 
+      ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
+      : '';
+
+    const msg = `*REENVIO DE PEDIDO - CONSTRULARA*%0A*ID:* ${order.id}%0A*Data:* ${order.date}%0A*Total:* R$ ${Number(order.total).toFixed(2)}${pixText}%0A%0A*Itens:*%0A${itemsText}`;
+    
     window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
+    showSuccess("Redirecionando para o WhatsApp...");
   };
 
   const handlePayment = (amount: number) => {
@@ -101,40 +111,60 @@ const ProfilePage = () => {
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-4">
-            {userOrders.map(order => (
-              <Card key={order.id} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
-                  <div>
-                    <h4 className="font-black">{order.id}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">{order.date}</p>
+            {userOrders.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
+                <ShoppingBag className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold">Você ainda não realizou pedidos.</p>
+              </div>
+            ) : (
+              userOrders.map(order => (
+                <Card key={order.id} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
+                    <div>
+                      <h4 className="font-black text-slate-900">{order.id}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.date}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="font-black text-blue-700 mr-4">R$ {Number(order.total).toFixed(2)}</p>
-                  <Button variant="ghost" onClick={() => { setSelectedOrder(order); setIsOrderOpen(true); }} className="rounded-xl"><Eye className="h-5 w-5" /></Button>
-                  <Button variant="ghost" onClick={() => handleResendWhatsApp(order)} className="text-emerald-600"><MessageCircle className="h-5 w-5" /></Button>
-                </div>
-              </Card>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right mr-4">
+                      <p className="font-black text-blue-700">R$ {Number(order.total).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status}</Badge>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => { setSelectedOrder(order); setIsOrderOpen(true); }} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleResendWhatsApp(order)} className="text-emerald-600 hover:bg-emerald-50 rounded-xl" title="Reenviar Pedido"><MessageCircle className="h-5 w-5" /></Button>
+                  </div>
+                </Card>
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="rentals" className="space-y-4">
-            {userRentals.map(rental => (
-              <Card key={rental.id} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
-                  <div>
-                    <h4 className="font-black">{rental.item}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">{rental.start} até {rental.end}</p>
+            {userRentals.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
+                <Calendar className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold">Você ainda não possui contratos de locação.</p>
+              </div>
+            ) : (
+              userRentals.map(rental => (
+                <Card key={rental.id} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
+                    <div>
+                      <h4 className="font-black text-slate-900">{rental.item}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start} até {rental.end}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="font-black text-slate-900 mr-4">R$ {Number(rental.total).toFixed(2)}</p>
-                  <Button onClick={() => { setSelectedRental(rental); setIsRentalOpen(true); }} className="bg-blue-600 rounded-xl h-10 px-6 font-bold">Ver Contrato</Button>
-                </div>
-              </Card>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right mr-4">
+                      <p className="font-black text-slate-900">R$ {Number(rental.total).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status}</Badge>
+                    </div>
+                    <Button onClick={() => { setSelectedRental(rental); setIsRentalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Ver Contrato</Button>
+                  </div>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
