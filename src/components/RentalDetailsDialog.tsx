@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -11,11 +11,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Hammer, FileText, AlertCircle, RotateCcw, Hash, Tag, Calendar, ArrowLeft, Printer, Eye, ScrollText, CheckCircle2, MessageCircle } from 'lucide-react';
+import { 
+  RotateCcw, 
+  ArrowLeft, 
+  Printer, 
+  ScrollText, 
+  CheckCircle2, 
+  MessageCircle, 
+  Clock 
+} from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
@@ -50,26 +56,27 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   useEffect(() => {
     if (rental && open) {
-      setStatus(rental.status || "active");
-      setNotes(rental.notes || "");
+      setStatus(String(rental.status || "active"));
+      setNotes(String(rental.notes || ""));
       setViewContractMode(false);
       
       const toISODate = (dateStr: any) => {
-        if (!dateStr || typeof dateStr !== 'string') return "";
-        if (dateStr.includes('/')) {
-          const parts = dateStr.split('/');
+        if (!dateStr) return "";
+        const s = String(dateStr);
+        if (s.includes('/')) {
+          const parts = s.split('/');
           if (parts.length === 3) {
             const [d, m, y] = parts;
             return `${y}-${m}-${d}`;
           }
         }
-        return dateStr;
+        return s;
       };
       
       setStartDate(toISODate(rental.start));
       setEndDate(toISODate(rental.end));
-      setModality(rental.modality || "Diária");
-      setTotalValue(rental.total?.toString() || "0.00");
+      setModality(String(rental.modality || "Diária"));
+      setTotalValue(String(rental.total || "0.00"));
       setShowReturnForm(false);
       
       const savedUsers = localStorage.getItem('app_users');
@@ -84,14 +91,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       if (savedEquip) {
         try {
           const allEquip: Equipment[] = JSON.parse(savedEquip);
-          const found = allEquip.find(e => e.id === rental.equipmentId || e.name === rental.item);
+          const found = allEquip.find(e => String(e.id) === String(rental.equipmentId) || e.name === rental.item);
           setEquipment(found || null);
         } catch (e) { setEquipment(null); }
       }
     }
   }, [rental, open]);
 
-  // Recálculo de Valor Automático
   useEffect(() => {
     if (!startDate || !endDate || !equipment) return;
 
@@ -121,8 +127,8 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       }
 
       setModality(displayModality);
-      setTotalValue((calculatedTotal || 0).toFixed(2));
-    } catch (e) { console.error("Erro no cálculo:", e); }
+      setTotalValue(calculatedTotal.toFixed(2));
+    } catch (e) { console.error(e); }
   }, [startDate, endDate, equipment]);
 
   const handleStartReturn = () => {
@@ -140,8 +146,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const handleProcessReturn = () => {
     const formatDate = (dateStr: string) => {
       if (!dateStr || !dateStr.includes('-')) return dateStr;
-      const parts = dateStr.split('-');
-      const [y, m, d] = parts;
+      const [y, m, d] = dateStr.split('-');
       return `${d}/${m}/${y}`;
     };
 
@@ -162,7 +167,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       try {
         const allEquip = JSON.parse(savedEquip);
         const newEquip = allEquip.map((e: any) => 
-          (e.id === rental.equipmentId || e.name === rental.item) ? { ...e, status: returnStatus, lastClient: undefined } : e
+          (String(e.id) === String(rental.equipmentId) || e.name === rental.item) ? { ...e, status: returnStatus, lastClient: undefined } : e
         );
         localStorage.setItem('app_equipments', JSON.stringify(newEquip));
       } catch (e) {}
@@ -174,13 +179,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     window.dispatchEvent(new Event('order-placed'));
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   if (!rental) return null;
 
-  const currentClient = allClients.find(c => c.id === rental.clientId || c.name === rental.client);
+  const currentClient = allClients.find(c => String(c.id) === String(rental.clientId) || c.name === rental.client);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,7 +198,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </Button>
               )}
               <div>
-                <h2 className="text-3xl font-black tracking-tighter">CONTRATO {(rental.id || "").toUpperCase()}</h2>
+                <h2 className="text-3xl font-black tracking-tighter">CONTRATO {String(rental.id || "").toUpperCase()}</h2>
                 <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Locação Ativa</p>
               </div>
             </div>
@@ -213,7 +214,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             <div className="space-y-6 animate-in fade-in zoom-in-95">
               <div className="flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md p-4 rounded-2xl z-10 border border-slate-100 shadow-sm">
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Visualização do Contrato Formal</p>
-                <Button onClick={handlePrint} className="bg-slate-900 text-white rounded-xl font-bold h-10 px-6 gap-2">
+                <Button onClick={() => window.print()} className="bg-slate-900 text-white rounded-xl font-bold h-10 px-6 gap-2">
                   <Printer className="h-4 w-4" /> Imprimir Documento
                 </Button>
               </div>
@@ -226,7 +227,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Final Ajustado</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Calculado até hoje ({format(new Date(), 'dd/MM/yyyy')})</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Calculado até hoje</p>
                   </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
@@ -311,19 +312,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                         <MessageCircle className="h-6 w-6" /> Solicitar Devolução via WhatsApp
                       </Button>
                     )}
-                    <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
-                      {isInternal ? "Finaliza o contrato e ajusta o saldo financeiro" : "A devolução depende da conferência física do gestor"}
-                    </p>
                   </div>
                 )}
               </div>
-
-              {notes && (
-                <div className="bg-orange-50/50 p-6 rounded-[2rem] border border-orange-100">
-                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">Observações Importantes</p>
-                  <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">{notes}</p>
-                </div>
-              )}
             </>
           )}
         </div>

@@ -37,7 +37,7 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
         </div>
         <div className="text-right space-y-1">
           <p className="font-bold text-lg">CONTRATO DE LOCAÇÃO</p>
-          <p className="text-xl font-bold text-blue-800">Nº {(rental.id || "").toUpperCase()}</p>
+          <p className="text-xl font-bold text-blue-800">Nº {String(rental.id || "").toUpperCase()}</p>
           <p className="text-xs">Emissão: {today}</p>
         </div>
       </div>
@@ -48,26 +48,26 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
           <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">1. IDENTIFICAÇÃO DAS PARTES</h2>
           <div className="grid grid-cols-1 gap-2">
             <p><strong>LOCADOR:</strong> BTM Comércio de Material de Construção Ltda (CONSTRULARA).</p>
-            <p><strong>LOCATÁRIO:</strong> {rental.client || 'Não informado'}</p>
-            <p><strong>CPF/CNPJ:</strong> {client?.cpf || '---'}</p>
-            <p><strong>ENDEREÇO:</strong> {client?.address || '---'}, {client?.neighborhood || ''} - {client?.city || ''}/{client?.state || ''}</p>
-            <p><strong>CONTATO:</strong> {client?.whatsapp || rental.whatsapp || '---'}</p>
+            <p><strong>LOCATÁRIO:</strong> {String(rental.client || 'Não informado')}</p>
+            <p><strong>CPF/CNPJ:</strong> {String(client?.cpf || '---')}</p>
+            <p><strong>ENDEREÇO:</strong> {String(client?.address || '---')}, {String(client?.neighborhood || '')} - {String(client?.city || '')}/{String(client?.state || '')}</p>
+            <p><strong>CONTATO:</strong> {String(client?.whatsapp || rental.whatsapp || '---')}</p>
           </div>
         </section>
 
         <section>
           <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">2. OBJETO E PRAZO DA LOCAÇÃO</h2>
           <div className="grid grid-cols-1 gap-2">
-            <p>O LOCADOR cede ao LOCATÁRIO o uso do equipamento: <strong>{rental.item || "---"}</strong>.</p>
-            <p><strong>DATA DE INÍCIO:</strong> {rental.start || "---"}</p>
-            <p><strong>PREVISÃO DE DEVOLUÇÃO:</strong> {rental.end || "---"}</p>
-            <p><strong>MODALIDADE DE COBRANÇA:</strong> {rental.modality || "---"}</p>
+            <p>O LOCADOR cede ao LOCATÁRIO o uso do equipamento: <strong>{String(rental.item || "---")}</strong>.</p>
+            <p><strong>DATA DE INÍCIO:</strong> {String(rental.start || "---")}</p>
+            <p><strong>PREVISÃO DE DEVOLUÇÃO:</strong> {String(rental.end || "---")}</p>
+            <p><strong>MODALIDADE DE COBRANÇA:</strong> {String(rental.modality || "---")}</p>
           </div>
         </section>
 
         <section>
           <h2 className="font-bold border-b border-slate-300 mb-3 uppercase text-xs tracking-widest">3. VALORES E CONDIÇÕES FINANCEIRAS</h2>
-          <p>O valor total estimado para o período contratado é de <strong>R$ {(Number(rental.total) || 0).toFixed(2)}</strong>.</p>
+          <p>O valor total estimado para o período contratado é de <strong>R$ {Number(rental.total || 0).toFixed(2)}</strong>.</p>
           <p className="text-xs italic mt-2">Nota: Valores adicionais podem ser aplicados em caso de atraso na devolução ou danos ao equipamento.</p>
         </section>
 
@@ -91,13 +91,9 @@ const RentalContract = ({ rental, client, className }: RentalContractProps) => {
         </div>
         <div className="text-center space-y-1">
           <div className="border-t border-slate-900 pt-2"></div>
-          <p className="font-bold text-xs uppercase">{rental.client || 'LOCATÁRIO'}</p>
+          <p className="font-bold text-xs uppercase">{String(rental.client || 'LOCATÁRIO')}</p>
           <p className="text-[10px] uppercase">Locatário</p>
         </div>
-      </div>
-
-      <div className="mt-16 text-center text-[9px] text-slate-400 border-t border-slate-100 pt-4">
-        Este documento é um registro digital gerado pelo Sistema Construlara em {today} às {new Date().toLocaleTimeString()}.
       </div>
     </div>
   );
