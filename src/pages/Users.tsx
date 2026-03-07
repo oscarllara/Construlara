@@ -15,6 +15,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 
 const INITIAL_USERS: UserAccount[] = [
+  { id: 'admin-master', name: 'Gestor Geral', email: 'admin@admin.com', whatsapp: '(32) 3374-1135', cpf: '000.000.000-00', role: 'Gestor', status: 'active', lastAccess: 'Agora' },
   { id: 'u1', name: 'Admin Sistema', email: 'admin@empresa.com', whatsapp: '(11) 99999-9999', cpf: '000.000.000-01', role: 'Gestor', status: 'active', lastAccess: 'Hoje, 09:45' },
   { id: 'u2', name: 'João Silva', email: 'joao.silva@empresa.com', whatsapp: '(11) 98888-8888', cpf: '000.000.000-02', role: 'Entregador', status: 'active', lastAccess: 'Ontem, 18:20' },
   { id: 'u3', name: 'Ricardo Vendas', email: 'ricardo.vendas@empresa.com', whatsapp: '(11) 97777-7777', cpf: '000.000.000-03', role: 'Vendas', status: 'active', lastAccess: '24/05/2024' },

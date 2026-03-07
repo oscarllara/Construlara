@@ -34,14 +34,21 @@ const Login = () => {
     const saved = localStorage.getItem('app_users');
     const users = saved ? JSON.parse(saved) : [];
     
+    // Verifica primeiro se é o usuário mestre solicitado
+    const isAdminMaster = formData.email.toLowerCase() === 'admin@admin.com' && formData.password === 'Senha@123';
+
     const found = users.find((u: any) => 
       u.email.toLowerCase() === formData.email.toLowerCase() && 
       u.role === formData.role
     );
 
-    const isValidTestUser = formData.email.includes('@admin.com') && formData.password === '123456';
-
-    if (found) {
+    if (isAdminMaster) {
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userEmail', 'admin@admin.com');
+      localStorage.setItem('userRole', 'Gestor');
+      showSuccess(`Bem-vindo, Administrador!`);
+      navigate('/');
+    } else if (found) {
       if (found.password === formData.password) {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userEmail', formData.email);
@@ -51,12 +58,6 @@ const Login = () => {
       } else {
         showError("Senha incorreta.");
       }
-    } else if (isValidTestUser) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', formData.email);
-      localStorage.setItem('userRole', formData.role);
-      showSuccess(`Acesso administrativo de teste.`);
-      navigate('/');
     } else {
       showError("Usuário não cadastrado para este nível de acesso.");
     }
@@ -86,7 +87,6 @@ const Login = () => {
     } else {
       if (newPass.length < 6) return showError("A nova senha deve ter pelo menos 6 caracteres.");
 
-      // Atualiza a senha no banco local
       const updatedUsers = users.map((u: any) => {
         if (u.email.toLowerCase() === formData.email.toLowerCase()) {
           return { ...u, password: newPass };
