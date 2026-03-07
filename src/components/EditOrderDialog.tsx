@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ShoppingBag, Package, Trash2, Clock, CheckCircle2, CreditCard, Plus, Minus, Save, Printer, ArrowLeft, Info, MessageCircle } from 'lucide-react';
+import { ShoppingBag, Package, Trash2, Clock, CheckCircle2, CreditCard, Plus, Minus, Save, Printer, ArrowLeft, Info, MessageCircle, Calculator as CalcIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OrderCoupon from './OrderCoupon';
+import Calculators from './Calculators';
 import { showSuccess } from '@/utils/toast';
 
 interface EditOrderDialogProps {
@@ -30,6 +31,7 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
   const [editedItems, setEditedItems] = useState<any[]>([]);
   const [editedPayment, setEditedPayment] = useState<string>("");
   const [isPrinting, setIsPrinting] = useState(false);
+  const [activeCalculatorIdx, setActiveCalculatorIdx] = useState<number | null>(null);
 
   const userRole = localStorage.getItem('userRole');
   const canPrint = ['Gestor', 'Vendas'].includes(userRole || '');
@@ -39,6 +41,7 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
       setEditedItems(JSON.parse(JSON.stringify(order.items || [])));
       setEditedPayment(order.paymentMethod || "Pix");
       setIsPrinting(false);
+      setActiveCalculatorIdx(null);
     }
   }, [order, open]);
 
@@ -61,7 +64,6 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
     const item = newItems[idx];
     
     if (item.isFractional) {
-      // Trava de edição por caixa fechada: incrementa de acordo com o tamanho da embalagem
       const step = item.packageSize || 1;
       const currentAmount = Number(item.totalAmount) || step;
       const currentPacks = Math.round(currentAmount / step);
@@ -89,6 +91,13 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
         newItems[idx].quantity = Math.floor(num);
       }
       setEditedItems(newItems);
+    }
+  };
+
+  const handleCalcResult = (value: number) => {
+    if (activeCalculatorIdx !== null) {
+      handleManualAmount(activeCalculatorIdx, value.toFixed(2));
+      setActiveCalculatorIdx(null);
     }
   };
 
@@ -129,7 +138,6 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
-        {/* Banner do Diálogo */}
         <div className="bg-blue-700 p-10 text-white relative">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
@@ -150,13 +158,18 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
         </div>
 
         <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          {isPrinting ? (
+          {activeCalculatorIdx !== null ? (
+            <div className="animate-in fade-in zoom-in-95">
+              <div className="flex items-center gap-4 mb-4">
+                <Button variant="ghost" onClick={() => setActiveCalculatorIdx(null)} className="rounded-xl gap-2 font-bold"><ArrowLeft className="h-4 w-4" /> Voltar</Button>
+                <h3 className="font-black text-slate-900">Calculando Área: {editedItems[activeCalculatorIdx].name}</h3>
+              </div>
+              <Calculators onResult={handleCalcResult} hideHeader />
+            </div>
+          ) : isPrinting ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center animate-pulse">
               <Printer className="h-16 w-16 text-blue-600" />
-              <div>
-                <p className="font-black text-slate-900 text-lg">Preparando Impressão</p>
-                <p className="text-slate-400 font-medium">O cupom térmico será enviado para sua impressora.</p>
-              </div>
+              <div><p className="font-black text-slate-900 text-lg">Preparando Impressão</p></div>
             </div>
           ) : (
             <>
@@ -168,8 +181,14 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
                         <p className="font-black text-slate-900 text-xl leading-tight">{item.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Unit: R$ {(item.promoPrice || item.price).toFixed(2)}</p>
-                          {item.isFractional && (
-                            <Badge variant="outline" className="text-[9px] font-bold h-4 rounded-lg bg-blue-50 border-blue-200 text-blue-700">Cx {item.packageSize}{item.unitLabel}</Badge>
+                          {(item.category === 'Argamassa' || item.category === 'Pisos e revestimentos') && isPending && (
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => setActiveCalculatorIdx(idx)}
+                              className="h-6 text-[9px] font-black uppercase text-blue-700 hover:bg-blue-100 rounded-lg gap-1 px-2"
+                            >
+                              <CalcIcon className="h-3 w-3" /> Calcular
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -182,7 +201,7 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
                         <div className="flex flex-col items-center min-w-[100px]">
                           <Input 
                             className="h-8 border-none text-center font-black text-2xl focus-visible:ring-0 p-0 text-slate-900" 
-                            value={item.isFractional ? item.totalAmount.toFixed(0) : item.quantity}
+                            value={item.isFractional ? item.totalAmount.toFixed(2) : item.quantity}
                             onChange={(e) => handleManualAmount(idx, e.target.value)}
                           />
                           <span className="text-[10px] font-black uppercase text-blue-500 mt-1">{item.unitLabel || 'un'}</span>
@@ -195,9 +214,28 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
               </div>
 
               <div className="bg-blue-50/50 p-8 rounded-[3rem] border-2 border-dashed border-blue-100 flex justify-between items-center">
-                <div className="space-y-1">
+                <div className="space-y-3">
                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Forma de Pagamento</p>
-                  <p className="font-black text-blue-900 text-xl">{editedPayment}</p>
+                  {isPending ? (
+                    <div className="flex gap-2">
+                      <Button 
+                        variant={editedPayment === 'Pix' ? 'default' : 'outline'}
+                        onClick={() => setEditedPayment('Pix')}
+                        className={cn("h-9 rounded-xl font-bold text-xs", editedPayment === 'Pix' && "bg-blue-700")}
+                      >
+                        Pix
+                      </Button>
+                      <Button 
+                        variant={editedPayment === 'Loja' ? 'default' : 'outline'}
+                        onClick={() => setEditedPayment('Loja')}
+                        className={cn("h-9 rounded-xl font-bold text-xs", editedPayment === 'Loja' && "bg-blue-700")}
+                      >
+                        Loja
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="font-black text-blue-900 text-xl">{editedPayment}</p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Total do Pedido</p>
@@ -208,7 +246,7 @@ const EditOrderDialog = ({ order, open, onOpenChange, onCancel, onSave }: EditOr
           )}
         </div>
 
-        {!isPrinting && (
+        {!isPrinting && activeCalculatorIdx === null && (
           <DialogFooter className="p-8 pt-0 grid grid-cols-2 md:flex md:flex-row gap-3">
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl font-bold h-14 order-4 md:order-1 md:flex-1">Fechar</Button>
             

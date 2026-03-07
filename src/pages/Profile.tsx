@@ -63,6 +63,28 @@ const ProfilePage = () => {
     showSuccess("Redirecionando para o WhatsApp...");
   };
 
+  const handleCancelOrder = (id: string) => {
+    if (window.confirm("Deseja realmente cancelar este pedido?")) {
+      const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
+      const updated = orders.filter((o: any) => o.id !== id);
+      localStorage.setItem('app_orders', JSON.stringify(updated));
+      showSuccess("Pedido cancelado com sucesso.");
+      setIsOrderOpen(false);
+      loadData();
+      window.dispatchEvent(new Event('order-placed'));
+    }
+  };
+
+  const handleSaveOrder = (updatedOrder: any) => {
+    const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
+    const updated = orders.map((o: any) => o.id === updatedOrder.id ? updatedOrder : o);
+    localStorage.setItem('app_orders', JSON.stringify(updated));
+    showSuccess("Pedido atualizado!");
+    setIsOrderOpen(false);
+    loadData();
+    window.dispatchEvent(new Event('order-placed'));
+  };
+
   const handlePayment = (amount: number) => {
     if (!selectedPaymentItem) return;
     const type = selectedPaymentItem.type === 'order' ? 'app_orders' : 'app_rentals';
@@ -169,7 +191,7 @@ const ProfilePage = () => {
         </Tabs>
       </div>
 
-      <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={() => {}} onSave={() => {}} />
+      <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={handleCancelOrder} onSave={handleSaveOrder} />
       <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={() => {}} />
       <PaymentActionDialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen} item={selectedPaymentItem ? { ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label } : null} onConfirm={handlePayment} />
     </AppLayout>
