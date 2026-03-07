@@ -54,11 +54,14 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setNotes(rental.notes || "");
       setViewContractMode(false);
       
-      const toISODate = (dateStr: string) => {
-        if (!dateStr) return "";
-        if (typeof dateStr === 'string' && dateStr.includes('/')) {
-          const [d, m, y] = dateStr.split('/');
-          if (d && m && y) return `${y}-${m}-${d}`;
+      const toISODate = (dateStr: any) => {
+        if (!dateStr || typeof dateStr !== 'string') return "";
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split('/');
+          if (parts.length === 3) {
+            const [d, m, y] = parts;
+            return `${y}-${m}-${d}`;
+          }
         }
         return dateStr;
       };
@@ -66,7 +69,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setStartDate(toISODate(rental.start));
       setEndDate(toISODate(rental.end));
       setModality(rental.modality || "Diária");
-      setTotalValue(rental.total?.toString() || "0");
+      setTotalValue(rental.total?.toString() || "0.00");
       setShowReturnForm(false);
       
       const savedUsers = localStorage.getItem('app_users');
@@ -129,16 +132,15 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   };
 
   const handleClientRequestReturn = () => {
-    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id}%0A*Item:* ${rental?.item}%0A*Locatário:* ${rental?.client}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
+    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id || ''}%0A*Item:* ${rental?.item || ''}%0A*Locatário:* ${rental?.client || ''}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
     window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
     showSuccess("Solicitação enviada via WhatsApp!");
   };
 
   const handleProcessReturn = () => {
     const formatDate = (dateStr: string) => {
-      if (!dateStr) return "";
+      if (!dateStr || !dateStr.includes('-')) return dateStr;
       const parts = dateStr.split('-');
-      if (parts.length !== 3) return dateStr;
       const [y, m, d] = parts;
       return `${d}/${m}/${y}`;
     };
