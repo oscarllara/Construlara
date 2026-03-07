@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -29,7 +29,7 @@ import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
-import { differenceInDays, parse, format, isValid } from 'date-fns';
+import { differenceInCalendarDays, parse, format, isValid, parseISO } from 'date-fns';
 import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
@@ -41,7 +41,7 @@ interface RentalDetailsDialogProps {
 
 const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDetailsDialogProps) => {
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
-  const [equipment, setEquipment] = useState<Equipment | null>(null);
+  const [allEquipments, setAllEquipments] = useState<Equipment[]>([]);
   const [viewContractMode, setViewContractMode] = useState(false);
   
   const [status, setStatus] = useState("");
@@ -57,6 +57,25 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isInternal = ['Gestor', 'Vendas', 'Entregador'].includes(userRole);
 
+  // Carrega dados iniciais
+  useEffect(() => {
+    const savedUsers = localStorage.getItem('app_users');
+    if (savedUsers) {
+      try {
+        const parsed = JSON.parse(savedUsers);
+        setAllClients(Array.isArray(parsed) ? parsed : []);
+      } catch (e) { setAllClients([]); }
+    }
+
+    const savedEquip = localStorage.getItem('app_equipments');
+    if (savedEquip) {
+      try {
+        setAllEquipments(JSON.parse(savedEquip));
+      } catch (e) { setAllEquipments([]); }
+    }
+  }, [open]);
+
+  // Inicializa o formulário com os dados da locação
   useEffect(() => {
     if (rental && open) {
       setStatus(String(rental.status || "active"));
@@ -79,60 +98,58 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setStartDate(toISODate(rental.start));
       setEndDate(toISODate(rental.end));
       setModality(String(rental.modality || "Diária"));
-      setTotalValue(String(rental.total || "0.00"));
+      setTotalValue(Number(rental.total || 0).toFixed(2));
       setShowReturnForm(false);
-      
-      const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) {
-        try {
-          const parsed = JSON.parse(savedUsers);
-          setAllClients(Array.isArray(parsed) ? parsed : []);
-        } catch (e) { setAllClients([]); }
-      }
-
-      const savedEquip = localStorage.getItem('app_equipments');
-      if (savedEquip) {
-        try {
-          const allEquip: Equipment[] = JSON.parse(savedEquip);
-          const found = allEquip.find(e => String(e.id) === String(rental.equipmentId) || e.name === rental.item);
-          setEquipment(found || null);
-        } catch (e) { setEquipment(null); }
-      }
     }
   }, [rental, open]);
 
+  // Encontra o equipamento atual
+  const currentEquipment = useMemo(() => {
+    if (!rental || allEquipments.length === 0) return null;
+    return allEquipments.find(e => 
+      String(e.id) === String(rental.equipmentId) || 
+      e.name === rental.item
+    ) || null;
+  }, [rental, allEquipments]);
+
+  // Lógica de Recálculo Automático
   useEffect(() => {
-    if (!startDate || !endDate || !equipment) return;
+    if (!startDate || !endDate || !currentEquipment) return;
 
     try {
-      const start = parse(startDate, 'yyyy-MM-dd', new Date());
-      const end = parse(endDate, 'yyyy-MM-dd', new Date());
+      // Usamos parseISO para strings YYYY-MM-DD
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
       
       if (!isValid(start) || !isValid(end)) return;
 
-      const totalDays = Math.max(1, differenceInDays(end, start) + 1);
+      // Cálculo de dias corridos (Inclusivo: início e fim contam)
+      const totalDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
       
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
+      // Aplicação das regras de negócio
       if (totalDays >= 20) {
         displayModality = "Mensal";
-        calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20);
+        calculatedTotal = currentEquipment.monthlyRate || (currentEquipment.dailyRate * 20);
       } else if (totalDays >= 11) {
         displayModality = "Quinzenal";
-        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11);
+        calculatedTotal = currentEquipment.biweeklyRate || (currentEquipment.dailyRate * 11);
       } else if (totalDays >= 4) {
         displayModality = "Semanal";
-        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4);
+        calculatedTotal = currentEquipment.weeklyRate || (currentEquipment.dailyRate * 4);
       } else {
         displayModality = "Diária";
-        calculatedTotal = equipment.dailyRate * totalDays;
+        calculatedTotal = currentEquipment.dailyRate * totalDays;
       }
 
       setModality(displayModality);
       setTotalValue(calculatedTotal.toFixed(2));
-    } catch (e) { console.error(e); }
-  }, [startDate, endDate, equipment]);
+    } catch (e) { 
+      console.error("Erro no recálculo:", e); 
+    }
+  }, [startDate, endDate, currentEquipment]);
 
   const handleStartReturn = () => {
     setShowReturnForm(true);
@@ -145,18 +162,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       notes: (notes ? notes + "\n" : "") + `Solicitação de devolução enviada pelo cliente em ${format(new Date(), 'dd/MM/yyyy HH:mm')}.`
     };
     onUpdate(updatedRental);
-    showSuccess("Solicitação de devolução enviada com sucesso!");
+    showSuccess("Solicitação de devolução enviada!");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
 
   const handleClientRequestReturnWhatsApp = () => {
-    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id || ''}%0A*Item:* ${rental?.item || ''}%0A*Locatário:* ${rental?.client || ''}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
+    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id || ''}%0A*Item:* ${rental?.item || ''}%0A*Locatário:* ${rental?.client || ''}%0A%0A_Gostaria de agendar a devolução deste equipamento._`;
     window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
   };
 
   const handleProcessReturn = () => {
-    const formatDate = (dateStr: string) => {
+    const formatDateToBR = (dateStr: string) => {
       if (!dateStr || !dateStr.includes('-')) return dateStr;
       const [y, m, d] = dateStr.split('-');
       return `${d}/${m}/${y}`;
@@ -167,33 +184,38 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     const updatedRental = {
       ...rental,
       status: 'completed',
-      end: formatDate(endDate),
+      start: formatDateToBR(startDate),
+      end: formatDateToBR(endDate),
       total: finalTotal,
-      paidAmount: finalTotal,
+      paidAmount: finalTotal, // No recebimento, consideramos pago integralmente
       modality: modality,
       notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
+    // Atualiza status do equipamento no inventário
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       try {
         const allEquip = JSON.parse(savedEquip);
         const newEquip = allEquip.map((e: any) => 
-          (String(e.id) === String(rental.equipmentId) || e.name === rental.item) ? { ...e, status: returnStatus, lastClient: undefined } : e
+          (String(e.id) === String(rental.equipmentId) || e.name === rental.item) 
+            ? { ...e, status: returnStatus, lastClient: undefined } 
+            : e
         );
         localStorage.setItem('app_equipments', JSON.stringify(newEquip));
       } catch (e) {}
     }
 
     onUpdate(updatedRental);
-    showSuccess("Recebimento confirmado e contrato finalizado!");
+    showSuccess("Contrato finalizado com sucesso!");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
 
   const setTodayDate = () => {
-    setEndDate(new Date().toISOString().split('T')[0]);
-    showSuccess("Data atualizada para hoje.");
+    const today = new Date().toISOString().split('T')[0];
+    setEndDate(today);
+    showSuccess("Data de devolução ajustada para hoje.");
   };
 
   if (!rental) return null;
@@ -255,42 +277,42 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Confirmar Recebimento</h3>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase">Período Selecionado</p>
-                  <p className="text-xs font-bold text-slate-500">{format(parse(startDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')} até {format(parse(endDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}</p>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase">Resumo Financeiro</p>
+                  <p className="text-xs font-bold text-slate-500">Período: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
                 </div>
               </div>
               
               <div className="grid gap-4">
                 <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Total a Liquidar ({modality})</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Baseado na data de devolução informada</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor do Período ({modality})</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Cálculo automático baseado no tempo de uso</p>
                   </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold text-emerald-900">O item está em perfeitas condições?</Label>
+                  <Label className="font-bold text-emerald-900">Estado de conservação para retorno:</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Sim, Disponível</Button>
-                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Não, Manutenção</Button>
+                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Pronto p/ Uso</Button>
+                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Precisa de Reparo</Button>
                   </div>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Voltar e Ajustar Data</Button>
-                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Finalizar Contrato</Button>
+                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Ajustar Datas</Button>
+                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Confirmar e Liquidar</Button>
                 </div>
               </div>
             </div>
           ) : (
             <>
               {isPendingReturn && (
-                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-4 items-center">
+                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-4 items-center animate-pulse">
                   <div className="h-12 w-12 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
                     <AlertTriangle className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-orange-900">Devolução Solicitada pelo Cliente</p>
-                    <p className="text-xs font-bold text-orange-700">Aguardando conferência física e confirmação do gestor para encerrar o contrato.</p>
+                    <p className="text-sm font-black text-orange-900">Devolução Solicitada</p>
+                    <p className="text-xs font-bold text-orange-700">Verifique a integridade do item e confirme o recebimento abaixo.</p>
                   </div>
                 </div>
               )}
@@ -310,7 +332,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Início</Label>
-                      <Input type="date" value={startDate} disabled className="rounded-xl h-11 bg-white" />
+                      <Input type="date" value={startDate} disabled className="rounded-xl h-11 bg-slate-100/50 font-medium" />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between mb-0.5">
@@ -318,9 +340,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                         {isInternal && status !== 'completed' && (
                           <button 
                             onClick={setTodayDate}
-                            className="text-[9px] font-black text-blue-700 hover:underline uppercase tracking-tighter"
+                            className="text-[9px] font-black text-blue-700 hover:text-blue-900 uppercase tracking-tighter"
                           >
-                            Hoje
+                            Definir Hoje
                           </button>
                         )}
                       </div>
@@ -330,7 +352,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                           value={endDate} 
                           onChange={e => setEndDate(e.target.value)} 
                           disabled={status === 'completed' || !isInternal}
-                          className="rounded-xl h-11 bg-white pr-10" 
+                          className="rounded-xl h-11 bg-white pr-10 border-blue-200 focus:ring-blue-500" 
                         />
                         <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
                       </div>
@@ -364,7 +386,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   <div className="grid grid-cols-1 gap-3">
                     {isInternal ? (
                       <Button onClick={handleStartReturn} className="w-full bg-emerald-600 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-emerald-50 text-base gap-2 hover:bg-emerald-700">
-                        <RotateCcw className="h-6 w-6" /> Confirmar Recebimento
+                        <RotateCcw className="h-6 w-6" /> Confirmar Recebimento e Finalizar
                       </Button>
                     ) : (
                       <>
