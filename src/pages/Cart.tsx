@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, CheckCircle2, UserCheck, Info } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, CheckCircle2, UserCheck, Info, UserRoundSearch } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,14 @@ const CartPage = () => {
 
     if (isInternal) {
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) setAllClients(JSON.parse(savedUsers).filter((u: any) => u.role === 'Cliente'));
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          setAllClients(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setAllClients([]);
+        }
+      }
     }
   }, [isInternal]);
 
@@ -61,7 +68,6 @@ const CartPage = () => {
     const updated = cart.map(item => {
       if (item.id === id) {
         if (item.isFractional) {
-          // Bloqueia edição fora da caixa para itens fracionados
           const step = item.packageSize || 1;
           const currentAmount = Number(item.totalAmount) || step;
           const currentPacks = Math.round(currentAmount / step);
@@ -94,7 +100,18 @@ const CartPage = () => {
     const date = new Date().toLocaleDateString('pt-BR');
     const savedOrders = JSON.parse(localStorage.getItem('app_orders') || '[]');
 
-    const newOrder = { id: orderId, date, userEmail: finalEmail, clientName: finalName, items: [...cart], total, paidAmount: 0, paymentMethod, status: 'Pendente' };
+    const newOrder = { 
+      id: orderId, 
+      date, 
+      userEmail: finalEmail, 
+      clientName: finalName, 
+      items: [...cart], 
+      total, 
+      paidAmount: 0, 
+      paymentMethod, 
+      status: 'Pendente' 
+    };
+    
     localStorage.setItem('app_orders', JSON.stringify([newOrder, ...savedOrders]));
     
     let itemsText = cart.map(it => `• ${it.name}: ${it.isFractional ? it.totalAmount.toFixed(2) + (it.unitLabel || 'm²') : it.quantity + ' un'}`).join('%0A');
@@ -126,13 +143,30 @@ const CartPage = () => {
           <div className="lg:col-span-2 space-y-8">
             {isInternal && (
               <div className="bg-blue-50 p-8 rounded-[3rem] border-2 border-blue-100 space-y-4">
-                <Label className="font-black text-blue-900 flex items-center gap-2 uppercase text-xs tracking-widest"><UserCheck className="h-4 w-4" /> Cliente Responsável</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="font-black text-blue-900 flex items-center gap-2 uppercase text-xs tracking-widest">
+                    <UserCheck className="h-4 w-4" /> Cliente Responsável
+                  </Label>
+                  {selectedClientId && (
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setSelectedClientId("")}
+                      className="h-6 text-[10px] font-black uppercase text-blue-600 hover:bg-blue-100 rounded-lg gap-1"
+                    >
+                      <UserRoundSearch className="h-3 w-3" /> Trocar Usuário
+                    </Button>
+                  )}
+                </div>
                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                   <SelectTrigger className="h-14 bg-white rounded-2xl border-none shadow-sm text-lg font-bold">
                     <SelectValue placeholder="Selecione o cliente para esta venda..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-none shadow-2xl">
-                    {allClients.map(c => <SelectItem key={c.id} value={c.id} className="rounded-xl font-bold">{c.name}</SelectItem>)}
+                  <SelectContent className="rounded-2xl border-none shadow-2xl max-h-[300px]">
+                    {allClients.map(c => (
+                      <SelectItem key={c.id} value={c.id} className="rounded-xl font-bold py-3">
+                        {c.name} <span className="text-[10px] font-normal text-slate-400 ml-2">({c.email})</span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
