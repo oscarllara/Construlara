@@ -6,9 +6,10 @@ import ProductCard, { Product } from '@/components/ProductCard';
 import Calculators from '@/components/Calculators';
 import AddProductDialog from '@/components/AddProductDialog';
 import AddCategoryDialog from '@/components/AddCategoryDialog';
+import EditCategoryDialog from '@/components/EditCategoryDialog';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Calculator as CalcIcon, Plus, PackagePlus, ArrowUpDown } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Plus, PackagePlus, ArrowUpDown, Pencil } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,8 @@ const ProductsPage = () => {
   
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isEditCategoryOpen, setIsEditCategoryOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState("");
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
@@ -115,6 +118,17 @@ const ProductsPage = () => {
     showSuccess("Categoria adicionada!");
   };
 
+  const handleRenameCategory = (oldName: string, newName: string) => {
+    const updatedCategories = categories.map(c => c === oldName ? newName : c);
+    saveCategories(updatedCategories);
+
+    const updatedProducts = products.map(p => p.category === oldName ? { ...p, category: newName } : p);
+    saveProducts(updatedProducts);
+
+    if (selectedCategory === oldName) setSelectedCategory(newName);
+    showSuccess(`Categoria renomeada para ${newName}!`);
+  };
+
   const handleEditProduct = (product: Product) => {
     setProductToEdit(product);
     setIsAddProductOpen(true);
@@ -127,42 +141,28 @@ const ProductsPage = () => {
     try {
       const cartData = localStorage.getItem('app_cart');
       let cart = [];
-      
       if (cartData) {
         try {
           const parsed = JSON.parse(cartData);
           cart = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-          cart = [];
-        }
+        } catch (e) { cart = []; }
       }
-      
       const existingIndex = cart.findIndex((item: any) => item.id === product.id);
-      
       if (existingIndex > -1) {
         cart[existingIndex].quantity += safeQuantity;
         cart[existingIndex].totalAmount = (cart[existingIndex].totalAmount || 0) + (safeTotalAmount || safeQuantity);
       } else {
-        cart.push({ 
-          ...product, 
-          quantity: safeQuantity, 
-          totalAmount: safeTotalAmount || safeQuantity,
-          paidAmount: 0 
-        });
+        cart.push({ ...product, quantity: safeQuantity, totalAmount: safeTotalAmount || safeQuantity, paidAmount: 0 });
       }
-      
       localStorage.setItem('app_cart', JSON.stringify(cart));
       showSuccess(`${safeQuantity}x ${product.name} adicionado ao carrinho!`);
       window.dispatchEvent(new Event('cart-updated'));
-    } catch (e) {
-      showError("Erro ao salvar no carrinho. Tente novamente.");
-    }
+    } catch (e) { showError("Erro ao salvar no carrinho."); }
   };
 
   const productPopularity = useMemo(() => {
     const savedOrders = localStorage.getItem('app_orders');
     const popularityMap: Record<string, number> = {};
-    
     if (savedOrders) {
       try {
         const orders = JSON.parse(savedOrders);
@@ -184,7 +184,6 @@ const ProductsPage = () => {
       const matchesCategory = selectedCategory === "Todas" || p.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-
     result.sort((a, b) => {
       if (sortBy === 'popular') {
         const popA = productPopularity[a.id] || 0;
@@ -193,7 +192,6 @@ const ProductsPage = () => {
       }
       return a.name.localeCompare(b.name);
     });
-
     return result;
   }, [products, searchTerm, selectedCategory, sortBy, productPopularity]);
 
@@ -206,18 +204,11 @@ const ProductsPage = () => {
             <p className="text-blue-600 font-black italic text-sm mt-1">"Um passo a frente em sua obra!"</p>
           </div>
           <div className="flex gap-3">
-            <Button 
-              variant="outline"
-              onClick={() => setSortBy(sortBy === 'alpha' ? 'popular' : 'alpha')}
-              className="rounded-2xl border-slate-200 font-bold gap-2 h-12 px-6 bg-white"
-            >
+            <Button variant="outline" onClick={() => setSortBy(sortBy === 'alpha' ? 'popular' : 'alpha')} className="rounded-2xl border-slate-200 font-bold gap-2 h-12 px-6 bg-white">
               <ArrowUpDown className="h-4 w-4" />
               {sortBy === 'alpha' ? 'Ordem Alfabética' : 'Mais Vendidos'}
             </Button>
-            <Button 
-              onClick={() => setShowCalculators(!showCalculators)}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-blue-100"
-            >
+            <Button onClick={() => setShowCalculators(!showCalculators)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold gap-2 h-12 px-6 shadow-lg shadow-blue-100">
               <CalcIcon className="h-5 w-5" />
               Calculadoras
             </Button>
@@ -236,58 +227,34 @@ const ProductsPage = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Categorias</h3>
                 {isAdmin && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setIsAddCategoryOpen(true)}
-                    className="h-8 w-8 rounded-xl hover:bg-blue-50 text-blue-600"
-                    title="Nova Categoria"
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setIsAddCategoryOpen(true)} className="h-8 w-8 rounded-xl hover:bg-blue-50 text-blue-600">
                     <Plus className="h-5 w-5" />
                   </Button>
                 )}
               </div>
 
               {isAdmin && (
-                <Button 
-                  onClick={() => {
-                    setProductToEdit(null);
-                    setIsAddProductOpen(true);
-                  }}
-                  className="w-full mb-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold gap-2 h-12 shadow-lg shadow-emerald-100"
-                >
+                <Button onClick={() => { setProductToEdit(null); setIsAddProductOpen(true); }} className="w-full mb-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold gap-2 h-12 shadow-lg shadow-emerald-100">
                   <PackagePlus className="h-5 w-5" />
                   Novo Produto
                 </Button>
               )}
 
               <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                <button 
-                  onClick={() => {
-                    setSelectedCategory("Todas");
-                    setSearchParams({});
-                  }}
-                  className={cn(
-                    "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                    selectedCategory === "Todas" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
-                  )}
-                >
+                <button onClick={() => { setSelectedCategory("Todas"); setSearchParams({}); }} className={cn("w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all", selectedCategory === "Todas" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50")}>
                   Todas
                 </button>
                 {categories.map(cat => (
-                  <button 
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setSearchParams({ category: cat });
-                    }}
-                    className={cn(
-                      "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all",
-                      selectedCategory === cat ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"
+                  <div key={cat} className="group flex items-center gap-1">
+                    <button onClick={() => { setSelectedCategory(cat); setSearchParams({ category: cat }); }} className={cn("flex-1 text-left px-4 py-3 rounded-xl text-sm font-bold transition-all", selectedCategory === cat ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50")}>
+                      {cat}
+                    </button>
+                    {isAdmin && (
+                      <Button variant="ghost" size="icon" onClick={() => { setCategoryToEdit(cat); setIsEditCategoryOpen(true); }} className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-blue-100 text-blue-600 transition-all">
+                        <Pencil className="h-3 w-3" />
+                      </Button>
                     )}
-                  >
-                    {cat}
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -296,22 +263,12 @@ const ProductsPage = () => {
           <div className="flex-1 space-y-8">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <Input 
-                placeholder="Buscar por nome ou código do produto..." 
-                className="pl-12 h-14 rounded-2xl border-slate-200 bg-white shadow-sm text-lg"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <Input placeholder="Buscar por nome ou código do produto..." className="pl-12 h-14 rounded-2xl border-slate-200 bg-white shadow-sm text-lg" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map(product => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
-                  onAddToCart={handleAddToCart} 
-                  onEdit={handleEditProduct}
-                />
+                <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} onEdit={handleEditProduct} />
               ))}
             </div>
 
@@ -324,20 +281,9 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      <AddProductDialog 
-        open={isAddProductOpen}
-        onOpenChange={setIsAddProductOpen}
-        onSave={handleSaveProduct}
-        product={productToEdit}
-        categories={categories}
-        defaultCategory={selectedCategory !== "Todas" ? selectedCategory : undefined}
-      />
-
-      <AddCategoryDialog 
-        open={isAddCategoryOpen}
-        onOpenChange={setIsAddCategoryOpen}
-        onAdd={handleAddCategory}
-      />
+      <AddProductDialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen} onSave={handleSaveProduct} product={productToEdit} categories={categories} defaultCategory={selectedCategory !== "Todas" ? selectedCategory : undefined} />
+      <AddCategoryDialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen} onAdd={handleAddCategory} />
+      <EditCategoryDialog open={isEditCategoryOpen} onOpenChange={setIsEditCategoryOpen} onSave={handleRenameCategory} categoryName={categoryToEdit} />
     </AppLayout>
   );
 };

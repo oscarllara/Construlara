@@ -34,7 +34,6 @@ const Login = () => {
     const saved = localStorage.getItem('app_users');
     const users = saved ? JSON.parse(saved) : [];
     
-    // Verifica primeiro se é o usuário mestre solicitado
     const isAdminMaster = formData.email.toLowerCase() === 'admin@admin.com' && formData.password === 'Senha@123';
 
     const found = users.find((u: any) => 
@@ -69,9 +68,7 @@ const Login = () => {
 
     if (step === 1) {
       if (!formData.email) return showError("Informe seu e-mail.");
-      
       const userExists = users.some((u: any) => u.email.toLowerCase() === formData.email.toLowerCase());
-      
       if (userExists) {
         showSuccess("Um código de verificação foi gerado para o seu e-mail!");
         setStep(2);
@@ -86,14 +83,12 @@ const Login = () => {
       }
     } else {
       if (newPass.length < 6) return showError("A nova senha deve ter pelo menos 6 caracteres.");
-
       const updatedUsers = users.map((u: any) => {
         if (u.email.toLowerCase() === formData.email.toLowerCase()) {
           return { ...u, password: newPass };
         }
         return u;
       });
-
       localStorage.setItem('app_users', JSON.stringify(updatedUsers));
       showSuccess("Senha redefinida com sucesso! Você já pode entrar.");
       setIsForgotMode(false);
@@ -106,7 +101,9 @@ const Login = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6">
       <div className="w-full max-w-[440px] space-y-8">
         <div className="text-center">
-          <img src="/logoconstrulara.png" alt="Construlara" className="h-28 mx-auto object-contain drop-shadow-xl" />
+          <Link to="/">
+            <img src="/logoconstrulara.png" alt="Construlara" className="h-28 mx-auto object-contain drop-shadow-xl hover:scale-105 transition-transform" />
+          </Link>
         </div>
 
         <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white overflow-hidden">
