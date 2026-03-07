@@ -23,7 +23,9 @@ import {
   Clock,
   AlertTriangle,
   Send,
-  CalendarDays
+  CalendarDays,
+  CreditCard,
+  Banknote
 } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
@@ -53,6 +55,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnStatus, setReturnStatus] = useState<'available' | 'maintenance'>('available');
+  const [paymentOption, setPaymentOption] = useState<'paid' | 'credit'>('paid');
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isInternal = ['Gestor', 'Vendas', 'Entregador'].includes(userRole);
@@ -100,6 +103,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setModality(String(rental.modality || "Diária"));
       setTotalValue(Number(rental.total || 0).toFixed(2));
       setShowReturnForm(false);
+      setPaymentOption('paid');
     }
   }, [rental, open]);
 
@@ -117,19 +121,16 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     if (!startDate || !endDate || !currentEquipment) return;
 
     try {
-      // Usamos parseISO para strings YYYY-MM-DD
       const start = parseISO(startDate);
       const end = parseISO(endDate);
       
       if (!isValid(start) || !isValid(end)) return;
 
-      // Cálculo de dias corridos (Inclusivo: início e fim contam)
       const totalDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
       
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
-      // Aplicação das regras de negócio
       if (totalDays >= 20) {
         displayModality = "Mensal";
         calculatedTotal = currentEquipment.monthlyRate || (currentEquipment.dailyRate * 20);
@@ -187,9 +188,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       start: formatDateToBR(startDate),
       end: formatDateToBR(endDate),
       total: finalTotal,
-      paidAmount: finalTotal, // No recebimento, consideramos pago integralmente
+      paidAmount: paymentOption === 'paid' ? finalTotal : (rental.paidAmount || 0),
       modality: modality,
-      notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
+      notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - ${paymentOption === 'paid' ? 'Pagamento efetuado' : 'Lançado no débito'} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
     // Atualiza status do equipamento no inventário
@@ -207,7 +208,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess("Contrato finalizado com sucesso!");
+    showSuccess(paymentOption === 'paid' ? "Contrato liquidado e finalizado!" : "Item recebido. Valor lançado no débito do cliente.");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
@@ -275,31 +276,55 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           ) : showReturnForm ? (
             <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Confirmar Recebimento</h3>
+                <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Fechamento e Recebimento</h3>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase">Resumo Financeiro</p>
-                  <p className="text-xs font-bold text-slate-500">Período: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase">Período de Uso</p>
+                  <p className="text-xs font-bold text-slate-500">{format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
                 </div>
               </div>
               
-              <div className="grid gap-4">
-                <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
+              <div className="grid gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center shadow-sm">
                   <div>
                     <p className="text-[10px] font-black text-emerald-600 uppercase">Valor do Período ({modality})</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Cálculo automático baseado no tempo de uso</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Cálculo automático pelo tempo</p>
                   </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-bold text-emerald-900">Estado de conservação para retorno:</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'available' && "bg-emerald-600")}>Pronto p/ Uso</Button>
-                    <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold", returnStatus === 'maintenance' && "bg-orange-600")}>Precisa de Reparo</Button>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Estado do Equipamento</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'available' && "bg-emerald-600")}>Pronto</Button>
+                      <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'maintenance' && "bg-orange-600")}>Reparo</Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Financeiro</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant={paymentOption === 'paid' ? 'default' : 'outline'} onClick={() => setPaymentOption('paid')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase gap-2", paymentOption === 'paid' && "bg-blue-700")}>
+                        <Banknote className="h-4 w-4" /> Pago
+                      </Button>
+                      <Button variant={paymentOption === 'credit' ? 'default' : 'outline'} onClick={() => setPaymentOption('credit')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase gap-2", paymentOption === 'credit' && "bg-blue-700")}>
+                        <CreditCard className="h-4 w-4" /> Débito
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Ajustar Datas</Button>
-                  <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Confirmar e Liquidar</Button>
+
+                <div className="flex gap-3 pt-4 border-t border-emerald-200">
+                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Ajustar Data</Button>
+                  <Button 
+                    onClick={handleProcessReturn} 
+                    className={cn(
+                      "flex-[2] h-14 rounded-2xl font-black text-white shadow-xl transition-all",
+                      paymentOption === 'paid' ? "bg-emerald-600 shadow-emerald-100" : "bg-blue-700 shadow-blue-100"
+                    )}
+                  >
+                    {paymentOption === 'paid' ? 'Confirmar e Liquidar' : 'Confirmar e Lançar Débito'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -312,7 +337,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   </div>
                   <div>
                     <p className="text-sm font-black text-orange-900">Devolução Solicitada</p>
-                    <p className="text-xs font-bold text-orange-700">Verifique a integridade do item e confirme o recebimento abaixo.</p>
+                    <p className="text-xs font-bold text-orange-700">Verifique a integridade do item e confirme o fechamento abaixo.</p>
                   </div>
                 </div>
               )}
