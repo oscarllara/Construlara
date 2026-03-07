@@ -22,7 +22,8 @@ import {
   MessageCircle, 
   Clock,
   AlertTriangle,
-  Send
+  Send,
+  CalendarDays
 } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
@@ -134,8 +135,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   }, [startDate, endDate, equipment]);
 
   const handleStartReturn = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setEndDate(today); 
     setShowReturnForm(true);
   };
 
@@ -190,6 +189,11 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     showSuccess("Recebimento confirmado e contrato finalizado!");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
+  };
+
+  const setTodayDate = () => {
+    setEndDate(new Date().toISOString().split('T')[0]);
+    showSuccess("Data atualizada para hoje.");
   };
 
   if (!rental) return null;
@@ -248,12 +252,19 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
             </div>
           ) : showReturnForm ? (
             <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Confirmar Recebimento</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Confirmar Recebimento</h3>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase">Período Selecionado</p>
+                  <p className="text-xs font-bold text-slate-500">{format(parse(startDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')} até {format(parse(endDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}</p>
+                </div>
+              </div>
+              
               <div className="grid gap-4">
                 <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Total a Liquidar</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Cálculo do período</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase">Valor Total a Liquidar ({modality})</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Baseado na data de devolução informada</p>
                   </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
@@ -265,7 +276,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   </div>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Voltar</Button>
+                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Voltar e Ajustar Data</Button>
                   <Button onClick={handleProcessReturn} className="flex-[2] bg-emerald-600 h-14 rounded-2xl font-black text-white shadow-xl shadow-emerald-100">Finalizar Contrato</Button>
                 </div>
               </div>
@@ -302,14 +313,27 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                       <Input type="date" value={startDate} disabled className="rounded-xl h-11 bg-white" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data de Devolução</Label>
-                      <Input 
-                        type="date" 
-                        value={endDate} 
-                        onChange={e => setEndDate(e.target.value)} 
-                        disabled={status === 'completed' || isPendingReturn || !isInternal}
-                        className="rounded-xl h-11 bg-white" 
-                      />
+                      <div className="flex items-center justify-between mb-0.5">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Devolução</Label>
+                        {isInternal && status !== 'completed' && (
+                          <button 
+                            onClick={setTodayDate}
+                            className="text-[9px] font-black text-blue-700 hover:underline uppercase tracking-tighter"
+                          >
+                            Hoje
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input 
+                          type="date" 
+                          value={endDate} 
+                          onChange={e => setEndDate(e.target.value)} 
+                          disabled={status === 'completed' || !isInternal}
+                          className="rounded-xl h-11 bg-white pr-10" 
+                        />
+                        <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
                   <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 flex justify-between items-center shadow-sm">
@@ -340,7 +364,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   <div className="grid grid-cols-1 gap-3">
                     {isInternal ? (
                       <Button onClick={handleStartReturn} className="w-full bg-emerald-600 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-emerald-50 text-base gap-2 hover:bg-emerald-700">
-                        <RotateCcw className="h-6 w-6" /> {isPendingReturn ? 'Confirmar Recebimento' : 'Processar Devolução'}
+                        <RotateCcw className="h-6 w-6" /> Confirmar Recebimento
                       </Button>
                     ) : (
                       <>
