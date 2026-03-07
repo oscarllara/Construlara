@@ -20,7 +20,7 @@ import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
-import { differenceInDays, parse, format, isValid, parseISO } from 'date-fns';
+import { differenceInDays, parse, format, isValid } from 'date-fns';
 import RentalContract from './RentalContract';
 
 interface RentalDetailsDialogProps {
@@ -50,15 +50,15 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   useEffect(() => {
     if (rental && open) {
-      setStatus(rental.status);
+      setStatus(rental.status || "active");
       setNotes(rental.notes || "");
       setViewContractMode(false);
       
       const toISODate = (dateStr: string) => {
         if (!dateStr) return "";
-        if (dateStr.includes('/')) {
+        if (typeof dateStr === 'string' && dateStr.includes('/')) {
           const [d, m, y] = dateStr.split('/');
-          return `${y}-${m}-${d}`;
+          if (d && m && y) return `${y}-${m}-${d}`;
         }
         return dateStr;
       };
@@ -70,18 +70,25 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setShowReturnForm(false);
       
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) setAllClients(JSON.parse(savedUsers));
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          setAllClients(Array.isArray(parsed) ? parsed : []);
+        } catch (e) { setAllClients([]); }
+      }
 
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
-        const allEquip: Equipment[] = JSON.parse(savedEquip);
-        const found = allEquip.find(e => e.id === rental.equipmentId || e.name === rental.item);
-        setEquipment(found || null);
+        try {
+          const allEquip: Equipment[] = JSON.parse(savedEquip);
+          const found = allEquip.find(e => e.id === rental.equipmentId || e.name === rental.item);
+          setEquipment(found || null);
+        } catch (e) { setEquipment(null); }
       }
     }
   }, [rental, open]);
 
-  // Recálculo de Valor Automático quando as datas mudam
+  // Recálculo de Valor Automático
   useEffect(() => {
     if (!startDate || !endDate || !equipment) return;
 
@@ -111,19 +118,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       }
 
       setModality(displayModality);
-      setTotalValue(calculatedTotal.toFixed(2));
+      setTotalValue((calculatedTotal || 0).toFixed(2));
     } catch (e) { console.error("Erro no cálculo:", e); }
   }, [startDate, endDate, equipment]);
 
   const handleStartReturn = () => {
-    // Ao iniciar retorno, a data de devolução trava na data de hoje para o cálculo final
     const today = new Date().toISOString().split('T')[0];
     setEndDate(today); 
     setShowReturnForm(true);
   };
 
   const handleClientRequestReturn = () => {
-    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental.id}%0A*Item:* ${rental.item}%0A*Locatário:* ${rental.client}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
+    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id}%0A*Item:* ${rental?.item}%0A*Locatário:* ${rental?.client}%0A%0A_Gostaria de agendar a devolução deste equipamento e solicitar a conferência final._`;
     window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
     showSuccess("Solicitação enviada via WhatsApp!");
   };
@@ -131,30 +137,33 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const handleProcessReturn = () => {
     const formatDate = (dateStr: string) => {
       if (!dateStr) return "";
-      const [y, m, d] = dateStr.split('-');
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const [y, m, d] = parts;
       return `${d}/${m}/${y}`;
     };
 
-    const finalTotal = parseFloat(totalValue);
+    const finalTotal = parseFloat(totalValue) || 0;
 
-    // Na devolução, assumimos que o valor é liquidado (Pago = Total)
     const updatedRental = {
       ...rental,
       status: 'completed',
       end: formatDate(endDate),
       total: finalTotal,
-      paidAmount: finalTotal, // Marca como pago ao devolver
+      paidAmount: finalTotal,
       modality: modality,
       notes: notes + (notes ? "\n" : "") + `Devolvido em ${format(new Date(), 'dd/MM/yyyy')} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
-      const allEquip = JSON.parse(savedEquip);
-      const newEquip = allEquip.map((e: any) => 
-        (e.id === rental.equipmentId || e.name === rental.item) ? { ...e, status: returnStatus, lastClient: undefined } : e
-      );
-      localStorage.setItem('app_equipments', JSON.stringify(newEquip));
+      try {
+        const allEquip = JSON.parse(savedEquip);
+        const newEquip = allEquip.map((e: any) => 
+          (e.id === rental.equipmentId || e.name === rental.item) ? { ...e, status: returnStatus, lastClient: undefined } : e
+        );
+        localStorage.setItem('app_equipments', JSON.stringify(newEquip));
+      } catch (e) {}
     }
 
     onUpdate(updatedRental);
@@ -186,7 +195,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </Button>
               )}
               <div>
-                <h2 className="text-3xl font-black tracking-tighter">CONTRATO {rental.id.toUpperCase()}</h2>
+                <h2 className="text-3xl font-black tracking-tighter">CONTRATO {(rental.id || "").toUpperCase()}</h2>
                 <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Locação Ativa</p>
               </div>
             </div>
@@ -238,11 +247,11 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 <div className="space-y-4">
                   <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Locatário</p>
-                    <p className="text-xl font-black text-slate-900">{rental.client}</p>
+                    <p className="text-xl font-black text-slate-900">{rental.client || "---"}</p>
                   </div>
                   <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Locado</p>
-                    <p className="text-xl font-black text-slate-900">{rental.item}</p>
+                    <p className="text-xl font-black text-slate-900">{rental.item || "---"}</p>
                   </div>
                 </div>
                 <div className="space-y-4">
