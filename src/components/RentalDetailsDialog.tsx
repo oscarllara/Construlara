@@ -60,25 +60,27 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isInternal = ['Gestor', 'Vendas', 'Entregador'].includes(userRole);
 
-  // Carrega dados iniciais
+  // Carrega dados auxiliares (Clientes e Equipamentos)
   useEffect(() => {
-    const savedUsers = localStorage.getItem('app_users');
-    if (savedUsers) {
-      try {
-        const parsed = JSON.parse(savedUsers);
-        setAllClients(Array.isArray(parsed) ? parsed : []);
-      } catch (e) { setAllClients([]); }
-    }
+    if (open) {
+      const savedUsers = localStorage.getItem('app_users');
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          setAllClients(Array.isArray(parsed) ? parsed : []);
+        } catch (e) { setAllClients([]); }
+      }
 
-    const savedEquip = localStorage.getItem('app_equipments');
-    if (savedEquip) {
-      try {
-        setAllEquipments(JSON.parse(savedEquip));
-      } catch (e) { setAllEquipments([]); }
+      const savedEquip = localStorage.getItem('app_equipments');
+      if (savedEquip) {
+        try {
+          setAllEquipments(JSON.parse(savedEquip));
+        } catch (e) { setAllEquipments([]); }
+      }
     }
   }, [open]);
 
-  // Inicializa o formulário com os dados da locação
+  // Inicializa o formulário sempre que o diálogo abrir
   useEffect(() => {
     if (rental && open) {
       setStatus(String(rental.status || "active"));
@@ -99,15 +101,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       };
       
       setStartDate(toISODate(rental.start));
-      setEndDate(toISODate(rental.end));
+      
+      // REQUISITO: Abrir com a data de devolução como a data atual do computador
+      const today = new Date().toISOString().split('T')[0];
+      setEndDate(today);
+      
       setModality(String(rental.modality || "Diária"));
-      setTotalValue(Number(rental.total || 0).toFixed(2));
       setShowReturnForm(false);
       setPaymentOption('paid');
     }
   }, [rental, open]);
 
-  // Encontra o equipamento atual
+  // Encontra o equipamento atual no inventário
   const currentEquipment = useMemo(() => {
     if (!rental || allEquipments.length === 0) return null;
     return allEquipments.find(e => 
@@ -116,7 +121,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     ) || null;
   }, [rental, allEquipments]);
 
-  // Lógica de Recálculo Automático
+  // Lógica de Recálculo Automático (Regras de Negócio)
   useEffect(() => {
     if (!startDate || !endDate || !currentEquipment) return;
 
@@ -126,11 +131,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       
       if (!isValid(start) || !isValid(end)) return;
 
+      // Dias corridos (inclusivo)
       const totalDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
       
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
+      // Aplicação das regras de precificação baseada nos dias
       if (totalDays >= 20) {
         displayModality = "Mensal";
         calculatedTotal = currentEquipment.monthlyRate || (currentEquipment.dailyRate * 20);
@@ -148,29 +155,12 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setModality(displayModality);
       setTotalValue(calculatedTotal.toFixed(2));
     } catch (e) { 
-      console.error("Erro no recálculo:", e); 
+      console.error("Erro no recálculo de valor:", e); 
     }
   }, [startDate, endDate, currentEquipment]);
 
   const handleStartReturn = () => {
     setShowReturnForm(true);
-  };
-
-  const handleRequestReturnSystem = () => {
-    const updatedRental = {
-      ...rental,
-      status: 'pending_return',
-      notes: (notes ? notes + "\n" : "") + `Solicitação de devolução enviada pelo cliente em ${format(new Date(), 'dd/MM/yyyy HH:mm')}.`
-    };
-    onUpdate(updatedRental);
-    showSuccess("Solicitação de devolução enviada!");
-    onOpenChange(false);
-    window.dispatchEvent(new Event('order-placed'));
-  };
-
-  const handleClientRequestReturnWhatsApp = () => {
-    const msg = `*SOLICITAÇÃO DE DEVOLUÇÃO - CONSTRULARA*%0A*Contrato:* ${rental?.id || ''}%0A*Item:* ${rental?.item || ''}%0A*Locatário:* ${rental?.client || ''}%0A%0A_Gostaria de agendar a devolução deste equipamento._`;
-    window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
   };
 
   const handleProcessReturn = () => {
@@ -188,12 +178,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       start: formatDateToBR(startDate),
       end: formatDateToBR(endDate),
       total: finalTotal,
+      // REQUISITO: Diferenciar entre recebido ou a receber (débito)
       paidAmount: paymentOption === 'paid' ? finalTotal : (rental.paidAmount || 0),
       modality: modality,
       notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - ${paymentOption === 'paid' ? 'Pagamento efetuado' : 'Lançado no débito'} - Estado: ${returnStatus === 'available' ? 'Pronto' : 'Manutenção'}`
     };
 
-    // Atualiza status do equipamento no inventário
+    // Atualiza status do equipamento no inventário global
     const savedEquip = localStorage.getItem('app_equipments');
     if (savedEquip) {
       try {
@@ -208,7 +199,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     }
 
     onUpdate(updatedRental);
-    showSuccess(paymentOption === 'paid' ? "Contrato liquidado e finalizado!" : "Item recebido. Valor lançado no débito do cliente.");
+    showSuccess(paymentOption === 'paid' ? "Contrato liquidado e recebido!" : "Recebido. Valor acumulado no débito do cliente.");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
@@ -216,7 +207,6 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const setTodayDate = () => {
     const today = new Date().toISOString().split('T')[0];
     setEndDate(today);
-    showSuccess("Data de devolução ajustada para hoje.");
   };
 
   if (!rental) return null;
@@ -228,7 +218,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     switch (s) {
       case 'active': return 'Ativo';
       case 'overdue': return 'Em Atraso';
-      case 'pending_return': return 'Aguardando Recebimento';
+      case 'pending_return': return 'Solicitado pelo Cliente';
       case 'completed': return 'Finalizado';
       default: return s;
     }
@@ -250,7 +240,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
               )}
               <div>
                 <h2 className="text-3xl font-black tracking-tighter">CONTRATO {String(rental.id || "").toUpperCase()}</h2>
-                <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Locação</p>
+                <p className="text-blue-100 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Gestão de Devolução</p>
               </div>
             </div>
             <Badge className={cn(
@@ -266,9 +256,9 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           {viewContractMode ? (
             <div className="space-y-6 animate-in fade-in zoom-in-95">
               <div className="flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md p-4 rounded-2xl z-10 border border-slate-100 shadow-sm">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Visualização do Contrato Formal</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Contrato Formal para Impressão</p>
                 <Button onClick={() => window.print()} className="bg-slate-900 text-white rounded-xl font-bold h-10 px-6 gap-2">
-                  <Printer className="h-4 w-4" /> Imprimir Documento
+                  <Printer className="h-4 w-4" /> Imprimir
                 </Button>
               </div>
               <RentalContract rental={rental} client={currentClient} />
@@ -276,10 +266,10 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           ) : showReturnForm ? (
             <div className="bg-emerald-50 p-8 rounded-[3rem] border-2 border-emerald-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Fechamento e Recebimento</h3>
+                <h3 className="text-xl font-black text-emerald-900 flex items-center gap-2"><RotateCcw className="h-6 w-6" /> Fechamento de Caixa</h3>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase">Período de Uso</p>
-                  <p className="text-xs font-bold text-slate-500">{format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase">Uso Computado</p>
+                  <p className="text-xs font-bold text-slate-500">{format(parseISO(startDate), 'dd/MM/yyyy')} até {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
                 </div>
               </div>
               
@@ -287,22 +277,22 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 <div className="bg-white p-6 rounded-2xl border border-emerald-100 flex justify-between items-center shadow-sm">
                   <div>
                     <p className="text-[10px] font-black text-emerald-600 uppercase">Valor do Período ({modality})</p>
-                    <p className="text-xs text-slate-400 font-bold mb-1">Cálculo automático pelo tempo</p>
+                    <p className="text-xs text-slate-400 font-bold mb-1">Calculado até {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
                   </div>
                   <p className="text-3xl font-black text-slate-900">R$ {totalValue}</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Estado do Equipamento</Label>
+                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Equipamento Retornando:</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <Button variant={returnStatus === 'available' ? 'default' : 'outline'} onClick={() => setReturnStatus('available')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'available' && "bg-emerald-600")}>Pronto</Button>
-                      <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'maintenance' && "bg-orange-600")}>Reparo</Button>
+                      <Button variant={returnStatus === 'maintenance' ? 'default' : 'outline'} onClick={() => setReturnStatus('maintenance')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase", returnStatus === 'maintenance' && "bg-orange-600")}>Oficina</Button>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Financeiro</Label>
+                    <Label className="font-black text-emerald-900 uppercase text-[10px] tracking-widest">Liquidação Financeira:</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <Button variant={paymentOption === 'paid' ? 'default' : 'outline'} onClick={() => setPaymentOption('paid')} className={cn("rounded-xl h-12 font-bold text-[10px] uppercase gap-2", paymentOption === 'paid' && "bg-blue-700")}>
                         <Banknote className="h-4 w-4" /> Pago
@@ -315,7 +305,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t border-emerald-200">
-                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Ajustar Data</Button>
+                  <Button variant="ghost" onClick={() => setShowReturnForm(false)} className="flex-1 rounded-xl h-14 font-bold">Corrigir Data</Button>
                   <Button 
                     onClick={handleProcessReturn} 
                     className={cn(
@@ -323,7 +313,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                       paymentOption === 'paid' ? "bg-emerald-600 shadow-emerald-100" : "bg-blue-700 shadow-blue-100"
                     )}
                   >
-                    {paymentOption === 'paid' ? 'Confirmar e Liquidar' : 'Confirmar e Lançar Débito'}
+                    {paymentOption === 'paid' ? 'Efetivar Recebimento' : 'Lançar em Crediário'}
                   </Button>
                 </div>
               </div>
@@ -336,8 +326,8 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                     <AlertTriangle className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-orange-900">Devolução Solicitada</p>
-                    <p className="text-xs font-bold text-orange-700">Verifique a integridade do item e confirme o fechamento abaixo.</p>
+                    <p className="text-sm font-black text-orange-900">Solicitação de Devolução</p>
+                    <p className="text-xs font-bold text-orange-700">O cliente informou que deseja devolver. Confira o item e encerre o contrato abaixo.</p>
                   </div>
                 </div>
               )}
@@ -349,7 +339,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                     <p className="text-xl font-black text-slate-900">{rental.client || "---"}</p>
                   </div>
                   <div className="bg-slate-50/80 p-6 rounded-[2.5rem] border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Locado</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Equipamento</p>
                     <p className="text-xl font-black text-slate-900">{rental.item || "---"}</p>
                   </div>
                 </div>
@@ -367,7 +357,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                             onClick={setTodayDate}
                             className="text-[9px] font-black text-blue-700 hover:text-blue-900 uppercase tracking-tighter"
                           >
-                            Definir Hoje
+                            Hoje
                           </button>
                         )}
                       </div>
@@ -404,14 +394,14 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   variant="outline"
                   className="w-full h-16 rounded-[2rem] font-black border-slate-100 text-blue-700 hover:bg-blue-50 gap-2 text-base transition-all"
                 >
-                  <ScrollText className="h-5 w-5" /> Ver Contrato Formal
+                  <ScrollText className="h-5 w-5" /> Abrir Contrato Digital
                 </Button>
                 
                 {status !== 'completed' && (
                   <div className="grid grid-cols-1 gap-3">
                     {isInternal ? (
                       <Button onClick={handleStartReturn} className="w-full bg-emerald-600 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-emerald-50 text-base gap-2 hover:bg-emerald-700">
-                        <RotateCcw className="h-6 w-6" /> Confirmar Recebimento e Finalizar
+                        <RotateCcw className="h-6 w-6" /> Receber Item e Encerrar
                       </Button>
                     ) : (
                       <>
@@ -420,13 +410,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                             <Button onClick={handleRequestReturnSystem} className="bg-blue-700 h-16 rounded-[2rem] font-black text-white shadow-xl shadow-blue-100 text-sm gap-2 hover:bg-blue-800">
                               <Send className="h-5 w-5" /> Solicitar Devolução
                             </Button>
-                            <Button variant="outline" onClick={handleClientRequestReturnWhatsApp} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-16 rounded-[2rem] font-black text-sm gap-2">
+                            <Button variant="outline" onClick={() => window.open(`https://wa.me/5532999625979?text=Gostaria de agendar a devolução do item: ${rental.item}`, '_blank')} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-16 rounded-[2rem] font-black text-sm gap-2">
                               <MessageCircle className="h-5 w-5" /> WhatsApp
                             </Button>
                           </div>
                         ) : (
                           <div className="p-4 bg-slate-100 rounded-3xl text-center">
-                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Solicitação enviada. Aguarde o gestor.</p>
+                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Aguardando conferência do gestor.</p>
                           </div>
                         )}
                       </>
@@ -440,7 +430,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
         <DialogFooter className="p-10 pt-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full rounded-2xl h-14 font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50">
-            Fechar Detalhes
+            Fechar
           </Button>
         </DialogFooter>
       </DialogContent>
