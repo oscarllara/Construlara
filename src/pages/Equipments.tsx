@@ -155,24 +155,19 @@ const EquipmentsPage = () => {
 
   const filtered = equipments
     .filter(e => 
-      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      (e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      e.status === 'available' // EXIBIR APENAS DISPONÍVEIS
     )
-    .sort((a, b) => {
-      const statusPriority = { available: 0, rented: 1, maintenance: 2 };
-      if (statusPriority[a.status] !== statusPriority[b.status]) {
-        return statusPriority[a.status] - statusPriority[b.status];
-      }
-      return a.name.localeCompare(b.name);
-    });
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <AppLayout>
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black text-slate-900">Inventário</h2>
-            <p className="text-slate-500 font-medium">Gerencie suas ferramentas e equipamentos</p>
+            <h2 className="text-3xl font-black text-slate-900">Catálogo de Locação</h2>
+            <p className="text-slate-500 font-medium">Equipamentos disponíveis para aluguel imediato</p>
           </div>
           {isAdmin && (
             <Button 
@@ -189,7 +184,7 @@ const EquipmentsPage = () => {
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
-              placeholder="Buscar por nome ou patrimônio..." 
+              placeholder="Buscar equipamento disponível..." 
               className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -197,7 +192,7 @@ const EquipmentsPage = () => {
           </div>
           <Button variant="outline" className="rounded-2xl border-slate-200 h-12 px-6 font-bold gap-2 bg-white">
             <Filter className="h-4 w-4" />
-            Filtros
+            Categorias
           </Button>
         </div>
 
@@ -219,7 +214,7 @@ const EquipmentsPage = () => {
         {filtered.length === 0 && (
           <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
             <Hammer className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-            <p className="text-slate-500 font-bold">Nenhum equipamento encontrado.</p>
+            <p className="text-slate-500 font-bold">No momento todos os equipamentos estão em obra.</p>
           </div>
         )}
       </div>

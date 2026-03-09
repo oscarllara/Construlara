@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Package, Plus, Layers, Database } from 'lucide-react';
+import { Package, Plus, Layers } from 'lucide-react';
 import { Product } from './ProductCard';
 import AddUnitDialog from './AddUnitDialog';
 import { showSuccess } from '@/utils/toast';
@@ -42,7 +42,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
     price: "",
     promoPrice: "",
     image: "",
-    stock: "0",
     isPromo: false,
     isFeatured: false,
     isFractional: false,
@@ -67,7 +66,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         price: product.price.toString(),
         promoPrice: product.promoPrice?.toString() || "",
         image: product.image,
-        stock: (product.stock ?? 0).toString(),
         isPromo: product.isPromo,
         isFeatured: product.isFeatured,
         isFractional: product.isFractional || false,
@@ -83,7 +81,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         price: "",
         promoPrice: "",
         image: "",
-        stock: "0",
         isPromo: false,
         isFeatured: false,
         isFractional: false,
@@ -92,17 +89,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
       });
     }
   }, [product, open, defaultCategory, categories]);
-
-  useEffect(() => {
-    if (formData.category === "Argamassa" && !product) {
-      setFormData(prev => ({
-        ...prev,
-        isFractional: true,
-        packageSize: "1",
-        unitLabel: "saco"
-      }));
-    }
-  }, [formData.category, product]);
 
   const handleAddUnit = (newUnit: string) => {
     if (units.includes(newUnit)) return;
@@ -122,7 +108,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
       ...formData,
       price: parseFloat(formData.price),
       promoPrice: formData.promoPrice ? parseFloat(formData.promoPrice) : undefined,
-      stock: parseInt(formData.stock) || 0,
       packageSize: formData.packageSize ? parseFloat(formData.packageSize) : undefined
     });
   };
@@ -137,7 +122,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               {product ? "Editar Produto" : "Novo Produto"}
             </DialogTitle>
             <DialogDescription className="text-base font-medium">
-              Configure os detalhes técnicos e o controle de estoque do item.
+              Informe as características do produto para exibição na loja.
             </DialogDescription>
           </DialogHeader>
           
@@ -163,8 +148,8 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2 col-span-1">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label className="text-slate-700 font-bold text-sm">Categoria</Label>
                 <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
                   <SelectTrigger className="rounded-2xl h-12 bg-white">
@@ -177,9 +162,9 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 col-span-1">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-700 font-bold text-sm">Unidade</Label>
+                  <Label className="text-slate-700 font-bold text-sm">Unidade de Venda</Label>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -199,18 +184,6 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                  <Database className="h-3 w-3 text-blue-600" /> Estoque Disponível
-                </Label>
-                <Input 
-                  type="number"
-                  placeholder="0" 
-                  value={formData.stock}
-                  onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                  className="rounded-2xl border-slate-200 h-12 font-bold text-blue-700"
-                />
               </div>
             </div>
 
