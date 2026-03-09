@@ -40,35 +40,37 @@ const NotificationBell = () => {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
           rentals.forEach((rental: any) => {
-            if (rental.status === 'completed' || !rental.end) return;
+            if (!rental || rental.status === 'completed' || !rental.end) return;
             
             const isGestor = localStorage.getItem('userRole') === 'Gestor';
             const isMyRental = (rental.clientEmail || "").toLowerCase().trim() === userEmail;
             
             if (!isGestor && !isMyRental) return;
 
-            let endDate = rental.end.includes('/') ? parse(rental.end, 'dd/MM/yyyy', new Date()) : new Date(rental.end);
-            const daysLeft = differenceInDays(endDate, today);
+            try {
+              let endDate = rental.end.includes('/') ? parse(rental.end, 'dd/MM/yyyy', new Date()) : new Date(rental.end);
+              const daysLeft = differenceInDays(endDate, today);
 
-            if (daysLeft < 0) {
-              newNotifications.push({
-                id: `notif-overdue-${rental.id}`,
-                title: "Contrato Atrasado!",
-                description: `O item ${rental.item} (${rental.client}) venceu em ${rental.end}.`,
-                type: 'danger',
-                date: rental.end,
-                path: '/perfil?tab=rentals'
-              });
-            } else if (daysLeft <= 2) {
-              newNotifications.push({
-                id: `notif-near-${rental.id}`,
-                title: "Devolução Próxima",
-                description: `O item ${rental.item} deve ser devolvido em breve (${rental.end}).`,
-                type: 'warning',
-                date: rental.end,
-                path: '/perfil?tab=rentals'
-              });
-            }
+              if (daysLeft < 0) {
+                newNotifications.push({
+                  id: `notif-overdue-${rental.id}`,
+                  title: "Contrato Atrasado!",
+                  description: `O item ${rental.item} (${rental.client}) venceu em ${rental.end}.`,
+                  type: 'danger',
+                  date: rental.end,
+                  path: '/perfil?tab=rentals'
+                });
+              } else if (daysLeft <= 2) {
+                newNotifications.push({
+                  id: `notif-near-${rental.id}`,
+                  title: "Devolução Próxima",
+                  description: `O item ${rental.item} deve ser devolvido em breve (${rental.end}).`,
+                  type: 'warning',
+                  date: rental.end,
+                  path: '/perfil?tab=rentals'
+                });
+              }
+            } catch (e) { /* Data inválida, ignora */ }
           });
         }
       }
@@ -79,7 +81,7 @@ const NotificationBell = () => {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
           const myRecentOrders = orders.filter((o: any) => 
-            (o.userEmail || "").toLowerCase().trim() === userEmail && o.status === 'Pendente'
+            o && (o.userEmail || "").toLowerCase().trim() === userEmail && o.status === 'Pendente'
           );
           
           myRecentOrders.slice(0, 3).forEach((order: any) => {
@@ -88,13 +90,13 @@ const NotificationBell = () => {
               title: "Pedido Registrado",
               description: `Seu pedido ${order.id} está em processamento.`,
               type: 'success',
-              date: order.date,
+              date: order.date || "",
               path: '/perfil?tab=orders'
             });
           });
         }
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Erro ao verificar notificações:", e); }
 
     setNotifications(newNotifications);
   };
