@@ -63,7 +63,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   useEffect(() => {
     if (open) {
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) {
+      if (savedUsers && savedUsers !== "undefined") {
         try {
           const parsed = JSON.parse(savedUsers);
           setAllClients(Array.isArray(parsed) ? parsed : []);
@@ -71,7 +71,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       }
 
       const savedEquip = localStorage.getItem('app_equipments');
-      if (savedEquip) {
+      if (savedEquip && savedEquip !== "undefined") {
         try {
           setAllEquipments(JSON.parse(savedEquip));
         } catch (e) { setAllEquipments([]); }
@@ -109,15 +109,17 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   }, [rental, open]);
 
   const currentEquipment = useMemo(() => {
-    if (!rental || allEquipments.length === 0) return null;
+    if (!rental || !Array.isArray(allEquipments)) return null;
     return allEquipments.find(e => 
-      String(e.id) === String(rental.equipmentId) || 
-      e.name === rental.item
+      e && (String(e.id) === String(rental.equipmentId) || e.name === rental.item)
     ) || null;
   }, [rental, allEquipments]);
 
   useEffect(() => {
-    if (!startDate || !endDate || !currentEquipment) return;
+    if (!startDate || !endDate || !currentEquipment) {
+      if (rental && rental.total) setTotalValue(Number(rental.total).toFixed(2));
+      return;
+    }
 
     try {
       const start = parseISO(startDate);
@@ -147,14 +149,14 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setModality(displayModality);
       setTotalValue(calculatedTotal.toFixed(2));
     } catch (e) { }
-  }, [startDate, endDate, currentEquipment]);
+  }, [startDate, endDate, currentEquipment, rental]);
 
   const handleStartReturn = () => setShowReturnForm(true);
 
   const handleRequestReturnSystem = () => {
     const updatedRental = { ...rental, status: 'pending_return' };
     onUpdate(updatedRental);
-    showSuccess("Solicitação de devolução enviada! Aguarde a conferência.");
+    showSuccess("Solicitação de devolução enviada!");
     onOpenChange(false);
   };
 
@@ -173,7 +175,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       start: formatDateToBR(startDate),
       end: formatDateToBR(endDate),
       total: finalTotal,
-      paidAmount: paymentOption === 'paid' ? finalTotal : (rental.paidAmount || 0),
+      paidAmount: paymentOption === 'paid' ? finalTotal : (Number(rental.paidAmount) || 0),
       modality: modality,
       notes: notes + (notes ? "\n" : "") + `Recebido em ${format(new Date(), 'dd/MM/yyyy')} - ${paymentOption === 'paid' ? 'Pagamento efetuado' : 'Lançado no débito'}`
     };
@@ -182,24 +184,26 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     if (savedEquip) {
       try {
         const allEquip = JSON.parse(savedEquip);
-        const newEquip = allEquip.map((e: any) => 
-          (String(e.id) === String(rental.equipmentId) || e.name === rental.item) 
-            ? { ...e, status: returnStatus, lastClient: undefined } 
-            : e
-        );
-        localStorage.setItem('app_equipments', JSON.stringify(newEquip));
+        if (Array.isArray(allEquip)) {
+          const newEquip = allEquip.map((e: any) => 
+            (e && (String(e.id) === String(rental.equipmentId) || e.name === rental.item)) 
+              ? { ...e, status: returnStatus, lastClient: undefined } 
+              : e
+          );
+          localStorage.setItem('app_equipments', JSON.stringify(newEquip));
+        }
       } catch (e) { }
     }
 
     onUpdate(updatedRental);
-    showSuccess("Contrato encerrado com sucesso.");
+    showSuccess("Contrato encerrado.");
     onOpenChange(false);
     window.dispatchEvent(new Event('order-placed'));
   };
 
   if (!rental) return null;
 
-  const currentClient = allClients.find(c => String(c.id) === String(rental.clientId) || c.name === rental.client);
+  const currentClient = Array.isArray(allClients) ? allClients.find(c => c && (String(c.id) === String(rental.clientId) || c.name === rental.client)) : null;
   const isPendingReturn = status === 'pending_return';
 
   return (
@@ -226,7 +230,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
         <div className="p-10 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {viewContractMode ? (
-            <RentalContract rental={rental} client={currentClient} />
+            <RentalContract rental={rental} client={currentClient || undefined} />
           ) : showReturnForm ? (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><RotateCcw className="h-6 w-6 text-emerald-600" /> Fechamento de Caixa</h3>

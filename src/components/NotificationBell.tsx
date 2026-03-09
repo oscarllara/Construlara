@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { differenceInDays, parse } from 'date-fns';
+import { differenceInDays, parse, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 
@@ -36,7 +36,7 @@ const NotificationBell = () => {
     try {
       // 1. Aluguéis Próximos ou Atrasados
       const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals) {
+      if (savedRentals && savedRentals !== "undefined") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
           rentals.forEach((rental: any) => {
@@ -48,40 +48,46 @@ const NotificationBell = () => {
             if (!isGestor && !isMyRental) return;
 
             try {
-              let endDate = rental.end.includes('/') ? parse(rental.end, 'dd/MM/yyyy', new Date()) : new Date(rental.end);
-              const daysLeft = differenceInDays(endDate, today);
+              const endStr = String(rental.end);
+              let endDate = endStr.includes('/') 
+                ? parse(endStr, 'dd/MM/yyyy', new Date()) 
+                : new Date(endStr);
 
-              if (daysLeft < 0) {
-                newNotifications.push({
-                  id: `notif-overdue-${rental.id}`,
-                  title: "Contrato Atrasado!",
-                  description: `O item ${rental.item} (${rental.client}) venceu em ${rental.end}.`,
-                  type: 'danger',
-                  date: rental.end,
-                  path: '/perfil?tab=rentals'
-                });
-              } else if (daysLeft <= 2) {
-                newNotifications.push({
-                  id: `notif-near-${rental.id}`,
-                  title: "Devolução Próxima",
-                  description: `O item ${rental.item} deve ser devolvido em breve (${rental.end}).`,
-                  type: 'warning',
-                  date: rental.end,
-                  path: '/perfil?tab=rentals'
-                });
+              if (isValid(endDate)) {
+                const daysLeft = differenceInDays(endDate, today);
+
+                if (daysLeft < 0) {
+                  newNotifications.push({
+                    id: `notif-overdue-${rental.id}`,
+                    title: "Contrato Atrasado!",
+                    description: `O item ${rental.item || 'Equipamento'} venceu em ${endStr}.`,
+                    type: 'danger',
+                    date: endStr,
+                    path: '/perfil?tab=rentals'
+                  });
+                } else if (daysLeft <= 2) {
+                  newNotifications.push({
+                    id: `notif-near-${rental.id}`,
+                    title: "Devolução Próxima",
+                    description: `O item ${rental.item || 'Equipamento'} deve ser devolvido em ${endStr}.`,
+                    type: 'warning',
+                    date: endStr,
+                    path: '/perfil?tab=rentals'
+                  });
+                }
               }
-            } catch (e) { /* Data inválida, ignora */ }
+            } catch (e) { /* Falha na data individual, não trava o loop */ }
           });
         }
       }
 
       // 2. Pedidos Recentes
       const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders) {
+      if (savedOrders && savedOrders !== "undefined") {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
           const myRecentOrders = orders.filter((o: any) => 
-            o && (o.userEmail || "").toLowerCase().trim() === userEmail && o.status === 'Pendente'
+            o && o.userEmail && o.userEmail.toLowerCase().trim() === userEmail && o.status === 'Pendente'
           );
           
           myRecentOrders.slice(0, 3).forEach((order: any) => {
@@ -96,7 +102,9 @@ const NotificationBell = () => {
           });
         }
       }
-    } catch (e) { console.error("Erro ao verificar notificações:", e); }
+    } catch (e) { 
+      console.error("Erro ao verificar notificações:", e); 
+    }
 
     setNotifications(newNotifications);
   };
