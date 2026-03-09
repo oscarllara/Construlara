@@ -10,12 +10,13 @@ import {
 } from 'recharts';
 import { 
   Hammer, Receipt, DollarSign, TrendingUp, 
-  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2, ShoppingBag, ArrowRight, SearchX, ArrowLeft, Save, CreditCard, Wrench
+  AlertCircle, CheckCircle2, Clock, FileText, Download, Settings2, ShoppingBag, ArrowRight, SearchX, ArrowLeft, Save, CreditCard, Wrench, Package, PackageX
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Equipment } from '@/components/EquipmentCard';
+import { Product } from '@/components/ProductCard';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +25,7 @@ import PaymentActionDialog from '@/components/PaymentActionDialog';
 
 const ReportsPage = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [rentals, setRentals] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [activeDetail, setActiveDetail] = useState<string | null>(null);
@@ -37,10 +39,16 @@ const ReportsPage = () => {
     try {
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) setEquipments(JSON.parse(savedEquip));
+      
+      const savedProd = localStorage.getItem('app_products');
+      if (savedProd) setProducts(JSON.parse(savedProd));
+
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals) setRentals(JSON.parse(savedRentals));
+      
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders) setOrders(JSON.parse(savedOrders));
+      
       const savedPix = localStorage.getItem('app_pix_info');
       if (savedPix) setPixInfo(JSON.parse(savedPix));
     } catch (e) { console.error(e); }
@@ -61,6 +69,10 @@ const ReportsPage = () => {
   const maintenanceEquipments = useMemo(() => {
     return (equipments || []).filter(e => e && e.status === 'maintenance');
   }, [equipments]);
+
+  const lowStockProducts = useMemo(() => {
+    return (products || []).filter(p => p && (p.stock || 0) <= 5);
+  }, [products]);
 
   const financialStats = useMemo(() => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
@@ -113,9 +125,10 @@ const ReportsPage = () => {
         </div>
 
         <Tabs defaultValue="financial" className="space-y-8">
-          <TabsList className="bg-slate-100 p-1 rounded-2xl h-14">
+          <TabsList className="bg-slate-100 p-1 rounded-2xl h-14 w-fit">
             <TabsTrigger value="financial" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">Financeiro</TabsTrigger>
-            <TabsTrigger value="maintenance" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">Oficina / Manutenção</TabsTrigger>
+            <TabsTrigger value="inventory" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">Estoque Crítico</TabsTrigger>
+            <TabsTrigger value="maintenance" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">Oficina</TabsTrigger>
             <TabsTrigger value="settings" className="rounded-xl px-8 font-bold data-[state=active]:bg-white">Configurações</TabsTrigger>
           </TabsList>
 
@@ -133,6 +146,56 @@ const ReportsPage = () => {
                 <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo a Receber</CardTitle></CardHeader>
                 <CardContent><div className="text-3xl font-black text-blue-600">R$ {financialStats.totalToReceive.toFixed(2)}</div></CardContent>
               </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="inventory" className="space-y-6">
+            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-rose-50 rounded-2xl flex items-center justify-center">
+                    <PackageX className="h-6 w-6 text-rose-600" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900">Alerta de Estoque Crítico</h3>
+                </div>
+                <Badge className="bg-rose-100 text-rose-700 border-none font-bold px-4 py-1.5 rounded-full">
+                  {lowStockProducts.length} Produtos Abaixo do Mínimo
+                </Badge>
+              </div>
+
+              {lowStockProducts.length === 0 ? (
+                <div className="text-center py-20 bg-emerald-50 rounded-[2.5rem] border border-dashed border-emerald-200">
+                  <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
+                  <p className="text-emerald-700 font-bold">Todos os produtos possuem estoque saudável!</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {lowStockProducts.map((p) => (
+                    <div key={p.id} className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:bg-white hover:shadow-md transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center border border-slate-200">
+                          <Package className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900">{p.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.code} • {p.category}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className={cn("text-xl font-black", (p.stock || 0) === 0 ? "text-rose-600" : "text-amber-600")}>
+                            {p.stock} {p.unitLabel || 'un'}
+                          </p>
+                          <p className="text-[9px] font-black uppercase tracking-tighter text-slate-400">Restante</p>
+                        </div>
+                        <Button onClick={() => navigate('/loja')} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-4 font-bold text-xs gap-2">
+                          Repor <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
 

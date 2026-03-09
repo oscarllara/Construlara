@@ -11,6 +11,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { UserAccount } from '@/components/UserTable';
+import { Product } from '@/components/ProductCard';
 
 const CartPage = () => {
   const [cart, setCart] = useState<any[]>([]);
@@ -65,20 +66,38 @@ const CartPage = () => {
   }, [cart]);
 
   const handleUpdateQty = (id: string, delta: number) => {
+    // Buscar estoque atual do produto
+    const savedProducts = JSON.parse(localStorage.getItem('app_products') || '[]');
+    const product = savedProducts.find((p: Product) => p.id === id);
+    const stock = product?.stock ?? 999;
+
     const updated = cart.map(item => {
       if (item.id === id) {
         if (item.isFractional) {
           const step = item.packageSize || 1;
           const currentAmount = Number(item.totalAmount) || step;
           const currentPacks = Math.round(currentAmount / step);
-          const nextPacks = Math.max(1, currentPacks + delta);
+          const nextPacks = currentPacks + delta;
+          
+          if (nextPacks > stock) {
+            showError("Estoque insuficiente.");
+            return item;
+          }
+          
           return { 
             ...item, 
-            quantity: nextPacks, 
-            totalAmount: nextPacks * step 
+            quantity: Math.max(1, nextPacks), 
+            totalAmount: Math.max(1, nextPacks) * step 
           };
         }
-        return { ...item, quantity: Math.max(1, (Number(item.quantity) || 1) + delta) };
+        
+        const nextQty = (Number(item.quantity) || 1) + delta;
+        if (nextQty > stock) {
+          showError("Estoque insuficiente.");
+          return item;
+        }
+
+        return { ...item, quantity: Math.max(1, nextQty) };
       }
       return item;
     });
@@ -88,6 +107,21 @@ const CartPage = () => {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     try {
+      // 1. Validar Estoque antes de tudo
+      const savedProductsRaw = localStorage.getItem('app_products');
+      let products: Product[] = savedProductsRaw ? JSON.parse(savedProductsRaw) : [];
+      
+      for (const item of cart) {
+        const p = products.find(prod => prod.id === item.id);
+        const qtyToReduce = item.isFractional ? item.quantity : item.quantity; // item.quantity representa o num de caixas ou un
+        
+        if (!p || (p.stock || 0) < qtyToReduce) {
+          showError(`O item ${item.name} não possui estoque suficiente para esta venda.`);
+          return;
+        }
+      }
+
+      // 2. Definir Cliente
       let finalEmail = currentUserEmail;
       let finalName = "Cliente";
 
@@ -100,6 +134,7 @@ const CartPage = () => {
         }
       }
 
+      // 3. Registrar Pedido
       const orderId = `ORD-${Date.now()}`;
       const date = new Date().toLocaleDateString('pt-BR');
       const savedOrdersRaw = localStorage.getItem('app_orders');
@@ -119,9 +154,20 @@ const CartPage = () => {
       };
       
       localStorage.setItem('app_orders', JSON.stringify([newOrder, ...currentOrders]));
+
+      // 4. Baixar Estoque
+      const updatedProducts = products.map(p => {
+        const cartItem = cart.find(item => item.id === p.id);
+        if (cartItem) {
+          const qtyToReduce = cartItem.isFractional ? cartItem.quantity : cartItem.quantity;
+          return { ...p, stock: (p.stock || 0) - qtyToReduce };
+        }
+        return p;
+      });
+      localStorage.setItem('app_products', JSON.stringify(updatedProducts));
       
+      // 5. WhatsApp e Limpeza
       let itemsText = cart.map(it => `• ${it.name}: ${it.isFractional ? (it.totalAmount || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 0) + ' un'}`).join('%0A');
-      
       const pixText = paymentMethod === 'Pix' 
         ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
         : '';
@@ -130,7 +176,7 @@ const CartPage = () => {
       
       window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
       localStorage.removeItem('app_cart');
-      showSuccess("Pedido realizado!");
+      showSuccess("Pedido realizado e estoque atualizado!");
       window.dispatchEvent(new Event('order-placed'));
       navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
     } catch (e) {
@@ -199,7 +245,6 @@ const CartPage = () => {
                           <Badge variant="outline" className="text-[9px] font-bold h-5 rounded-lg bg-blue-50/50 border-blue-100 text-blue-600">
                             Cx {item.packageSize}{item.unitLabel}
                           </Badge>
-                          <span className="text-[9px] text-slate-400 font-bold italic">Edição apenas em caixas fechadas</span>
                         </div>
                       )}
                     </div>
@@ -274,7 +319,6 @@ const CartPage = () => {
                     <p className="text-xs font-bold text-emerald-700">{pixInfo.name}</p>
                     <p className="text-xs font-bold text-emerald-700">{pixInfo.bank}</p>
                   </div>
-                  <p className="text-[10px] text-emerald-600 italic font-medium">O comprovante será enviado no WhatsApp junto com o pedido.</p>
                 </div>
               )}
 

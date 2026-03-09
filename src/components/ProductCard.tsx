@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon, Maximize2, Lock } from 'lucide-react';
+import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon, Maximize2, Lock, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ export interface Product {
   isFractional?: boolean;
   packageSize?: number;
   unitLabel?: string;
+  stock?: number;
 }
 
 interface ProductCardProps {
@@ -59,6 +60,9 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const hasCalculator = product.category === "Pisos e revestimentos" || product.category === "Argamassa";
   
   const currentQuantity = quantity === "" ? 0 : Number(quantity);
+  const stock = product.stock ?? 0;
+  const isOutOfStock = stock <= 0;
+  const isLowStock = stock > 0 && stock <= 5;
 
   const calculatedPacks = isPackaged && desiredAmount 
     ? Math.ceil(parseFloat(desiredAmount) / product.packageSize!) 
@@ -70,7 +74,14 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
 
   const totalPrice = totalAmount * currentPrice;
 
-  const handleIncrement = () => setQuantity(prev => (prev === "" ? 1 : Number(prev) + 1));
+  // Validação de estoque para o botão de compra
+  const canPurchase = !isOutOfStock && (isPackaged ? calculatedPacks <= stock : currentQuantity <= stock);
+
+  const handleIncrement = () => setQuantity(prev => {
+    const next = prev === "" ? 1 : Number(prev) + 1;
+    return next <= stock ? next : prev;
+  });
+
   const handleDecrement = () => setQuantity(prev => (prev === "" ? 1 : Math.max(1, Number(prev) - 1)));
   
   const handleQuantityChange = (val: string) => {
@@ -79,7 +90,10 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       return;
     }
     const num = parseFloat(val);
-    if (!isNaN(num)) setQuantity(num);
+    if (!isNaN(num)) {
+      if (num > stock) setQuantity(stock);
+      else setQuantity(num);
+    }
   };
 
   const handleAction = () => {
@@ -92,9 +106,8 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
 
   const handleCalcResult = (value: number) => {
     if (product.category === "Argamassa") {
-      // Para argamassa, a calculadora retorna o total de sacos necessários
       const bags = Math.ceil(value);
-      setQuantity(bags);
+      setQuantity(bags > stock ? stock : bags);
       setDesiredAmount(bags.toString());
     } else {
       setDesiredAmount(value.toFixed(2));
@@ -105,7 +118,8 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   return (
     <Card className={cn(
       "overflow-hidden border-none shadow-md transition-all hover:shadow-xl rounded-[2.5rem] bg-white group relative flex flex-col h-full",
-      product.isFeatured && "ring-2 ring-blue-500 ring-offset-2"
+      product.isFeatured && "ring-2 ring-blue-500 ring-offset-2",
+      isOutOfStock && "opacity-80 grayscale-[0.5]"
     )}>
       {canEdit && (
         <Button 
@@ -118,10 +132,18 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
         </Button>
       )}
 
-      {product.isFeatured && (
+      {product.isFeatured && !isOutOfStock && (
         <div className="absolute top-4 left-4 z-10">
           <Badge className="bg-blue-600 text-white border-none rounded-full px-3 py-1 flex items-center gap-1 text-[10px] font-black uppercase">
             <Star className="h-3 w-3 fill-white" /> Destaque
+          </Badge>
+        </div>
+      )}
+
+      {isOutOfStock && (
+        <div className="absolute top-4 left-4 z-10">
+          <Badge className="bg-rose-600 text-white border-none rounded-full px-4 py-1.5 flex items-center gap-2 text-[10px] font-black uppercase shadow-lg">
+            <Package className="h-3.5 w-3.5" /> Esgotado
           </Badge>
         </div>
       )}
@@ -133,6 +155,15 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
           <div className="flex flex-col items-center justify-center text-slate-300">
             <Package className="h-16 w-16 mb-2" />
             <span className="text-[10px] font-black uppercase">Sem Imagem</span>
+          </div>
+        )}
+        
+        {!isOutOfStock && (
+          <div className={cn(
+            "absolute bottom-4 right-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest backdrop-blur-md shadow-sm border",
+            isLowStock ? "bg-amber-100/90 text-amber-700 border-amber-200" : "bg-white/90 text-slate-500 border-white/20"
+          )}>
+            Estoque: {stock} {product.unitLabel || 'un'}
           </div>
         )}
       </div>
@@ -151,7 +182,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
           <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">/ {product.unitLabel || 'un'}</span>
         </div>
 
-        {isPackaged && (
+        {isPackaged && !isOutOfStock && (
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -165,7 +196,21 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
                   </Dialog>
                 )}
               </div>
-              <Input type="number" placeholder={`Ex: 23 ${product.unitLabel}`} value={desiredAmount} onChange={(e) => setDesiredAmount(e.target.value)} className="h-10 rounded-xl border-blue-200 bg-white font-bold" />
+              <Input 
+                type="number" 
+                placeholder={`Ex: 23 ${product.unitLabel}`} 
+                value={desiredAmount} 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const packs = Math.ceil(parseFloat(val) / product.packageSize!);
+                  if (packs > stock) {
+                    setDesiredAmount((stock * product.packageSize!).toFixed(2));
+                  } else {
+                    setDesiredAmount(val);
+                  }
+                }} 
+                className="h-10 rounded-xl border-blue-200 bg-white font-bold" 
+              />
             </div>
             {calculatedPacks > 0 && (
               <p className="text-[10px] font-bold text-blue-800 leading-tight flex gap-2"><Info className="h-4 w-4 shrink-0" /> Serão necessárias {calculatedPacks} embalagens ({totalAmount.toFixed(2)}{product.unitLabel}).</p>
@@ -175,20 +220,40 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
       </CardContent>
 
       <CardFooter className="p-6 pt-0 flex flex-col gap-4">
-        {!isPackaged && (
+        {!isPackaged && !isOutOfStock && (
           <div className="flex items-center justify-between w-full bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
             <Button variant="ghost" size="icon" onClick={handleDecrement} className="h-9 w-9 rounded-xl"><Minus className="h-3 w-3" /></Button>
             <Input type="number" value={quantity} onChange={(e) => handleQuantityChange(e.target.value)} className="w-16 h-9 text-center font-black text-lg border-none bg-transparent focus-visible:ring-0" />
             <Button variant="ghost" size="icon" onClick={handleIncrement} className="h-9 w-9 rounded-xl"><Plus className="h-3 w-3" /></Button>
           </div>
         )}
+        
         <div className="w-full space-y-2">
-          <div className="flex justify-between items-end px-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
-            <span className="text-xl font-black text-slate-900">R$ {totalPrice.toFixed(2)}</span>
-          </div>
-          <Button onClick={handleAction} disabled={(isPackaged && !desiredAmount) || (!isPackaged && currentQuantity === 0)} className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-black gap-3 h-14 shadow-xl shadow-blue-100 hover:-translate-y-1 transition-all">
-            <ShoppingCart className="h-5 w-5" /> {isPackaged ? `Levar ${calculatedPacks} caixas` : 'Adicionar ao Carrinho'}
+          {!isOutOfStock && (
+            <div className="flex justify-between items-end px-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase">Subtotal</span>
+              <span className="text-xl font-black text-slate-900">R$ {totalPrice.toFixed(2)}</span>
+            </div>
+          )}
+          
+          <Button 
+            onClick={handleAction} 
+            disabled={isOutOfStock || (isPackaged && !desiredAmount) || (!isPackaged && currentQuantity === 0)} 
+            className={cn(
+              "w-full rounded-2xl font-black gap-3 h-14 shadow-xl transition-all",
+              isOutOfStock 
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none" 
+                : "bg-blue-700 hover:bg-blue-800 text-white shadow-blue-100 hover:-translate-y-1"
+            )}
+          >
+            {isOutOfStock ? (
+              <>Sem estoque</>
+            ) : (
+              <>
+                <ShoppingCart className="h-5 w-5" /> 
+                {isPackaged ? `Levar ${calculatedPacks} caixas` : 'Adicionar ao Carrinho'}
+              </>
+            )}
           </Button>
         </div>
       </CardFooter>
