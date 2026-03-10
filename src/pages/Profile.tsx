@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Wallet, ShoppingBag, Calendar, User, DollarSign, MessageCircle, Eye, Mail, Phone, MapPin, CreditCard, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Wallet, ShoppingBag, Calendar, User, DollarSign, MessageCircle, Eye, Mail, Phone, MapPin, CreditCard, CheckCircle2, TrendingUp, SearchX } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { showSuccess, showError } from '@/utils/toast';
 import EditOrderDialog from '@/components/EditOrderDialog';
@@ -16,13 +16,17 @@ import { UserAccount } from '@/components/UserTable';
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'data');
+  const initialTab = searchParams.get('tab') || 'data';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [userRentals, setUserRentals] = useState<any[]>([]);
+  
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedRental, setSelectedRental] = useState<any>(null);
   const [selectedPaymentItem, setSelectedPaymentItem] = useState<any>(null);
+  
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isRentalOpen, setIsRentalOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
@@ -30,19 +34,18 @@ const ProfilePage = () => {
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const navigate = useNavigate();
 
-  // Sincroniza a aba do estado com a aba da URL quando o usuário clica no menu da Navbar
+  // Sincroniza a aba quando a URL muda (clique na Navbar)
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, activeTab]);
 
   const loadData = () => {
     try {
-      // Carregar Usuários
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers && savedUsers !== "undefined" && savedUsers !== "null") {
+      if (savedUsers) {
         const users = JSON.parse(savedUsers);
         if (Array.isArray(users)) {
           const found = users.find(u => u && u.email && String(u.email).toLowerCase().trim() === userEmail);
@@ -50,42 +53,38 @@ const ProfilePage = () => {
         }
       }
 
-      // Carregar Pedidos
       const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
+      if (savedOrders) {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
-          setUserOrders(orders.filter((o: any) => o && o.userEmail && String(o.userEmail).toLowerCase().trim() === userEmail));
-        } else {
-          setUserOrders([]);
+          setUserOrders(orders.filter(o => o && o.userEmail && String(o.userEmail).toLowerCase().trim() === userEmail));
         }
       }
       
-      // Carregar Aluguéis
       const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
+      if (savedRentals) {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
-          setUserRentals(rentals.filter((r: any) => r && (String(r.clientEmail || r.userEmail || "")).toLowerCase().trim() === userEmail));
-        } else {
-          setUserRentals([]);
+          setUserRentals(rentals.filter(r => 
+            r && (String(r.clientEmail || r.userEmail || "")).toLowerCase().trim() === userEmail
+          ));
         }
       }
     } catch (e) {
-      console.error("Erro ao carregar dados do perfil:", e);
+      console.error("Erro ao processar dados do perfil:", e);
     }
   };
 
   useEffect(() => { loadData(); }, [userEmail]);
 
   const financialSummary = useMemo(() => {
-    const safeOrders = (userOrders || []).filter(o => o);
-    const safeRentals = (userRentals || []).filter(r => r);
+    const safeOrders = Array.isArray(userOrders) ? userOrders : [];
+    const safeRentals = Array.isArray(userRentals) ? userRentals : [];
 
     const allItems = [
       ...safeOrders.map(o => ({ ...o, type: 'order' })),
       ...safeRentals.map(r => ({ ...r, type: 'rental' }))
-    ];
+    ].filter(i => i && i.total !== undefined);
 
     const totalInvoiced = allItems.reduce((acc, item) => acc + (Number(item?.total) || 0), 0);
     const totalPaid = allItems.reduce((acc, item) => acc + (Number(item?.paidAmount) || 0), 0);
@@ -95,101 +94,20 @@ const ProfilePage = () => {
       .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.01)
       .map(item => ({
         ...item,
-        label: item.type === 'order' ? `Pedido ${item.id || 'N/A'}` : (item.item || 'Equipamento')
+        label: item.type === 'order' ? `Pedido ${item.id}` : (item.item || 'Aluguel')
       }));
 
     return { totalInvoiced, totalPaid, totalDebt, pendingList };
   }, [userOrders, userRentals]);
 
-  const handleResendWhatsApp = (order: any) => {
-    if (!order) return;
-    try {
-      const pixData = localStorage.getItem('app_pix_info');
-      const pixInfo = pixData ? JSON.parse(pixData) : { key: "16403481000116", name: "BTM Design", bank: "CC Crediplus" };
-
-      const items = order.items || [];
-      let itemsText = items.map((it: any) => `• ${it.name || 'Item'}: ${it.isFractional ? (it.totalAmount || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 0) + ' un'}`).join('%0A');
-      
-      const pixText = order.paymentMethod === 'Pix' 
-        ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
-        : '';
-
-      const msg = `*REENVIO DE PEDIDO - CONSTRULARA*%0A*ID:* ${order.id}%0A*Data:* ${order.date || '---'}%0A*Total:* R$ ${Number(order.total || 0).toFixed(2)}${pixText}%0A%0A*Itens:*%0A${itemsText}`;
-      
-      window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
-      showSuccess("Redirecionando para o WhatsApp...");
-    } catch (e) {
-      showError("Erro ao gerar link do WhatsApp.");
-    }
-  };
-
-  const handleCancelOrder = (id: string) => {
-    if (!id) return;
-    if (window.confirm("Deseja realmente cancelar este pedido?")) {
-      try {
-        const savedOrders = localStorage.getItem('app_orders');
-        const orders = savedOrders ? JSON.parse(savedOrders) : [];
-        if (Array.isArray(orders)) {
-          const updated = orders.filter((o: any) => o && o.id !== id);
-          localStorage.setItem('app_orders', JSON.stringify(updated));
-          showSuccess("Pedido cancelado com sucesso.");
-          setIsOrderOpen(false);
-          loadData();
-          window.dispatchEvent(new Event('order-placed'));
-        }
-      } catch (e) {
-        showError("Erro ao cancelar pedido.");
-      }
-    }
-  };
-
-  const handleSaveOrder = (updatedOrder: any) => {
-    if (!updatedOrder) return;
-    try {
-      const savedOrders = localStorage.getItem('app_orders');
-      const orders = savedOrders ? JSON.parse(savedOrders) : [];
-      if (Array.isArray(orders)) {
-        const updated = orders.map((o: any) => (o && o.id === updatedOrder.id) ? updatedOrder : o);
-        localStorage.setItem('app_orders', JSON.stringify(updated));
-        showSuccess("Pedido atualizado!");
-        setIsOrderOpen(false);
-        loadData();
-        window.dispatchEvent(new Event('order-placed'));
-      }
-    } catch (e) {
-      showError("Erro ao salvar alterações.");
-    }
-  };
-
-  const handlePayment = (amount: number) => {
-    if (!selectedPaymentItem || !selectedPaymentItem.id) return;
-    try {
-      const type = selectedPaymentItem.type === 'order' ? 'app_orders' : 'app_rentals';
-      const storageKey = type;
-      const savedRaw = localStorage.getItem(storageKey);
-      const saved = savedRaw ? JSON.parse(savedRaw) : [];
-      
-      if (Array.isArray(saved)) {
-        const updated = saved.map((item: any) => {
-          if (item && item.id === selectedPaymentItem.id) {
-            const nextPaid = (Number(item.paidAmount) || 0) + amount;
-            const total = Number(item.total) || 0;
-            return { 
-              ...item, 
-              paidAmount: nextPaid, 
-              status: nextPaid >= total - 0.01 ? (storageKey === 'app_orders' ? 'Pago' : 'completed') : item.status 
-            };
-          }
-          return item;
-        });
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        showSuccess("Pagamento registrado!");
-        setIsPaymentOpen(false);
-        loadData();
-        window.dispatchEvent(new Event('order-placed'));
-      }
-    } catch (e) {
-      showError("Erro ao registrar pagamento.");
+  const handleAction = (type: 'order' | 'rental', item: any) => {
+    if (!item) return;
+    if (type === 'order') {
+      setSelectedOrder(item);
+      setIsOrderOpen(true);
+    } else {
+      setSelectedRental(item);
+      setIsRentalOpen(true);
     }
   };
 
@@ -217,49 +135,36 @@ const ProfilePage = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-10">
+              <CardContent className="p-10 space-y-10">
                 <div className="grid md:grid-cols-2 gap-10">
                   <div className="space-y-6">
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Informações de Contato</h3>
                     <div className="space-y-4">
-                      <div className="flex items-center gap-4 group">
-                        <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                          <Mail className="h-5 w-5" />
+                      {[
+                        { icon: Mail, label: 'E-mail', value: currentUser?.email || userEmail, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { icon: Phone, label: 'WhatsApp', value: currentUser?.whatsapp || "Não informado", color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        { icon: CreditCard, label: 'CPF', value: currentUser?.cpf || "Não informado", color: 'text-indigo-600', bg: 'bg-indigo-50' }
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-4 group">
+                          <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-colors", item.bg, item.color)}>
+                            <item.icon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase">{item.label}</p>
+                            <p className="font-bold text-slate-900">{item.value}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase">E-mail</p>
-                          <p className="font-bold text-slate-900">{currentUser?.email || userEmail || "---"}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 group">
-                        <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                          <Phone className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase">WhatsApp</p>
-                          <p className="font-bold text-slate-900">{currentUser?.whatsapp || "---"}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 group">
-                        <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                          <CreditCard className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase">Documento (CPF)</p>
-                          <p className="font-bold text-slate-900">{currentUser?.cpf || "---"}</p>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
-
                   <div className="space-y-6">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Endereço de Entrega</h3>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Endereço Principal</h3>
                     <div className="flex items-start gap-4">
                       <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 shrink-0">
                         <MapPin className="h-5 w-5" />
                       </div>
                       <div className="space-y-1">
-                        <p className="font-bold text-slate-900 text-lg leading-tight">{currentUser?.address || "Não informado"}</p>
+                        <p className="font-bold text-slate-900 text-lg leading-tight">{currentUser?.address || "Endereço não cadastrado"}</p>
                         <p className="text-sm text-slate-500 font-medium">
                           {currentUser?.neighborhood ? `${currentUser.neighborhood}, ` : ""}
                           {currentUser?.city ? `${currentUser.city} - ` : ""}
@@ -273,90 +178,75 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="finance" className="animate-in fade-in slide-in-from-bottom-2">
-            <div className="space-y-6">
-              <div className="grid md:grid-cols-3 gap-6">
-                <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-slate-900 text-white">
-                  <TrendingUp className="h-6 w-6 text-blue-400 mb-4" />
-                  <p className="text-3xl font-black">R$ {financialSummary.totalInvoiced.toFixed(2)}</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Faturamento Total</p>
+          <TabsContent value="finance" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                { title: 'Faturamento Total', val: financialSummary.totalInvoiced, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-slate-900', text: 'text-white' },
+                { title: 'Valores Quitados', val: financialSummary.totalPaid, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-white', text: 'text-slate-900' },
+                { title: 'Saldo Devedor', val: financialSummary.totalDebt, icon: Wallet, color: 'text-rose-500', bg: 'bg-white', text: 'text-rose-600', border: 'border-2 border-rose-100' }
+              ].map((stat, i) => (
+                <Card key={i} className={cn("border-none shadow-xl rounded-[2.5rem] p-8", stat.bg, stat.border)}>
+                  <stat.icon className={cn("h-6 w-6 mb-4", stat.color)} />
+                  <p className={cn("text-3xl font-black", stat.text)}>R$ {stat.val.toFixed(2)}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{stat.title}</p>
                 </Card>
-                <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white border border-slate-100">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500 mb-4" />
-                  <p className="text-3xl font-black text-slate-900">R$ {financialSummary.totalPaid.toFixed(2)}</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Valores Quitados</p>
-                </Card>
-                <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white border-2 border-rose-100">
-                  <Wallet className="h-6 w-6 text-rose-500 mb-4" />
-                  <p className="text-3xl font-black text-rose-600">R$ {financialSummary.totalDebt.toFixed(2)}</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Saldo Devedor Total</p>
-                </Card>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Detalhamento de Débitos</h3>
-                {financialSummary.pendingList.length === 0 ? (
-                  <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                    <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold">Você está totalmente em dia! Parabéns.</p>
-                  </div>
-                ) : (
-                  financialSummary.pendingList.map((item: any, idx: number) => (
-                    <div key={item.id || `pending-${idx}`} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm group hover:shadow-md transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
-                          item.type === 'order' ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600"
-                        )}>
-                          {item.type === 'order' ? <ShoppingBag className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
-                        </div>
-                        <div>
-                          <p className="font-black text-slate-900">{item.label || 'Item'}</p>
-                          <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item?.total || 0).toFixed(2)} • Pago: R$ {Number(item?.paidAmount || 0).toFixed(2)}</p>
-                        </div>
+              ))}
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Débitos Pendentes</h3>
+              {financialSummary.pendingList.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-[3rem] border border-dashed border-slate-200">
+                  <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
+                  <p className="text-slate-500 font-bold">Você está em dia com a Construlara!</p>
+                </div>
+              ) : (
+                financialSummary.pendingList.map((item, idx) => (
+                  <div key={item.id || idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", item.type === 'order' ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600")}>
+                        {item.type === 'order' ? <ShoppingBag className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
                       </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="text-xl font-black text-rose-600">R$ {(Number(item?.total || 0) - Number(item?.paidAmount || 0)).toFixed(2)}</p>
-                          <p className="text-[9px] font-black text-rose-400 uppercase tracking-tighter">Pendente</p>
-                        </div>
-                        <Button 
-                          onClick={() => { setSelectedPaymentItem(item); setIsPaymentOpen(true); }} 
-                          className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-6 font-bold text-xs shadow-lg shadow-slate-100"
-                        >
-                          Pagar Agora
-                        </Button>
+                      <div>
+                        <p className="font-black text-slate-900">{item.label}</p>
+                        <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item.total).toFixed(2)} • Pago: R$ {Number(item.paidAmount).toFixed(2)}</p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-xl font-black text-rose-600">R$ {(Number(item.total) - Number(item.paidAmount)).toFixed(2)}</p>
+                        <p className="text-[9px] font-black text-rose-400 uppercase">Pendente</p>
+                      </div>
+                      <Button onClick={() => { setSelectedPaymentItem(item); setIsPaymentOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-6 font-bold text-xs">Pagar</Button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
             {userOrders.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                <ShoppingBag className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Você ainda não realizou pedidos.</p>
+                <SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold">Nenhum pedido realizado ainda.</p>
               </div>
             ) : (
               userOrders.map((order, idx) => (
-                <Card key={order.id || `order-${idx}`} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                <Card key={order.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{order.id || 'Sem ID'}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.date || '---'}</p>
+                      <h4 className="font-black text-slate-900">{order.id}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-blue-700">R$ {Number(order?.total || 0).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order?.status || 'Pendente'}</Badge>
+                      <p className="font-black text-blue-700">R$ {Number(order.total).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status}</Badge>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => { setSelectedOrder(order); setIsOrderOpen(true); }} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleResendWhatsApp(order)} className="text-emerald-600 hover:bg-emerald-50 rounded-xl" title="Reenviar Pedido"><MessageCircle className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
                   </div>
                 </Card>
               ))
@@ -366,25 +256,25 @@ const ProfilePage = () => {
           <TabsContent value="rentals" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
             {userRentals.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                <Calendar className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Você ainda não possui contratos de locação.</p>
+                <SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-500 font-bold">Nenhum contrato de aluguel ativo.</p>
               </div>
             ) : (
               userRentals.map((rental, idx) => (
-                <Card key={rental.id || `rental-${idx}`} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                <Card key={rental.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{rental.item || 'Equipamento'}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start || '---'} até {rental.end || '---'}</p>
+                      <h4 className="font-black text-slate-900">{rental.item}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start} até {rental.end}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-slate-900">R$ {Number(rental?.total || 0).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental?.status || 'Ativo'}</Badge>
+                      <p className="font-black text-slate-900">R$ {Number(rental.total).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status}</Badge>
                     </div>
-                    <Button onClick={() => { setSelectedRental(rental); setIsRentalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Ver Contrato</Button>
+                    <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Detalhes</Button>
                   </div>
                 </Card>
               ))
@@ -393,31 +283,9 @@ const ProfilePage = () => {
         </Tabs>
       </div>
 
-      {selectedOrder && (
-        <EditOrderDialog 
-          order={selectedOrder} 
-          open={isOrderOpen} 
-          onOpenChange={setIsOrderOpen} 
-          onCancel={handleCancelOrder} 
-          onSave={handleSaveOrder} 
-        />
-      )}
-      {selectedRental && isRentalOpen && (
-        <RentalDetailsDialog 
-          rental={selectedRental} 
-          open={isRentalOpen} 
-          onOpenChange={setIsRentalOpen} 
-          onUpdate={loadData} 
-        />
-      )}
-      {selectedPaymentItem && (
-        <PaymentActionDialog 
-          open={isPaymentOpen} 
-          onOpenChange={setIsPaymentOpen} 
-          item={{ ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label }} 
-          onConfirm={handlePayment} 
-        />
-      )}
+      {selectedOrder && <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={() => {}} onSave={() => {}} />}
+      {selectedRental && <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={loadData} />}
+      {selectedPaymentItem && <PaymentActionDialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen} item={{ ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label }} onConfirm={() => {}} />}
     </AppLayout>
   );
 };
