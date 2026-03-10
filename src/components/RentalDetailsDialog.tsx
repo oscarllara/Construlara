@@ -73,7 +73,8 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip && savedEquip !== "undefined") {
         try {
-          setAllEquipments(JSON.parse(savedEquip));
+          const parsed = JSON.parse(savedEquip);
+          setAllEquipments(Array.isArray(parsed) ? parsed : []);
         } catch (e) { setAllEquipments([]); }
       }
     }
@@ -105,6 +106,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setModality(String(rental.modality || "Diária"));
       setShowReturnForm(false);
       setPaymentOption('paid');
+      setTotalValue(Number(rental.total || 0).toFixed(2));
     }
   }, [rental, open]);
 
@@ -116,10 +118,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   }, [rental, allEquipments]);
 
   useEffect(() => {
-    if (!startDate || !endDate || !currentEquipment) {
-      if (rental && rental.total) setTotalValue(Number(rental.total).toFixed(2));
-      return;
-    }
+    if (!startDate || !endDate || !currentEquipment) return;
 
     try {
       const start = parseISO(startDate);
@@ -149,7 +148,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
       setModality(displayModality);
       setTotalValue(calculatedTotal.toFixed(2));
     } catch (e) { }
-  }, [startDate, endDate, currentEquipment, rental]);
+  }, [startDate, endDate, currentEquipment]);
 
   const handleStartReturn = () => setShowReturnForm(true);
 
@@ -277,7 +276,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                 <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 text-center">
                   <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{modality}</p>
                   <p className="text-4xl font-black text-blue-700">R$ {totalValue}</p>
-                  <p className="text-[10px] font-bold text-blue-400 mt-1">Estimado até {format(parseISO(endDate), 'dd/MM/yyyy')}</p>
+                  <p className="text-[10px] font-bold text-blue-400 mt-1">Estimado até {endDate ? format(parseISO(endDate), 'dd/MM/yyyy') : '---'}</p>
                 </div>
               </div>
               <div className="space-y-3">

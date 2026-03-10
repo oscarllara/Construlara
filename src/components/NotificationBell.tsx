@@ -49,9 +49,13 @@ const NotificationBell = () => {
 
             try {
               const endStr = String(rental.end);
-              let endDate = endStr.includes('/') 
-                ? parse(endStr, 'dd/MM/yyyy', new Date()) 
-                : new Date(endStr);
+              let endDate: Date;
+              
+              if (endStr.includes('/')) {
+                endDate = parse(endStr, 'dd/MM/yyyy', new Date());
+              } else {
+                endDate = new Date(endStr);
+              }
 
               if (isValid(endDate)) {
                 const daysLeft = differenceInDays(endDate, today);

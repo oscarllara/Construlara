@@ -32,7 +32,6 @@ const ProfilePage = () => {
 
   const loadData = () => {
     try {
-      // Carregar dados do usuário
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
         const users = JSON.parse(savedUsers);
@@ -42,7 +41,6 @@ const ProfilePage = () => {
         }
       }
 
-      // Carregar Pedidos
       const savedOrders = localStorage.getItem('app_orders');
       const orders = savedOrders ? JSON.parse(savedOrders) : [];
       if (Array.isArray(orders)) {
@@ -51,7 +49,6 @@ const ProfilePage = () => {
         setUserOrders([]);
       }
       
-      // Carregar Aluguéis
       const savedRentals = localStorage.getItem('app_rentals');
       const rentals = savedRentals ? JSON.parse(savedRentals) : [];
       if (Array.isArray(rentals)) {
@@ -75,12 +72,12 @@ const ProfilePage = () => {
       ...safeRentals.map(r => ({ ...r, type: 'rental' }))
     ];
 
-    const totalInvoiced = allItems.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
-    const totalPaid = allItems.reduce((acc, item) => acc + (Number(item.paidAmount) || 0), 0);
+    const totalInvoiced = allItems.reduce((acc, item) => acc + (Number(item?.total) || 0), 0);
+    const totalPaid = allItems.reduce((acc, item) => acc + (Number(item?.paidAmount) || 0), 0);
     const totalDebt = Math.max(0, totalInvoiced - totalPaid);
 
     const pendingList = allItems
-      .filter(item => (Number(item.total) - Number(item.paidAmount || 0)) > 0.01)
+      .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.01)
       .map(item => ({
         ...item,
         label: item.type === 'order' ? `Pedido ${item.id}` : item.item
@@ -278,7 +275,7 @@ const ProfilePage = () => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Detalalhamento de Débitos</h3>
+                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Detalhamento de Débitos</h3>
                 {financialSummary.pendingList.length === 0 ? (
                   <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
                     <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
@@ -296,12 +293,12 @@ const ProfilePage = () => {
                         </div>
                         <div>
                           <p className="font-black text-slate-900">{item.label}</p>
-                          <p className="text-[10px] font-bold text-slate-400">Total: R$ {(Number(item.total) || 0).toFixed(2)} • Pago: R$ {(Number(item.paidAmount) || 0).toFixed(2)}</p>
+                          <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item?.total || 0).toFixed(2)} • Pago: R$ {Number(item?.paidAmount || 0).toFixed(2)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-xl font-black text-rose-600">R$ {(Number(item.total || 0) - Number(item.paidAmount || 0)).toFixed(2)}</p>
+                          <p className="text-xl font-black text-rose-600">R$ {(Number(item?.total || 0) - Number(item?.paidAmount || 0)).toFixed(2)}</p>
                           <p className="text-[9px] font-black text-rose-400 uppercase tracking-tighter">Pendente</p>
                         </div>
                         <Button 
@@ -336,8 +333,8 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-blue-700">R$ {Number(order.total || 0).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status || 'Pendente'}</Badge>
+                      <p className="font-black text-blue-700">R$ {Number(order?.total || 0).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order?.status || 'Pendente'}</Badge>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => { setSelectedOrder(order); setIsOrderOpen(true); }} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => handleResendWhatsApp(order)} className="text-emerald-600 hover:bg-emerald-50 rounded-xl" title="Reenviar Pedido"><MessageCircle className="h-5 w-5" /></Button>
@@ -365,8 +362,8 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-slate-900">R$ {Number(rental.total || 0).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status || 'Ativo'}</Badge>
+                      <p className="font-black text-slate-900">R$ {Number(rental?.total || 0).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental?.status || 'Ativo'}</Badge>
                     </div>
                     <Button onClick={() => { setSelectedRental(rental); setIsRentalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Ver Contrato</Button>
                   </div>
