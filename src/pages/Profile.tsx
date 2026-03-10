@@ -30,31 +30,46 @@ const ProfilePage = () => {
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const navigate = useNavigate();
 
+  // Sincroniza a aba do estado com a aba da URL quando o usuário clica no menu da Navbar
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
   const loadData = () => {
     try {
+      // Carregar Usuários
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) {
+      if (savedUsers && savedUsers !== "undefined" && savedUsers !== "null") {
         const users = JSON.parse(savedUsers);
         if (Array.isArray(users)) {
-          const found = users.find(u => u && u.email && u.email.toLowerCase().trim() === userEmail);
+          const found = users.find(u => u && u.email && String(u.email).toLowerCase().trim() === userEmail);
           if (found) setCurrentUser(found);
         }
       }
 
+      // Carregar Pedidos
       const savedOrders = localStorage.getItem('app_orders');
-      const orders = savedOrders ? JSON.parse(savedOrders) : [];
-      if (Array.isArray(orders)) {
-        setUserOrders(orders.filter((o: any) => o && o.userEmail && o.userEmail.toLowerCase().trim() === userEmail));
-      } else {
-        setUserOrders([]);
+      if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
+        const orders = JSON.parse(savedOrders);
+        if (Array.isArray(orders)) {
+          setUserOrders(orders.filter((o: any) => o && o.userEmail && String(o.userEmail).toLowerCase().trim() === userEmail));
+        } else {
+          setUserOrders([]);
+        }
       }
       
+      // Carregar Aluguéis
       const savedRentals = localStorage.getItem('app_rentals');
-      const rentals = savedRentals ? JSON.parse(savedRentals) : [];
-      if (Array.isArray(rentals)) {
-        setUserRentals(rentals.filter((r: any) => r && (r.clientEmail || "").toLowerCase().trim() === userEmail));
-      } else {
-        setUserRentals([]);
+      if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
+        const rentals = JSON.parse(savedRentals);
+        if (Array.isArray(rentals)) {
+          setUserRentals(rentals.filter((r: any) => r && (String(r.clientEmail || r.userEmail || "")).toLowerCase().trim() === userEmail));
+        } else {
+          setUserRentals([]);
+        }
       }
     } catch (e) {
       console.error("Erro ao carregar dados do perfil:", e);
@@ -64,8 +79,8 @@ const ProfilePage = () => {
   useEffect(() => { loadData(); }, [userEmail]);
 
   const financialSummary = useMemo(() => {
-    const safeOrders = Array.isArray(userOrders) ? userOrders : [];
-    const safeRentals = Array.isArray(userRentals) ? userRentals : [];
+    const safeOrders = (userOrders || []).filter(o => o);
+    const safeRentals = (userRentals || []).filter(r => r);
 
     const allItems = [
       ...safeOrders.map(o => ({ ...o, type: 'order' })),
@@ -80,7 +95,7 @@ const ProfilePage = () => {
       .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.01)
       .map(item => ({
         ...item,
-        label: item.type === 'order' ? `Pedido ${item.id}` : item.item
+        label: item.type === 'order' ? `Pedido ${item.id || 'N/A'}` : (item.item || 'Equipamento')
       }));
 
     return { totalInvoiced, totalPaid, totalDebt, pendingList };
@@ -88,23 +103,28 @@ const ProfilePage = () => {
 
   const handleResendWhatsApp = (order: any) => {
     if (!order) return;
-    const pixData = localStorage.getItem('app_pix_info');
-    const pixInfo = pixData ? JSON.parse(pixData) : { key: "16403481000116", name: "BTM Design", bank: "CC Crediplus" };
+    try {
+      const pixData = localStorage.getItem('app_pix_info');
+      const pixInfo = pixData ? JSON.parse(pixData) : { key: "16403481000116", name: "BTM Design", bank: "CC Crediplus" };
 
-    const items = order.items || [];
-    let itemsText = items.map((it: any) => `• ${it.name}: ${it.isFractional ? (it.totalAmount || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 0) + ' un'}`).join('%0A');
-    
-    const pixText = order.paymentMethod === 'Pix' 
-      ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
-      : '';
+      const items = order.items || [];
+      let itemsText = items.map((it: any) => `• ${it.name || 'Item'}: ${it.isFractional ? (it.totalAmount || 0).toFixed(2) + (it.unitLabel || 'm²') : (it.quantity || 0) + ' un'}`).join('%0A');
+      
+      const pixText = order.paymentMethod === 'Pix' 
+        ? `%0A%0A*DADOS PIX:*%0AChave: ${pixInfo.key}%0A${pixInfo.name}%0A${pixInfo.bank}` 
+        : '';
 
-    const msg = `*REENVIO DE PEDIDO - CONSTRULARA*%0A*ID:* ${order.id}%0A*Data:* ${order.date}%0A*Total:* R$ ${Number(order.total || 0).toFixed(2)}${pixText}%0A%0A*Itens:*%0A${itemsText}`;
-    
-    window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
-    showSuccess("Redirecionando para o WhatsApp...");
+      const msg = `*REENVIO DE PEDIDO - CONSTRULARA*%0A*ID:* ${order.id}%0A*Data:* ${order.date || '---'}%0A*Total:* R$ ${Number(order.total || 0).toFixed(2)}${pixText}%0A%0A*Itens:*%0A${itemsText}`;
+      
+      window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
+      showSuccess("Redirecionando para o WhatsApp...");
+    } catch (e) {
+      showError("Erro ao gerar link do WhatsApp.");
+    }
   };
 
   const handleCancelOrder = (id: string) => {
+    if (!id) return;
     if (window.confirm("Deseja realmente cancelar este pedido?")) {
       try {
         const savedOrders = localStorage.getItem('app_orders');
@@ -124,11 +144,12 @@ const ProfilePage = () => {
   };
 
   const handleSaveOrder = (updatedOrder: any) => {
+    if (!updatedOrder) return;
     try {
       const savedOrders = localStorage.getItem('app_orders');
       const orders = savedOrders ? JSON.parse(savedOrders) : [];
       if (Array.isArray(orders)) {
-        const updated = orders.map((o: any) => o && o.id === updatedOrder.id ? updatedOrder : o);
+        const updated = orders.map((o: any) => (o && o.id === updatedOrder.id) ? updatedOrder : o);
         localStorage.setItem('app_orders', JSON.stringify(updated));
         showSuccess("Pedido atualizado!");
         setIsOrderOpen(false);
@@ -141,23 +162,27 @@ const ProfilePage = () => {
   };
 
   const handlePayment = (amount: number) => {
-    if (!selectedPaymentItem) return;
+    if (!selectedPaymentItem || !selectedPaymentItem.id) return;
     try {
       const type = selectedPaymentItem.type === 'order' ? 'app_orders' : 'app_rentals';
-      const saved = JSON.parse(localStorage.getItem(type) || '[]');
+      const storageKey = type;
+      const savedRaw = localStorage.getItem(storageKey);
+      const saved = savedRaw ? JSON.parse(savedRaw) : [];
+      
       if (Array.isArray(saved)) {
         const updated = saved.map((item: any) => {
           if (item && item.id === selectedPaymentItem.id) {
-            const nextPaid = Number(item.paidAmount || 0) + amount;
+            const nextPaid = (Number(item.paidAmount) || 0) + amount;
+            const total = Number(item.total) || 0;
             return { 
               ...item, 
               paidAmount: nextPaid, 
-              status: nextPaid >= Number(item.total || 0) - 0.01 ? (type === 'app_orders' ? 'Pago' : 'completed') : item.status 
+              status: nextPaid >= total - 0.01 ? (storageKey === 'app_orders' ? 'Pago' : 'completed') : item.status 
             };
           }
           return item;
         });
-        localStorage.setItem(type, JSON.stringify(updated));
+        localStorage.setItem(storageKey, JSON.stringify(updated));
         showSuccess("Pagamento registrado!");
         setIsPaymentOpen(false);
         loadData();
@@ -187,7 +212,7 @@ const ProfilePage = () => {
                     <User className="h-8 w-8 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-3xl font-black">{currentUser?.name || "Carregando..."}</CardTitle>
+                    <CardTitle className="text-3xl font-black">{currentUser?.name || "Minha Conta"}</CardTitle>
                     <p className="text-blue-100 font-bold opacity-80 uppercase text-[10px] tracking-widest mt-1">Dados Cadastrais Oficiais</p>
                   </div>
                 </div>
@@ -203,7 +228,7 @@ const ProfilePage = () => {
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase">E-mail</p>
-                          <p className="font-bold text-slate-900">{currentUser?.email || "---"}</p>
+                          <p className="font-bold text-slate-900">{currentUser?.email || userEmail || "---"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 group">
@@ -242,12 +267,6 @@ const ProfilePage = () => {
                         </p>
                       </div>
                     </div>
-                    {currentUser?.worksiteAddress && (
-                      <div className="bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100">
-                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Endereço da Obra</p>
-                        <p className="text-sm font-bold text-blue-900">{currentUser.worksiteAddress}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -282,8 +301,8 @@ const ProfilePage = () => {
                     <p className="text-slate-500 font-bold">Você está totalmente em dia! Parabéns.</p>
                   </div>
                 ) : (
-                  financialSummary.pendingList.map((item: any) => (
-                    <div key={item.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm group hover:shadow-md transition-all">
+                  financialSummary.pendingList.map((item: any, idx: number) => (
+                    <div key={item.id || `pending-${idx}`} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm group hover:shadow-md transition-all">
                       <div className="flex items-center gap-4">
                         <div className={cn(
                           "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
@@ -292,7 +311,7 @@ const ProfilePage = () => {
                           {item.type === 'order' ? <ShoppingBag className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
                         </div>
                         <div>
-                          <p className="font-black text-slate-900">{item.label}</p>
+                          <p className="font-black text-slate-900">{item.label || 'Item'}</p>
                           <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item?.total || 0).toFixed(2)} • Pago: R$ {Number(item?.paidAmount || 0).toFixed(2)}</p>
                         </div>
                       </div>
@@ -322,13 +341,13 @@ const ProfilePage = () => {
                 <p className="text-slate-500 font-bold">Você ainda não realizou pedidos.</p>
               </div>
             ) : (
-              userOrders.map(order => (
-                <Card key={order.id} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+              userOrders.map((order, idx) => (
+                <Card key={order.id || `order-${idx}`} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{order.id}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.date}</p>
+                      <h4 className="font-black text-slate-900">{order.id || 'Sem ID'}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.date || '---'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -351,13 +370,13 @@ const ProfilePage = () => {
                 <p className="text-slate-500 font-bold">Você ainda não possui contratos de locação.</p>
               </div>
             ) : (
-              userRentals.map(rental => (
-                <Card key={rental.id} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+              userRentals.map((rental, idx) => (
+                <Card key={rental.id || `rental-${idx}`} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{rental.item}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start} até {rental.end}</p>
+                      <h4 className="font-black text-slate-900">{rental.item || 'Equipamento'}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start || '---'} até {rental.end || '---'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -374,8 +393,16 @@ const ProfilePage = () => {
         </Tabs>
       </div>
 
-      <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={handleCancelOrder} onSave={handleSaveOrder} />
-      {isRentalOpen && (
+      {selectedOrder && (
+        <EditOrderDialog 
+          order={selectedOrder} 
+          open={isOrderOpen} 
+          onOpenChange={setIsOrderOpen} 
+          onCancel={handleCancelOrder} 
+          onSave={handleSaveOrder} 
+        />
+      )}
+      {selectedRental && isRentalOpen && (
         <RentalDetailsDialog 
           rental={selectedRental} 
           open={isRentalOpen} 
@@ -383,7 +410,14 @@ const ProfilePage = () => {
           onUpdate={loadData} 
         />
       )}
-      <PaymentActionDialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen} item={selectedPaymentItem ? { ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label } : null} onConfirm={handlePayment} />
+      {selectedPaymentItem && (
+        <PaymentActionDialog 
+          open={isPaymentOpen} 
+          onOpenChange={setIsPaymentOpen} 
+          item={{ ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label }} 
+          onConfirm={handlePayment} 
+        />
+      )}
     </AppLayout>
   );
 };
