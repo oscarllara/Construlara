@@ -26,12 +26,15 @@ import {
   CalendarDays,
   CreditCard,
   Banknote,
-  XCircle
+  XCircle,
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
+import { useNavigate } from 'react-router-dom';
 import { differenceInCalendarDays, parse, format, isValid, parseISO } from 'date-fns';
 import RentalContract from './RentalContract';
 
@@ -46,6 +49,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
   const [allEquipments, setAllEquipments] = useState<Equipment[]>([]);
   const [viewContractMode, setViewContractMode] = useState(false);
+  const navigate = useNavigate();
   
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
@@ -212,6 +216,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
 
   const currentClient = Array.isArray(allClients) ? allClients.find(c => c && (String(c.id) === String(rental.clientId) || c.name === rental.client)) : null;
   const isPendingReturn = status === 'pending_return';
+  const isCompleted = status === 'completed';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -230,7 +235,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
               <h2 className="text-3xl font-black tracking-tighter">CONTRATO {String(rental.id || "").toUpperCase()}</h2>
             </div>
             <Badge className="bg-white/20 text-white border-none uppercase text-[10px] font-black px-4 py-1">
-              {status === 'completed' ? 'Finalizado' : isPendingReturn ? 'Solicitado' : 'Ativo'}
+              {isCompleted ? 'Finalizado' : isPendingReturn ? 'Solicitado' : 'Ativo'}
             </Badge>
           </div>
         </div>
@@ -283,6 +288,25 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                   </Button>
                 </div>
               )}
+
+              {isCompleted && (
+                <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 flex flex-col items-center gap-4 text-center">
+                  <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 text-lg">Este contrato foi finalizado</h3>
+                    <p className="text-sm font-medium text-emerald-800">O equipamento foi devolvido e o pagamento processado.</p>
+                  </div>
+                  <Button 
+                    onClick={() => { navigate('/equipamentos'); onOpenChange(false); }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black gap-2 h-12 px-8 shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Alugar Novamente
+                  </Button>
+                </div>
+              )}
+
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Equipamento</p>
