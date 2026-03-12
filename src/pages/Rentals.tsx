@@ -30,6 +30,7 @@ const RentalsPage = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<any>(null);
+  const [selectedEquipId, setSelectedEquipId] = useState<string>("");
 
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
@@ -75,6 +76,12 @@ const RentalsPage = () => {
     setIsDetailsOpen(false);
   };
 
+  const handleRentAgain = (id: string) => {
+    setIsDetailsOpen(false);
+    setSelectedEquipId(id);
+    setIsAddOpen(true);
+  };
+
   const filtered = useMemo(() => {
     return (rentals || []).filter(r => {
       if (!r) return false;
@@ -117,7 +124,7 @@ const RentalsPage = () => {
           </div>
           {isAdmin && (
             <Button 
-              onClick={() => setIsAddOpen(true)}
+              onClick={() => { setSelectedEquipId(""); setIsAddOpen(true); }}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black gap-2 shadow-lg shadow-blue-50 h-12 px-6 transition-all active:scale-95"
             >
               <PlusCircle className="h-5 w-5" /> Novo Aluguel
@@ -220,13 +227,15 @@ const RentalsPage = () => {
           showSuccess("Contrato criado com sucesso!");
           window.dispatchEvent(new Event('order-placed'));
         }} 
+        initialEquipmentId={selectedEquipId}
       />
 
       <RentalDetailsDialog 
         rental={selectedRental} 
         open={isDetailsOpen} 
         onOpenChange={setIsDetailsOpen} 
-        onUpdate={handleUpdateRental} 
+        onUpdate={handleUpdateRental}
+        onRentAgain={handleRentAgain}
       />
     </AppLayout>
   );

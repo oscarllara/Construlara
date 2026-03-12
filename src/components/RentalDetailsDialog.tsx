@@ -43,9 +43,10 @@ interface RentalDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: (updatedRental: any) => void;
+  onRentAgain?: (equipmentId: string) => void; // Nova prop para ação direta
 }
 
-const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDetailsDialogProps) => {
+const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate, onRentAgain }: RentalDetailsDialogProps) => {
   const [allClients, setAllClients] = useState<UserAccount[]>([]);
   const [allEquipments, setAllEquipments] = useState<Equipment[]>([]);
   const [viewContractMode, setViewContractMode] = useState(false);
@@ -212,12 +213,16 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     window.dispatchEvent(new Event('order-placed'));
   };
 
-  const handleRentAgain = () => {
-    onOpenChange(false);
-    setTimeout(() => {
-      navigate('/equipamentos');
-      showSuccess("Escolha o equipamento para o novo aluguel.");
-    }, 100);
+  const handleRentAgainAction = () => {
+    if (onRentAgain && rental.equipmentId) {
+      onRentAgain(rental.equipmentId);
+    } else {
+      onOpenChange(false);
+      setTimeout(() => {
+        navigate('/equipamentos');
+        showSuccess("Escolha o equipamento para o novo aluguel.");
+      }, 100);
+    }
   };
 
   if (!rental) return null;
@@ -307,7 +312,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                     <p className="text-sm font-medium text-emerald-800">O equipamento foi devolvido e o pagamento processado.</p>
                   </div>
                   <Button 
-                    onClick={handleRentAgain}
+                    onClick={handleRentAgainAction}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black gap-2 h-12 px-8 shadow-lg shadow-emerald-100 transition-all active:scale-95"
                   >
                     <RefreshCw className="h-4 w-4" /> Alugar Novamente

@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { showSuccess, showError } from '@/utils/toast';
 import EditOrderDialog from '@/components/EditOrderDialog';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
+import AddRentalDialog from '@/components/AddRentalDialog';
 import PaymentActionDialog from '@/components/PaymentActionDialog';
 import { UserAccount } from '@/components/UserTable';
 
@@ -25,11 +26,11 @@ const ProfilePage = () => {
   
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedRental, setSelectedRental] = useState<any>(null);
-  const [selectedPaymentItem, setSelectedPaymentItem] = useState<any>(null);
+  const [selectedEquipId, setSelectedEquipId] = useState<string>("");
   
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isRentalOpen, setIsRentalOpen] = useState(false);
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isAddRentalOpen, setIsAddRentalOpen] = useState(false);
   
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const navigate = useNavigate();
@@ -86,7 +87,6 @@ const ProfilePage = () => {
   useEffect(() => { loadData(); }, [userEmail]);
 
   const financialSummary = useMemo(() => {
-    // Filtro agressivo contra itens nulos antes do map/reduce
     const safeOrders = (Array.isArray(userOrders) ? userOrders : []).filter(o => o && typeof o === 'object');
     const safeRentals = (Array.isArray(userRentals) ? userRentals : []).filter(r => r && typeof r === 'object');
 
@@ -118,6 +118,33 @@ const ProfilePage = () => {
       setSelectedRental(item);
       setIsRentalOpen(true);
     }
+  };
+
+  const handleRentAgain = (id: string) => {
+    setIsRentalOpen(false);
+    setSelectedEquipId(id);
+    setIsAddRentalOpen(true);
+  };
+
+  const handleAddRental = (data: any) => {
+    const savedRentals = localStorage.getItem('app_rentals');
+    const currentRentals = savedRentals ? JSON.parse(savedRentals) : [];
+    const newRental = { id: `r-${Date.now()}`, ...data, status: 'active' };
+    localStorage.setItem('app_rentals', JSON.stringify([newRental, ...currentRentals]));
+    
+    // Atualizar status do equipamento
+    const savedEquip = localStorage.getItem('app_equipments');
+    if (savedEquip) {
+      const allEquip = JSON.parse(savedEquip);
+      const updatedEquip = allEquip.map((e: any) => 
+        e.id === data.equipmentId ? { ...e, status: 'rented', lastClient: data.clientName } : e
+      );
+      localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+    }
+
+    loadData();
+    setIsAddRentalOpen(false);
+    showSuccess("Novo contrato gerado!");
   };
 
   return (
@@ -220,7 +247,16 @@ const ProfilePage = () => {
       </div>
 
       {selectedOrder && <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={() => {}} onSave={() => {}} />}
-      {selectedRental && <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={loadData} />}
+      {selectedRental && <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={loadData} onRentAgain={handleRentAgain} />}
+      
+      {isAddRentalOpen && (
+        <AddRentalDialog 
+          open={isAddRentalOpen} 
+          onOpenChange={setIsAddRentalOpen} 
+          onAdd={handleAddRental} 
+          initialEquipmentId={selectedEquipId} 
+        />
+      )}
     </AppLayout>
   );
 };
