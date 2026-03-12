@@ -34,7 +34,6 @@ const ProfilePage = () => {
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const navigate = useNavigate();
 
-  // Sincroniza a aba quando a URL muda (clique na Navbar)
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
     if (tabFromUrl && tabFromUrl !== activeTab) {
@@ -44,6 +43,7 @@ const ProfilePage = () => {
 
   const loadData = () => {
     try {
+      // Carregar Usuários
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
         const users = JSON.parse(savedUsers);
@@ -53,25 +53,39 @@ const ProfilePage = () => {
         }
       }
 
+      // Carregar Pedidos (com proteção contra nulos)
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders) {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
           setUserOrders(orders.filter(o => o && o.userEmail && String(o.userEmail).toLowerCase().trim() === userEmail));
+        } else {
+          setUserOrders([]);
         }
+      } else {
+        setUserOrders([]);
       }
       
+      // Carregar Aluguéis (com proteção contra nulos)
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals) {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
-          setUserRentals(rentals.filter(r => 
-            r && (String(r.clientEmail || r.userEmail || "")).toLowerCase().trim() === userEmail
-          ));
+          setUserRentals(rentals.filter(r => {
+            if (!r) return false;
+            const email = String(r.clientEmail || r.userEmail || "").toLowerCase().trim();
+            return email === userEmail;
+          }));
+        } else {
+          setUserRentals([]);
         }
+      } else {
+        setUserRentals([]);
       }
     } catch (e) {
-      console.error("Erro ao processar dados do perfil:", e);
+      console.error("Erro crítico ao carregar perfil:", e);
+      setUserOrders([]);
+      setUserRentals([]);
     }
   };
 
@@ -91,10 +105,10 @@ const ProfilePage = () => {
     const totalDebt = Math.max(0, totalInvoiced - totalPaid);
 
     const pendingList = allItems
-      .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.01)
+      .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.05)
       .map(item => ({
         ...item,
-        label: item.type === 'order' ? `Pedido ${item.id}` : (item.item || 'Aluguel')
+        label: item.type === 'order' ? `Pedido ${item.id || '?'}` : (item.item || 'Equipamento')
       }));
 
     return { totalInvoiced, totalPaid, totalDebt, pendingList };
@@ -115,14 +129,14 @@ const ProfilePage = () => {
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-8">
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearchParams({ tab: v }); }} className="space-y-6">
-          <TabsList className="bg-white p-1 rounded-[2.5rem] h-16 w-full shadow-sm">
-            <TabsTrigger value="data" className="flex-1 rounded-[2rem] font-bold">Meus Dados</TabsTrigger>
-            <TabsTrigger value="finance" className="flex-1 rounded-[2rem] font-bold">Financeiro</TabsTrigger>
-            <TabsTrigger value="orders" className="flex-1 rounded-[2rem] font-bold">Meus Pedidos</TabsTrigger>
-            <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold">Meus Aluguéis</TabsTrigger>
+          <TabsList className="bg-white p-1 rounded-[2.5rem] h-16 w-full shadow-sm flex overflow-hidden">
+            <TabsTrigger value="data" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Dados</TabsTrigger>
+            <TabsTrigger value="finance" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Financeiro</TabsTrigger>
+            <TabsTrigger value="orders" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Pedidos</TabsTrigger>
+            <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Aluguéis</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="data" className="animate-in fade-in slide-in-from-bottom-2">
+          <TabsContent value="data" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <Card className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden">
               <CardHeader className="bg-blue-700 p-10 text-white">
                 <div className="flex items-center gap-4">
@@ -178,12 +192,12 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="finance" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+          <TabsContent value="finance" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid md:grid-cols-3 gap-6">
               {[
-                { title: 'Faturamento Total', val: financialSummary.totalInvoiced, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-slate-900', text: 'text-white' },
+                { title: 'Invoiced (Bruto)', val: financialSummary.totalInvoiced, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-slate-900', text: 'text-white' },
                 { title: 'Valores Quitados', val: financialSummary.totalPaid, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-white', text: 'text-slate-900' },
-                { title: 'Saldo Devedor', val: financialSummary.totalDebt, icon: Wallet, color: 'text-rose-500', bg: 'bg-white', text: 'text-rose-600', border: 'border-2 border-rose-100' }
+                { title: 'Saldo em Aberto', val: financialSummary.totalDebt, icon: Wallet, color: 'text-rose-500', bg: 'bg-white', text: 'text-rose-600', border: 'border-2 border-rose-100' }
               ].map((stat, i) => (
                 <Card key={i} className={cn("border-none shadow-xl rounded-[2.5rem] p-8", stat.bg, stat.border)}>
                   <stat.icon className={cn("h-6 w-6 mb-4", stat.color)} />
@@ -194,22 +208,22 @@ const ProfilePage = () => {
             </div>
             
             <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Débitos Pendentes</h3>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Débitos Ativos</h3>
               {financialSummary.pendingList.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-[3rem] border border-dashed border-slate-200">
                   <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                  <p className="text-slate-500 font-bold">Você está em dia com a Construlara!</p>
+                  <p className="text-slate-500 font-bold">Excelente! Suas contas estão em dia.</p>
                 </div>
               ) : (
                 financialSummary.pendingList.map((item, idx) => (
-                  <div key={item.id || idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm">
+                  <div key={item.id || idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm hover:border-blue-100 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", item.type === 'order' ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600")}>
                         {item.type === 'order' ? <ShoppingBag className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
                       </div>
                       <div>
                         <p className="font-black text-slate-900">{item.label}</p>
-                        <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item.total).toFixed(2)} • Pago: R$ {Number(item.paidAmount).toFixed(2)}</p>
+                        <p className="text-[10px] font-bold text-slate-400">Bruto: R$ {Number(item.total).toFixed(2)} • Pago: R$ {Number(item.paidAmount).toFixed(2)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -217,7 +231,7 @@ const ProfilePage = () => {
                         <p className="text-xl font-black text-rose-600">R$ {(Number(item.total) - Number(item.paidAmount)).toFixed(2)}</p>
                         <p className="text-[9px] font-black text-rose-400 uppercase">Pendente</p>
                       </div>
-                      <Button onClick={() => { setSelectedPaymentItem(item); setIsPaymentOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-6 font-bold text-xs">Pagar</Button>
+                      <Button onClick={() => { setSelectedPaymentItem(item); setIsPaymentOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-6 font-bold text-xs shadow-md">Regularizar</Button>
                     </div>
                   </div>
                 ))
@@ -225,11 +239,11 @@ const ProfilePage = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="orders" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+          <TabsContent value="orders" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {userOrders.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
                 <SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Nenhum pedido realizado ainda.</p>
+                <p className="text-slate-500 font-bold">Nenhum histórico de compras encontrado.</p>
               </div>
             ) : (
               userOrders.map((order, idx) => (
@@ -243,8 +257,8 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-blue-700">R$ {Number(order.total).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status}</Badge>
+                      <p className="font-black text-blue-700">R$ {Number(order.total || 0).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status || 'Pendente'}</Badge>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
                   </div>
@@ -253,11 +267,11 @@ const ProfilePage = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="rentals" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+          <TabsContent value="rentals" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {userRentals.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
                 <SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Nenhum contrato de aluguel ativo.</p>
+                <p className="text-slate-500 font-bold">Você não possui contratos de locação registrados.</p>
               </div>
             ) : (
               userRentals.map((rental, idx) => (
@@ -265,16 +279,16 @@ const ProfilePage = () => {
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{rental.item}</h4>
+                      <h4 className="font-black text-slate-900">{rental.item || 'Equipamento'}</h4>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start} até {rental.end}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-4">
-                      <p className="font-black text-slate-900">R$ {Number(rental.total).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status}</Badge>
+                      <p className="font-black text-slate-900">R$ {Number(rental.total || 0).toFixed(2)}</p>
+                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status === 'completed' ? 'Finalizado' : 'Ativo'}</Badge>
                     </div>
-                    <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Detalhes</Button>
+                    <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Visualizar</Button>
                   </div>
                 </Card>
               ))

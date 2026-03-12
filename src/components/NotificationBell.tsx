@@ -34,15 +34,18 @@ const NotificationBell = () => {
     const today = new Date();
 
     try {
+      // Monitoramento de Aluguéis
       const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals && savedRentals !== "null") {
+      if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
           rentals.forEach((rental: any, idx: number) => {
             if (!rental || rental.status === 'completed' || !rental.end) return;
             
-            const isGestor = localStorage.getItem('userRole') === 'Gestor';
-            const isMyRental = rental.clientEmail && String(rental.clientEmail).toLowerCase().trim() === userEmail;
+            const role = localStorage.getItem('userRole');
+            const isGestor = role === 'Gestor' || role === 'Vendas';
+            const rentalEmail = String(rental.clientEmail || rental.userEmail || "").toLowerCase().trim();
+            const isMyRental = rentalEmail === userEmail;
             
             if (!isGestor && !isMyRental) return;
 
@@ -57,13 +60,13 @@ const NotificationBell = () => {
 
               if (isValid(endDate)) {
                 const daysLeft = differenceInDays(endDate, today);
-                const safeId = rental.id || `notif-${idx}`;
+                const safeId = rental.id || `notif-r-${idx}`;
 
                 if (daysLeft < 0) {
                   newNotifications.push({
                     id: `overdue-${safeId}`,
-                    title: "Aluguel Atrasado!",
-                    description: `O item ${rental.item || 'Equipamento'} venceu em ${endStr}.`,
+                    title: "Locação Vencida!",
+                    description: `O item ${rental.item || 'Equipamento'} deveria ter sido entregue.`,
                     type: 'danger',
                     date: endStr,
                     path: '/perfil?tab=rentals'
@@ -71,32 +74,37 @@ const NotificationBell = () => {
                 } else if (daysLeft <= 2) {
                   newNotifications.push({
                     id: `near-${safeId}`,
-                    title: "Entrega Próxima",
-                    description: `O item ${rental.item || 'Equipamento'} vence em ${endStr}.`,
+                    title: "Vencimento Próximo",
+                    description: `O prazo do item ${rental.item || 'Equipamento'} encerra em breve.`,
                     type: 'warning',
                     date: endStr,
                     path: '/perfil?tab=rentals'
                   });
                 }
               }
-            } catch (e) {}
+            } catch (innerError) {
+              console.warn("Falha ao processar data da notificação:", innerError);
+            }
           });
         }
       }
 
+      // Monitoramento de Pedidos Pendentes
       const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders) {
+      if (savedOrders && savedOrders !== "undefined") {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
-          const myPending = orders.filter((o: any) => 
-            o && o.userEmail && String(o.userEmail).toLowerCase().trim() === userEmail && o.status === 'Pendente'
-          );
+          const myPending = orders.filter((o: any) => {
+            if (!o) return false;
+            const email = String(o.userEmail || "").toLowerCase().trim();
+            return email === userEmail && o.status === 'Pendente';
+          });
           
-          myPending.slice(0, 2).forEach((order: any, idx: number) => {
+          myPending.slice(0, 3).forEach((order: any, idx: number) => {
             newNotifications.push({
               id: `order-${order.id || idx}`,
-              title: "Pedido em Aberto",
-              description: `O seu pedido ${order.id} está pendente.`,
+              title: "Pagamento Pendente",
+              description: `Seu pedido ${order.id || 'Nº?'} aguarda confirmação.`,
               type: 'info',
               date: order.date || "",
               path: '/perfil?tab=orders'
@@ -105,7 +113,7 @@ const NotificationBell = () => {
         }
       }
     } catch (e) {
-      console.error("Erro ao carregar notificações:", e);
+      console.error("Erro sistêmico ao gerar notificações:", e);
     }
 
     setNotifications(newNotifications);
@@ -126,31 +134,36 @@ const NotificationBell = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-50 relative h-10 w-10">
           <Bell className="h-5 w-5 text-slate-600" />
-          {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">{notifications.length}</span>}
+          {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">{notifications.length}</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-80 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-2xl mt-2 z-[100]" align="end">
-        <DropdownMenuLabel className="px-4 py-2 text-sm font-black text-slate-900">Notificações</DropdownMenuLabel>
+        <DropdownMenuLabel className="px-4 py-2 text-sm font-black text-slate-900">Central de Avisos</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-slate-100 my-2" />
         <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
           {notifications.length === 0 ? (
-            <div className="py-8 text-center space-y-2">
-              <CheckCircle2 className="h-8 w-8 text-slate-200 mx-auto" />
-              <p className="text-xs font-bold text-slate-400">Nenhum aviso no momento.</p>
+            <div className="py-10 text-center space-y-3">
+              <div className="h-12 w-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-6 w-6 text-slate-300" />
+              </div>
+              <p className="text-xs font-bold text-slate-400">Você não tem novas notificações.</p>
             </div>
           ) : (
             notifications.map((notif, idx) => (
               <DropdownMenuItem 
                 key={notif.id || idx} 
                 onClick={() => navigate(notif.path)}
-                className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent hover:border-slate-100 flex gap-4"
+                className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent hover:border-slate-100 flex gap-4 transition-all"
               >
-                <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", notif.type === 'danger' ? "bg-red-50 text-red-600" : notif.type === 'warning' ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600")}>
+                <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", 
+                  notif.type === 'danger' ? "bg-red-50 text-red-600" : 
+                  notif.type === 'warning' ? "bg-amber-50 text-amber-600" : 
+                  "bg-blue-50 text-blue-600")}>
                   {notif.type === 'danger' ? <AlertCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-black text-slate-900 leading-none">{notif.title}</p>
-                  <p className="text-xs font-medium text-slate-500 leading-tight">{notif.description}</p>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-black text-slate-900 leading-tight">{notif.title}</p>
+                  <p className="text-[11px] font-medium text-slate-500 leading-snug">{notif.description}</p>
                 </div>
               </DropdownMenuItem>
             ))
