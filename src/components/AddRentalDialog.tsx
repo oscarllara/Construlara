@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Receipt, Hammer, Calendar, Users, MessageCircle } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
-import { differenceInDays, parseISO, format } from 'date-fns';
+import { differenceInDays, parseISO, format, isValid } from 'date-fns';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface AddRentalDialogProps {
@@ -50,7 +50,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
         const parsed = JSON.parse(savedUsers);
         setClients(Array.isArray(parsed) ? parsed : []);
         
-        // Se for cliente, auto-seleciona
         if (!isInternal) {
           const me = parsed.find((u: any) => u.email === userEmail);
           if (me) setFormData(prev => ({ ...prev, clientId: me.id }));
@@ -59,7 +58,8 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
       const savedEquip = localStorage.getItem('app_equipments');
       if (savedEquip) {
-        setEquipments(JSON.parse(savedEquip));
+        const parsedEquip = JSON.parse(savedEquip);
+        setEquipments(parsedEquip);
       }
 
       if (initialEquipmentId) {
@@ -68,22 +68,54 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     }
   }, [open, initialEquipmentId, isInternal, userEmail]);
 
+  // Efeito dedicado ao cálculo do preço
   useEffect(() => {
-    if (!formData.startDate || !formData.endDate || !formData.equipmentId) return;
+    if (!formData.startDate || !formData.endDate || !formData.equipmentId || equipments.length === 0) {
+      return;
+    }
+
     const start = parseISO(formData.startDate);
     const end = parseISO(formData.endDate);
-    const totalDays = differenceInDays(end, start) + 1;
-    if (totalDays <= 0) return;
+    
+    if (!isValid(start) || !isValid(end)) return;
 
-    const equipment = equipments.find(e => e.id === formData.equipmentId);
+    // diferença + 1 para contar o dia de início
+    const totalDays = differenceInDays(end, start) + 1;
+    
+    // Se a data for inválida (fim antes do início), resetamos para 0
+    if (totalDays <= 0) {
+      setFormData(prev => ({ ...prev, totalValue: "0.00" }));
+      return;
+    }
+
+    const equipment = equipments.find(e => String(e.id) === String(formData.equipmentId));
     if (equipment) {
       let calculatedTotal = 0;
       let displayModality = "Diária";
-      if (totalDays >= 20) { displayModality = "Mensal"; calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20); }
-      else if (totalDays >= 11) { displayModality = "Quinzenal"; calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11); }
-      else if (totalDays >= 4) { displayModality = "Semanal"; calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4); }
-      else { displayModality = "Diária"; calculatedTotal = equipment.dailyRate * totalDays; }
-      setFormData(prev => ({ ...prev, modality: displayModality, totalValue: calculatedTotal.toFixed(2) }));
+
+      // Lógica de faixas de preço (Tabela regressiva)
+      if (totalDays >= 20) { 
+        displayModality = "Mensal"; 
+        calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20); 
+      }
+      else if (totalDays >= 11) { 
+        displayModality = "Quinzenal"; 
+        calculatedTotal = equipment.biweeklyRate || (equipment.dailyRate * 11); 
+      }
+      else if (totalDays >= 4) { 
+        displayModality = "Semanal"; 
+        calculatedTotal = equipment.weeklyRate || (equipment.dailyRate * 4); 
+      }
+      else { 
+        displayModality = "Diária"; 
+        calculatedTotal = equipment.dailyRate * totalDays; 
+      }
+
+      setFormData(prev => ({ 
+        ...prev, 
+        modality: displayModality, 
+        totalValue: calculatedTotal.toFixed(2) 
+      }));
     }
   }, [formData.startDate, formData.endDate, formData.equipmentId, equipments]);
 
@@ -91,9 +123,10 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     if (!formData.clientId) { showError("Identificação necessária."); return; }
     if (!formData.equipmentId) { showError("Selecione o equipamento."); return; }
     if (!formData.endDate) { showError("Informe a data de devolução."); return; }
+    if (parseFloat(formData.totalValue) <= 0) { showError("Data de devolução inválida."); return; }
 
     const client = clients.find(c => c.id === formData.clientId);
-    const equipment = equipments.find(e => e.id === formData.equipmentId);
+    const equipment = equipments.find(e => String(e.id) === String(formData.equipmentId));
 
     const rentalPayload = {
       ...formData,
@@ -110,7 +143,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
     onAdd(rentalPayload);
 
-    // Se for cliente, envia WhatsApp
     if (!isInternal) {
       const msg = `*SOLICITAÇÃO DE ALUGUEL - CONSTRULARA*%0A*Item:* ${rentalPayload.itemName}%0A*Período:* ${rentalPayload.start} até ${rentalPayload.end}%0A*Total Estimado:* R$ ${rentalPayload.total.toFixed(2)}`;
       window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
@@ -146,7 +178,11 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
           <div className="space-y-2">
             <Label className="font-bold">Equipamento</Label>
-            <Input value={equipments.find(e => e.id === formData.equipmentId)?.name || ""} disabled className="h-12 rounded-xl bg-slate-50 font-bold" />
+            <Input 
+              value={equipments.find(e => String(e.id) === String(formData.equipmentId))?.name || "Carregando..."} 
+              disabled 
+              className="h-12 rounded-xl bg-slate-50 font-bold" 
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -161,13 +197,17 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
           </div>
 
           <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 text-center">
-            <p className="text-[10px] font-black text-blue-400 uppercase">{formData.modality}</p>
+            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{formData.modality}</p>
             <p className="text-4xl font-black text-blue-700">R$ {formData.totalValue}</p>
           </div>
         </div>
 
         <DialogFooter className="pt-6">
-          <Button onClick={handleSubmit} className="w-full bg-blue-700 hover:bg-blue-800 h-14 rounded-2xl font-black text-white shadow-xl">
+          <Button 
+            onClick={handleSubmit} 
+            disabled={parseFloat(formData.totalValue) <= 0}
+            className="w-full bg-blue-700 hover:bg-blue-800 h-14 rounded-2xl font-black text-white shadow-xl disabled:opacity-50"
+          >
             {isInternal ? "Confirmar Aluguel" : "Solicitar via WhatsApp"}
           </Button>
         </DialogFooter>
