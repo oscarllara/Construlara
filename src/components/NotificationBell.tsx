@@ -35,26 +35,22 @@ const NotificationBell = () => {
     const today = new Date();
 
     try {
-      // 1. Verificar Aluguéis (Proteção Extrema)
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
           rentals.forEach((rental: any, idx: number) => {
-            // Pula se o item for inválido ou se não houver dados de fim
             if (!rental || typeof rental !== 'object' || rental.status === 'completed' || !rental.end) return;
             
             const rentalEmail = String(rental.clientEmail || rental.userEmail || "").toLowerCase().trim();
             const isGestor = ['Gestor', 'Vendas'].includes(userRole);
             const isMyRental = rentalEmail === userEmail;
             
-            // Apenas mostra se for dono ou se for admin
             if (!isGestor && !isMyRental) return;
 
             try {
               const endStr = String(rental.end);
               let endDate: Date | null = null;
-
               if (endStr.includes('/')) {
                 endDate = parse(endStr, 'dd/MM/yyyy', new Date());
               } else if (endStr.includes('-')) {
@@ -85,14 +81,11 @@ const NotificationBell = () => {
                   });
                 }
               }
-            } catch (err) {
-              console.error("Erro ao processar data de aluguel individual:", err);
-            }
+            } catch (err) { }
           });
         }
       }
 
-      // 2. Verificar Pedidos (Proteção Extrema)
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
         const orders = JSON.parse(savedOrders);
@@ -100,7 +93,6 @@ const NotificationBell = () => {
           const myPending = orders.filter((o: any) => {
             if (!o || typeof o !== 'object') return false;
             const email = String(o.userEmail || "").toLowerCase().trim();
-            // Se for cliente, vê os próprios. Se for gestor, vê todos os pendentes.
             const isGestor = ['Gestor', 'Vendas'].includes(userRole);
             if (isGestor) return o.status === 'Pendente';
             return email === userEmail && o.status === 'Pendente';
@@ -120,9 +112,7 @@ const NotificationBell = () => {
           });
         }
       }
-    } catch (e) {
-      console.warn("Falha ao carregar notificações, sistema protegido contra crash.");
-    }
+    } catch (e) { }
 
     setNotifications(newNotifications);
   };
@@ -150,22 +140,20 @@ const NotificationBell = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-80 rounded-[2rem] p-4 bg-white border border-slate-100 shadow-2xl mt-2 z-[100]" align="end">
-        <DropdownMenuLabel className="px-4 py-2 text-sm font-black text-slate-900">Avisos Importantes</DropdownMenuLabel>
+        <DropdownMenuLabel className="px-4 py-2 text-sm font-black text-slate-900">Notificações</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-slate-100 my-2" />
         <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
           {notifications.length === 0 ? (
             <div className="py-10 text-center space-y-3">
               <CheckCircle2 className="h-10 w-10 text-slate-200 mx-auto" />
-              <p className="text-xs font-bold text-slate-400">Tudo certo por aqui!</p>
+              <p className="text-xs font-bold text-slate-400">Tudo em dia!</p>
             </div>
           ) : (
             notifications.map((notif, idx) => (
               <DropdownMenuItem 
                 key={notif.id || idx} 
-                onClick={() => {
-                  if (notif.path) navigate(notif.path);
-                }}
-                className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent hover:border-slate-100 flex gap-4 transition-all"
+                onClick={() => { if (notif.path) navigate(notif.path); }}
+                className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent flex gap-4 transition-all"
               >
                 <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", 
                   notif.type === 'danger' ? "bg-red-50 text-red-600" : 

@@ -43,9 +43,8 @@ const ProfilePage = () => {
 
   const loadData = () => {
     try {
-      // 1. Carregar Usuário logado
       const savedUsers = localStorage.getItem('app_users');
-      if (savedUsers) {
+      if (savedUsers && savedUsers !== "undefined") {
         const users = JSON.parse(savedUsers);
         if (Array.isArray(users)) {
           const found = users.find(u => u && u.email && String(u.email).toLowerCase().trim() === userEmail);
@@ -53,12 +52,10 @@ const ProfilePage = () => {
         }
       }
 
-      // 2. Carregar Pedidos com Validação Pesada
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders && savedOrders !== "undefined") {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
-          // Filtra apenas pedidos válidos que pertencem a este email
           const filtered = orders.filter(o => 
             o && 
             typeof o === 'object' && 
@@ -69,12 +66,10 @@ const ProfilePage = () => {
         }
       }
       
-      // 3. Carregar Aluguéis com Validação Pesada
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals && savedRentals !== "undefined") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
-          // Filtra apenas aluguéis válidos que pertencem a este email
           const filtered = rentals.filter(r => {
             if (!r || typeof r !== 'object') return false;
             const email = String(r.clientEmail || r.userEmail || "").toLowerCase().trim();
@@ -84,16 +79,16 @@ const ProfilePage = () => {
         }
       }
     } catch (e) {
-      console.error("Erro ao carregar dados do perfil:", e);
+      console.error("Erro no Profile:", e);
     }
   };
 
   useEffect(() => { loadData(); }, [userEmail]);
 
-  // Sumário financeiro com fallback para cada valor
   const financialSummary = useMemo(() => {
-    const safeOrders = Array.isArray(userOrders) ? userOrders : [];
-    const safeRentals = Array.isArray(userRentals) ? userRentals : [];
+    // Filtro agressivo contra itens nulos antes do map/reduce
+    const safeOrders = (Array.isArray(userOrders) ? userOrders : []).filter(o => o && typeof o === 'object');
+    const safeRentals = (Array.isArray(userRentals) ? userRentals : []).filter(r => r && typeof r === 'object');
 
     const allItems = [
       ...safeOrders.map(o => ({ ...o, type: 'order' })),
@@ -136,7 +131,7 @@ const ProfilePage = () => {
             <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Aluguéis</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="data" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <TabsContent value="data">
             <Card className="border-none shadow-xl rounded-[3rem] bg-white overflow-hidden">
               <CardHeader className="bg-blue-700 p-10 text-white">
                 <div className="flex items-center gap-4">
@@ -145,7 +140,7 @@ const ProfilePage = () => {
                   </div>
                   <div>
                     <CardTitle className="text-3xl font-black">{currentUser?.name || "Minha Conta"}</CardTitle>
-                    <p className="text-blue-100 font-bold opacity-80 uppercase text-[10px] tracking-widest mt-1">Dados Cadastrais Oficiais</p>
+                    <p className="text-blue-100 font-bold uppercase text-[10px] tracking-widest mt-1">Dados Cadastrais Oficiais</p>
                   </div>
                 </div>
               </CardHeader>
@@ -154,36 +149,17 @@ const ProfilePage = () => {
                   <div className="space-y-6">
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Informações de Contato</h3>
                     <div className="space-y-4">
-                      {[
-                        { icon: Mail, label: 'E-mail', value: currentUser?.email || userEmail, color: 'text-blue-600', bg: 'bg-blue-50' },
-                        { icon: Phone, label: 'WhatsApp', value: currentUser?.whatsapp || "Não informado", color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                        { icon: CreditCard, label: 'CPF', value: currentUser?.cpf || "Não informado", color: 'text-indigo-600', bg: 'bg-indigo-50' }
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-4 group">
-                          <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-colors", item.bg, item.color)}>
-                            <item.icon className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase">{item.label}</p>
-                            <p className="font-bold text-slate-900">{item.value}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-6">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Endereço Principal</h3>
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 shrink-0">
-                        <MapPin className="h-5 w-5" />
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center"><Mail className="h-5 w-5" /></div>
+                        <div><p className="text-[10px] font-black text-slate-400">E-MAIL</p><p className="font-bold text-slate-900">{currentUser?.email || userEmail}</p></div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="font-bold text-slate-900 text-lg leading-tight">{currentUser?.address || "Endereço não cadastrado"}</p>
-                        <p className="text-sm text-slate-500 font-medium">
-                          {currentUser?.neighborhood ? `${currentUser.neighborhood}, ` : ""}
-                          {currentUser?.city ? `${currentUser.city} - ` : ""}
-                          {currentUser?.state || ""}
-                        </p>
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Phone className="h-5 w-5" /></div>
+                        <div><p className="text-[10px] font-black text-slate-400">WHATSAPP</p><p className="font-bold text-slate-900">{currentUser?.whatsapp || "---"}</p></div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><CreditCard className="h-5 w-5" /></div>
+                        <div><p className="text-[10px] font-black text-slate-400">CPF</p><p className="font-bold text-slate-900">{currentUser?.cpf || "---"}</p></div>
                       </div>
                     </div>
                   </div>
@@ -192,104 +168,50 @@ const ProfilePage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="finance" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <TabsContent value="finance" className="space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { title: 'Invoiced (Bruto)', val: financialSummary.totalInvoiced, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-slate-900', text: 'text-white' },
-                { title: 'Valores Quitados', val: financialSummary.totalPaid, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-white', text: 'text-slate-900' },
-                { title: 'Saldo em Aberto', val: financialSummary.totalDebt, icon: Wallet, color: 'text-rose-500', bg: 'bg-white', text: 'text-rose-600', border: 'border-2 border-rose-100' }
-              ].map((stat, i) => (
-                <Card key={i} className={cn("border-none shadow-xl rounded-[2.5rem] p-8", stat.bg, stat.border)}>
-                  <stat.icon className={cn("h-6 w-6 mb-4", stat.color)} />
-                  <p className={cn("text-3xl font-black", stat.text)}>R$ {stat.val.toFixed(2)}</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{stat.title}</p>
-                </Card>
-              ))}
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Débitos Ativos</h3>
-              {financialSummary.pendingList.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                  <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                  <p className="text-slate-500 font-bold">Excelente! Suas contas estão em dia.</p>
-                </div>
-              ) : (
-                financialSummary.pendingList.map((item, idx) => (
-                  <div key={item.id || idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex justify-between items-center shadow-sm hover:border-blue-100 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", item.type === 'order' ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600")}>
-                        {item.type === 'order' ? <ShoppingBag className="h-6 w-6" /> : <Calendar className="h-6 w-6" />}
-                      </div>
-                      <div>
-                        <p className="font-black text-slate-900">{item.label}</p>
-                        <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item.total).toFixed(2)} • Pago: R$ {Number(item.paidAmount).toFixed(2)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-xl font-black text-rose-600">R$ {(Number(item.total) - Number(item.paidAmount)).toFixed(2)}</p>
-                        <p className="text-[9px] font-black text-rose-400 uppercase">Pendente</p>
-                      </div>
-                      <Button onClick={() => { setSelectedPaymentItem(item); setIsPaymentOpen(true); }} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-6 font-bold text-xs shadow-md">Regularizar</Button>
-                    </div>
-                  </div>
-                ))
-              )}
+              <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-slate-900 text-white">
+                <p className="text-3xl font-black text-white">R$ {financialSummary.totalInvoiced.toFixed(2)}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total Invoiced</p>
+              </Card>
+              <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white">
+                <p className="text-3xl font-black text-emerald-600">R$ {financialSummary.totalPaid.toFixed(2)}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Quitado</p>
+              </Card>
+              <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white border-2 border-rose-100">
+                <p className="text-3xl font-black text-rose-600">R$ {financialSummary.totalDebt.toFixed(2)}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Débito</p>
+              </Card>
             </div>
           </TabsContent>
 
-          <TabsContent value="orders" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <TabsContent value="orders" className="space-y-4">
             {userOrders.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                <SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Nenhum histórico de compras encontrado.</p>
-              </div>
+              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum pedido.</p></div>
             ) : (
               userOrders.map((order, idx) => (
-                <Card key={order.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                <Card key={order?.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
-                    <div>
-                      <h4 className="font-black text-slate-900">{order.id}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{order.date}</p>
-                    </div>
+                    <div><h4 className="font-black text-slate-900">{order?.id}</h4><p className="text-[10px] font-bold text-slate-400">{order?.date}</p></div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right mr-4">
-                      <p className="font-black text-blue-700">R$ {Number(order.total || 0).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 bg-slate-50 text-slate-500 border-none">{order.status || 'Pendente'}</Badge>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl hover:bg-blue-50 text-blue-600"><Eye className="h-5 w-5" /></Button>
-                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl text-blue-600"><Eye className="h-5 w-5"/></Button>
                 </Card>
               ))
             )}
           </TabsContent>
 
-          <TabsContent value="rentals" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <TabsContent value="rentals" className="space-y-4">
             {userRentals.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                <SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Você não possui contratos de locação registrados.</p>
-              </div>
+              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum aluguel.</p></div>
             ) : (
               userRentals.map((rental, idx) => (
-                <Card key={rental.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                <Card key={rental?.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
-                    <div>
-                      <h4 className="font-black text-slate-900">{rental.item || 'Equipamento'}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{rental.start} até {rental.end}</p>
-                    </div>
+                    <div><h4 className="font-black text-slate-900">{rental?.item}</h4><p className="text-[10px] font-bold text-slate-400">{rental?.start} - {rental?.end}</p></div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right mr-4">
-                      <p className="font-black text-slate-900">R$ {Number(rental.total || 0).toFixed(2)}</p>
-                      <Badge className="text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none">{rental.status === 'completed' ? 'Finalizado' : 'Ativo'}</Badge>
-                    </div>
-                    <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-blue-50">Visualizar</Button>
-                  </div>
+                  <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 text-white rounded-xl px-6 font-bold shadow-lg shadow-blue-50">Ver</Button>
                 </Card>
               ))
             )}
@@ -299,7 +221,6 @@ const ProfilePage = () => {
 
       {selectedOrder && <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={() => {}} onSave={() => {}} />}
       {selectedRental && <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={loadData} />}
-      {selectedPaymentItem && <PaymentActionDialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen} item={{ ...selectedPaymentItem, client: "Você", description: selectedPaymentItem.label }} onConfirm={() => {}} />}
     </AppLayout>
   );
 };
