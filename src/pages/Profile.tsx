@@ -43,7 +43,7 @@ const ProfilePage = () => {
 
   const loadData = () => {
     try {
-      // Carregar Usuários
+      // 1. Carregar Usuário logado
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers) {
         const users = JSON.parse(savedUsers);
@@ -53,44 +53,44 @@ const ProfilePage = () => {
         }
       }
 
-      // Carregar Pedidos (com proteção contra nulos)
+      // 2. Carregar Pedidos com Validação Pesada
       const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders) {
+      if (savedOrders && savedOrders !== "undefined") {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
-          setUserOrders(orders.filter(o => o && o.userEmail && String(o.userEmail).toLowerCase().trim() === userEmail));
-        } else {
-          setUserOrders([]);
+          // Filtra apenas pedidos válidos que pertencem a este email
+          const filtered = orders.filter(o => 
+            o && 
+            typeof o === 'object' && 
+            o.userEmail && 
+            String(o.userEmail).toLowerCase().trim() === userEmail
+          );
+          setUserOrders(filtered);
         }
-      } else {
-        setUserOrders([]);
       }
       
-      // Carregar Aluguéis (com proteção contra nulos)
+      // 3. Carregar Aluguéis com Validação Pesada
       const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals) {
+      if (savedRentals && savedRentals !== "undefined") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
-          setUserRentals(rentals.filter(r => {
-            if (!r) return false;
+          // Filtra apenas aluguéis válidos que pertencem a este email
+          const filtered = rentals.filter(r => {
+            if (!r || typeof r !== 'object') return false;
             const email = String(r.clientEmail || r.userEmail || "").toLowerCase().trim();
             return email === userEmail;
-          }));
-        } else {
-          setUserRentals([]);
+          });
+          setUserRentals(filtered);
         }
-      } else {
-        setUserRentals([]);
       }
     } catch (e) {
-      console.error("Erro crítico ao carregar perfil:", e);
-      setUserOrders([]);
-      setUserRentals([]);
+      console.error("Erro ao carregar dados do perfil:", e);
     }
   };
 
   useEffect(() => { loadData(); }, [userEmail]);
 
+  // Sumário financeiro com fallback para cada valor
   const financialSummary = useMemo(() => {
     const safeOrders = Array.isArray(userOrders) ? userOrders : [];
     const safeRentals = Array.isArray(userRentals) ? userRentals : [];
@@ -108,7 +108,7 @@ const ProfilePage = () => {
       .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.05)
       .map(item => ({
         ...item,
-        label: item.type === 'order' ? `Pedido ${item.id || '?'}` : (item.item || 'Equipamento')
+        label: item.type === 'order' ? `Pedido ${item.id || 'N/A'}` : (item.item || 'Equipamento')
       }));
 
     return { totalInvoiced, totalPaid, totalDebt, pendingList };
@@ -223,7 +223,7 @@ const ProfilePage = () => {
                       </div>
                       <div>
                         <p className="font-black text-slate-900">{item.label}</p>
-                        <p className="text-[10px] font-bold text-slate-400">Bruto: R$ {Number(item.total).toFixed(2)} • Pago: R$ {Number(item.paidAmount).toFixed(2)}</p>
+                        <p className="text-[10px] font-bold text-slate-400">Total: R$ {Number(item.total).toFixed(2)} • Pago: R$ {Number(item.paidAmount).toFixed(2)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
