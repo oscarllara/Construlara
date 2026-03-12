@@ -120,6 +120,42 @@ const ProfilePage = () => {
     }
   };
 
+  const handleCancelOrder = (id: string) => {
+    if (window.confirm("Deseja realmente cancelar este pedido?")) {
+      try {
+        const savedOrders = localStorage.getItem('app_orders');
+        if (savedOrders) {
+          const orders = JSON.parse(savedOrders);
+          const updated = orders.filter((o: any) => o.id !== id);
+          localStorage.setItem('app_orders', JSON.stringify(updated));
+          showSuccess("Pedido cancelado com sucesso.");
+          setIsOrderOpen(false);
+          loadData();
+          window.dispatchEvent(new Event('order-placed'));
+        }
+      } catch (e) {
+        showError("Erro ao cancelar pedido.");
+      }
+    }
+  };
+
+  const handleUpdateOrder = (updatedOrder: any) => {
+    try {
+      const savedOrders = localStorage.getItem('app_orders');
+      if (savedOrders) {
+        const orders = JSON.parse(savedOrders);
+        const updated = orders.map((o: any) => o.id === updatedOrder.id ? updatedOrder : o);
+        localStorage.setItem('app_orders', JSON.stringify(updated));
+        showSuccess("Pedido atualizado.");
+        setIsOrderOpen(false);
+        loadData();
+        window.dispatchEvent(new Event('order-placed'));
+      }
+    } catch (e) {
+      showError("Erro ao atualizar pedido.");
+    }
+  };
+
   const handleRentAgain = (id: string) => {
     setIsRentalOpen(false);
     setSelectedEquipId(id);
@@ -246,7 +282,15 @@ const ProfilePage = () => {
         </Tabs>
       </div>
 
-      {selectedOrder && <EditOrderDialog order={selectedOrder} open={isOrderOpen} onOpenChange={setIsOrderOpen} onCancel={() => {}} onSave={() => {}} />}
+      {selectedOrder && (
+        <EditOrderDialog 
+          order={selectedOrder} 
+          open={isOrderOpen} 
+          onOpenChange={setIsOrderOpen} 
+          onCancel={handleCancelOrder} 
+          onSave={handleUpdateOrder} 
+        />
+      )}
       {selectedRental && <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={loadData} onRentAgain={handleRentAgain} />}
       
       {isAddRentalOpen && (
