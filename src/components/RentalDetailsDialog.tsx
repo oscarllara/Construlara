@@ -25,7 +25,8 @@ import {
   Send,
   CalendarDays,
   CreditCard,
-  Banknote
+  Banknote,
+  XCircle
 } from 'lucide-react';
 import { UserAccount } from './UserTable';
 import { Equipment } from './EquipmentCard';
@@ -159,6 +160,13 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     onOpenChange(false);
   };
 
+  const handleCancelReturnRequest = () => {
+    const updatedRental = { ...rental, status: 'active' };
+    onUpdate(updatedRental);
+    showSuccess("Solicitação de devolução cancelada.");
+    onOpenChange(false);
+  };
+
   const handleProcessReturn = () => {
     const formatDateToBR = (dateStr: string) => {
       if (!dateStr || !dateStr.includes('-')) return dateStr;
@@ -261,9 +269,18 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
           ) : (
             <>
               {isPendingReturn && (
-                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 flex gap-4 items-center">
-                  <AlertTriangle className="h-6 w-6 text-orange-600" />
-                  <p className="text-sm font-bold text-orange-900">O cliente solicitou a devolução deste item.</p>
+                <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 space-y-4">
+                  <div className="flex gap-4 items-center">
+                    <AlertTriangle className="h-6 w-6 text-orange-600" />
+                    <p className="text-sm font-bold text-orange-900">O cliente solicitou a devolução deste item.</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    onClick={handleCancelReturnRequest}
+                    className="w-full rounded-2xl font-black text-orange-700 hover:bg-orange-100 gap-2 h-12 uppercase text-[10px] tracking-widest border border-orange-200"
+                  >
+                    <XCircle className="h-4 w-4" /> Cancelar Solicitação de Devolução
+                  </Button>
                 </div>
               )}
               <div className="grid md:grid-cols-2 gap-8">
