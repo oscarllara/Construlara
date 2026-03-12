@@ -212,6 +212,14 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
     window.dispatchEvent(new Event('order-placed'));
   };
 
+  const handleRentAgain = () => {
+    onOpenChange(false);
+    setTimeout(() => {
+      navigate('/equipamentos');
+      showSuccess("Escolha o equipamento para o novo aluguel.");
+    }, 100);
+  };
+
   if (!rental) return null;
 
   const currentClient = Array.isArray(allClients) ? allClients.find(c => c && (String(c.id) === String(rental.clientId) || c.name === rental.client)) : null;
@@ -299,7 +307,7 @@ const RentalDetailsDialog = ({ rental, open, onOpenChange, onUpdate }: RentalDet
                     <p className="text-sm font-medium text-emerald-800">O equipamento foi devolvido e o pagamento processado.</p>
                   </div>
                   <Button 
-                    onClick={() => { navigate('/equipamentos'); onOpenChange(false); }}
+                    onClick={handleRentAgain}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black gap-2 h-12 px-8 shadow-lg shadow-emerald-100 transition-all active:scale-95"
                   >
                     <RefreshCw className="h-4 w-4" /> Alugar Novamente
