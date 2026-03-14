@@ -13,16 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, User, Hammer, Receipt, Clock, SearchX, PlusCircle } from 'lucide-react';
+import { Search, Calendar, User, Hammer, Receipt, Clock, SearchX, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddRentalDialog from '@/components/AddRentalDialog';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
-import { showSuccess } from '@/utils/toast';
-
-const INITIAL_RENTALS = [
-  { id: 'r1', client: 'Construtora Silva', item: 'Betoneira 400L', start: '20/05/2024', end: '25/05/2024', status: 'active', total: 425.00, paidAmount: 0, modality: 'Diária', notes: '' },
-  { id: 'r2', client: 'Carlos Santos', item: 'Martelete Rompedor', start: '22/05/2024', end: '23/05/2024', status: 'overdue', total: 120.00, paidAmount: 0, modality: 'Diária', notes: '' },
-];
+import { showSuccess, showError } from '@/utils/toast';
 
 const RentalsPage = () => {
   const [rentals, setRentals] = useState<any[]>([]);
@@ -42,13 +37,12 @@ const RentalsPage = () => {
       const saved = localStorage.getItem('app_rentals');
       if (saved && saved !== "undefined" && saved !== "null") {
         const parsed = JSON.parse(saved);
-        setRentals(Array.isArray(parsed) ? parsed : INITIAL_RENTALS);
+        setRentals(Array.isArray(parsed) ? parsed : []);
       } else {
-        setRentals(INITIAL_RENTALS);
-        localStorage.setItem('app_rentals', JSON.stringify(INITIAL_RENTALS));
+        localStorage.setItem('app_rentals', JSON.stringify([]));
       }
     } catch (e) { 
-      setRentals(INITIAL_RENTALS); 
+      setRentals([]); 
     }
   };
 
@@ -67,13 +61,35 @@ const RentalsPage = () => {
     if (saved) {
       try {
         const current = JSON.parse(saved);
-        const updatedList = Array.isArray(current) ? current.map((r: any) => r.id === updated.id ? updated : r) : [updated];
+        const updatedList = current.map((r: any) => r.id === updated.id ? updated : r);
         localStorage.setItem('app_rentals', JSON.stringify(updatedList));
         setRentals(updatedList);
         window.dispatchEvent(new Event('order-placed'));
       } catch (e) { console.error(e); }
     }
     setIsDetailsOpen(false);
+  };
+
+  const handleApprove = (rentalId: string) => {
+    const updatedList = rentals.map(r => {
+      if (r.id === rentalId) {
+        // Ao aprovar, marcar o equipamento como alugado
+        const savedEquip = localStorage.getItem('app_equipments');
+        if (savedEquip) {
+          const equipList = JSON.parse(savedEquip);
+          const updatedEquip = equipList.map((e: any) => 
+            e.id === r.equipmentId ? { ...e, status: 'rented', lastClient: r.client } : e
+          );
+          localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+        }
+        return { ...r, status: 'active' };
+      }
+      return r;
+    });
+    localStorage.setItem('app_rentals', JSON.stringify(updatedList));
+    setRentals(updatedList);
+    showSuccess("Aluguel aprovado e iniciado!");
+    window.dispatchEvent(new Event('order-placed'));
   };
 
   const handleRentAgain = (id: string) => {
@@ -105,8 +121,10 @@ const RentalsPage = () => {
         return <Badge className="bg-blue-100 text-blue-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Ativo</Badge>;
       case 'overdue': 
         return <Badge className="bg-rose-100 text-rose-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Em Atraso</Badge>;
+      case 'pending': 
+        return <Badge className="bg-orange-100 text-orange-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Solicitado</Badge>;
       case 'pending_return': 
-        return <Badge className="bg-orange-100 text-orange-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 animate-pulse">Solicitado</Badge>;
+        return <Badge className="bg-amber-100 text-amber-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 animate-pulse">Devolvendo</Badge>;
       case 'completed': 
         return <Badge className="bg-emerald-100 text-emerald-700 rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Finalizado</Badge>;
       default: 
@@ -174,11 +192,11 @@ const RentalsPage = () => {
                     <TableRow key={rental.id} className="hover:bg-slate-50/50 border-slate-50 transition-colors">
                       <TableCell className="py-5 pl-8">
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-900">{rental.item}</span>
+                          <span className="font-black text-slate-900">{rental.item || "---"}</span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase">{rental.id}</span>
                         </div>
                       </TableCell>
-                      {!isCliente && <TableCell className="font-bold text-slate-700">{rental.client}</TableCell>}
+                      {!isCliente && <TableCell className="font-bold text-slate-700">{rental.client || "---"}</TableCell>}
                       <TableCell className="text-xs font-bold text-slate-500">
                         <div className="flex flex-col">
                           <span>Início: {rental.start}</span>
@@ -197,13 +215,24 @@ const RentalsPage = () => {
                         {getStatusBadge(rental.status)}
                       </TableCell>
                       <TableCell className="text-right pr-8">
-                        <Button 
-                          variant="ghost" 
-                          className="text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 rounded-xl" 
-                          onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}
-                        >
-                          Visualizar
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {isAdmin && rental.status === 'pending' && (
+                            <Button 
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] uppercase gap-1.5 h-9"
+                              onClick={() => handleApprove(rental.id)}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            className="text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-50 rounded-xl" 
+                            onClick={() => { setSelectedRental(rental); setIsDetailsOpen(true); }}
+                          >
+                            Visualizar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -220,11 +249,24 @@ const RentalsPage = () => {
         onAdd={(d) => {
           const saved = localStorage.getItem('app_rentals');
           const list = saved ? JSON.parse(saved) : [];
-          const newList = [{ ...d, id: `r-${Date.now()}`, status: 'active' }, ...list];
+          const newList = [{ ...d, id: `r-${Date.now()}` }, ...list];
           localStorage.setItem('app_rentals', JSON.stringify(newList));
           setRentals(newList);
+          
+          // Se for gerente criando, já marca como alugado o equipamento
+          if (d.status === 'active') {
+            const savedEquip = localStorage.getItem('app_equipments');
+            if (savedEquip) {
+              const equipList = JSON.parse(savedEquip);
+              const updatedEquip = equipList.map((e: any) => 
+                e.id === d.equipmentId ? { ...e, status: 'rented', lastClient: d.client } : e
+              );
+              localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
+            }
+          }
+
           setIsAddOpen(false);
-          showSuccess("Contrato criado com sucesso!");
+          showSuccess(d.status === 'active' ? "Contrato criado!" : "Solicitação enviada!");
           window.dispatchEvent(new Event('order-placed'));
         }} 
         initialEquipmentId={selectedEquipId}

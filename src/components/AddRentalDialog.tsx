@@ -68,7 +68,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     }
   }, [open, initialEquipmentId, isInternal, userEmail]);
 
-  // Efeito dedicado ao cálculo do preço
   useEffect(() => {
     if (!formData.startDate || !formData.endDate || !formData.equipmentId || equipments.length === 0) {
       return;
@@ -79,10 +78,8 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
     
     if (!isValid(start) || !isValid(end)) return;
 
-    // diferença + 1 para contar o dia de início
     const totalDays = differenceInDays(end, start) + 1;
     
-    // Se a data for inválida (fim antes do início), resetamos para 0
     if (totalDays <= 0) {
       setFormData(prev => ({ ...prev, totalValue: "0.00" }));
       return;
@@ -93,7 +90,6 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
       let calculatedTotal = 0;
       let displayModality = "Diária";
 
-      // Lógica de faixas de preço (Tabela regressiva)
       if (totalDays >= 20) { 
         displayModality = "Mensal"; 
         calculatedTotal = equipment.monthlyRate || (equipment.dailyRate * 20); 
@@ -130,21 +126,22 @@ const AddRentalDialog = ({ open, onOpenChange, onAdd, initialEquipmentId }: AddR
 
     const rentalPayload = {
       ...formData,
-      clientName: client?.name || "Cliente",
+      client: client?.name || "Cliente",
       clientEmail: client?.email || "",
       clientId: client?.id,
-      itemName: equipment?.name || "Equipamento",
+      item: equipment?.name || "Equipamento",
       equipmentId: equipment?.id,
       start: format(parseISO(formData.startDate), 'dd/MM/yyyy'),
       end: format(parseISO(formData.endDate), 'dd/MM/yyyy'),
       total: parseFloat(formData.totalValue),
-      paidAmount: 0
+      paidAmount: 0,
+      status: isInternal ? 'active' : 'pending'
     };
 
     onAdd(rentalPayload);
 
     if (!isInternal) {
-      const msg = `*SOLICITAÇÃO DE ALUGUEL - CONSTRULARA*%0A*Item:* ${rentalPayload.itemName}%0A*Período:* ${rentalPayload.start} até ${rentalPayload.end}%0A*Total Estimado:* R$ ${rentalPayload.total.toFixed(2)}`;
+      const msg = `*SOLICITAÇÃO DE ALUGUEL - CONSTRULARA*%0A*Item:* ${rentalPayload.item}%0A*Período:* ${rentalPayload.start} até ${rentalPayload.end}%0A*Total Estimado:* R$ ${rentalPayload.total.toFixed(2)}`;
       window.open(`https://wa.me/5532999625979?text=${msg}`, '_blank');
     }
 
