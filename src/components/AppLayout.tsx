@@ -19,33 +19,50 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   useEffect(() => {
     setTip(getRandomTip());
     
-    // Inicializa contadores
-    const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
-    const rentals = JSON.parse(localStorage.getItem('app_rentals') || '[]');
-    prevOrderCount.current = orders.length;
-    prevRentalCount.current = rentals.length;
+    // Inicializa contadores com segurança
+    try {
+      const ordersRaw = localStorage.getItem('app_orders');
+      const rentalsRaw = localStorage.getItem('app_rentals');
+      const orders = ordersRaw ? JSON.parse(ordersRaw) : [];
+      const rentals = rentalsRaw ? JSON.parse(rentalsRaw) : [];
+      prevOrderCount.current = Array.isArray(orders) ? orders.length : 0;
+      prevRentalCount.current = Array.isArray(rentals) ? rentals.length : 0;
+    } catch(e) {
+      prevOrderCount.current = 0;
+      prevRentalCount.current = 0;
+    }
 
-    // Configura o som (Beep curto de notificação)
+    // Configura o som de forma segura
     audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audioRef.current.volume = 0.5;
   }, []);
 
   useEffect(() => {
     const checkNewEntries = () => {
-      const orders = JSON.parse(localStorage.getItem('app_orders') || '[]');
-      const rentals = JSON.parse(localStorage.getItem('app_rentals') || '[]');
-      
-      const userRole = localStorage.getItem('userRole');
-      const isInternal = ['Gestor', 'Vendas'].includes(userRole || '');
+      try {
+        const ordersRaw = localStorage.getItem('app_orders');
+        const rentalsRaw = localStorage.getItem('app_rentals');
+        const orders = ordersRaw ? JSON.parse(ordersRaw) : [];
+        const rentals = rentalsRaw ? JSON.parse(rentalsRaw) : [];
+        
+        const userRole = localStorage.getItem('userRole');
+        const isInternal = ['Gestor', 'Vendas'].includes(userRole || '');
 
-      // Se for Gestor/Vendas e o número de itens aumentou, toca o som
-      if (isInternal) {
-        if (orders.length > prevOrderCount.current || rentals.length > prevRentalCount.current) {
-          audioRef.current?.play().catch(e => console.log("Áudio bloqueado pelo navegador até interação."));
+        const currentOrderCount = Array.isArray(orders) ? orders.length : 0;
+        const currentRentalCount = Array.isArray(rentals) ? rentals.length : 0;
+
+        // Se for Gestor/Vendas e o número de itens aumentou, toca o som
+        if (isInternal) {
+          if (currentOrderCount > prevOrderCount.current || currentRentalCount > prevRentalCount.current) {
+            audioRef.current?.play().catch(() => {
+              // Silenciosamente ignorar erro de autoplay do navegador
+            });
+          }
         }
-      }
 
-      prevOrderCount.current = orders.length;
-      prevRentalCount.current = rentals.length;
+        prevOrderCount.current = currentOrderCount;
+        prevRentalCount.current = currentRentalCount;
+      } catch(e) { }
     };
 
     window.addEventListener('order-placed', checkNewEntries);
@@ -77,7 +94,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                 <span className="h-2 w-2 bg-blue-600 rounded-full animate-pulse"></span>
                 <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Dica do Beto:</p>
               </div>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed italic">"{tip}"</p>
+              <p className="text-xs font-bold text-slate-600 leading-relaxed italic">"{tip || 'Sempre mantenha sua obra limpa!'}"</p>
               <div className="absolute bottom-[-8px] right-8 w-4 h-4 bg-white border-r border-b border-slate-100 rotate-45"></div>
             </div>
             <div className="animate-bounce-slow">
