@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon, Maximize2 } from 'lucide-react';
+import { ShoppingCart, Tag, Star, Pencil, Package, Plus, Minus, Info, Calculator as CalcIcon } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,12 +10,10 @@ import { Label } from "@/components/ui/label";
 import { 
   Dialog, 
   DialogContent, 
-  DialogHeader, 
-  DialogTitle,
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Calculators from './Calculators';
-import { cn } from "@/utils/utils";
+import { cn } from "@/lib/utils";
 import { useNavigate } from 'react-router-dom';
 
 export interface Product {
