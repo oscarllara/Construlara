@@ -35,6 +35,7 @@ const NotificationBell = () => {
     const today = new Date();
 
     try {
+      // Processar Aluguéis
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
         const rentals = JSON.parse(savedRentals);
@@ -88,6 +89,7 @@ const NotificationBell = () => {
         }
       }
 
+      // Processar Pedidos
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
         const orders = JSON.parse(savedOrders);
@@ -115,7 +117,9 @@ const NotificationBell = () => {
           });
         }
       }
-    } catch (e) { }
+    } catch (e) { 
+      console.error("Erro ao processar notificações:", e);
+    }
 
     setNotifications(newNotifications);
   };
