@@ -16,7 +16,7 @@ import { Product } from '@/components/ProductCard';
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 import PaymentActionDialog from '@/components/PaymentActionDialog';
 
 const ReportsPage = () => {
@@ -33,27 +33,37 @@ const ReportsPage = () => {
 
   const loadData = () => {
     try {
-      const savedEquip = localStorage.getItem('app_equipments');
-      if (savedEquip) setEquipments(JSON.parse(savedEquip));
-      
-      const savedProd = localStorage.getItem('app_products');
-      if (savedProd) setProducts(JSON.parse(savedProd));
+      const getSafeParsed = (key: string) => {
+        const val = localStorage.getItem(key);
+        if (!val || val === "undefined" || val === "null") return [];
+        try {
+          const parsed = JSON.parse(val);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+      };
 
-      const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals) setRentals(JSON.parse(savedRentals));
-      
-      const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders) setOrders(JSON.parse(savedOrders));
+      setEquipments(getSafeParsed('app_equipments'));
+      setProducts(getSafeParsed('app_products'));
+      setRentals(getSafeParsed('app_rentals'));
+      setOrders(getSafeParsed('app_orders'));
       
       const savedPix = localStorage.getItem('app_pix_info');
-      if (savedPix) setPixInfo(JSON.parse(savedPix));
-    } catch (e) { console.error(e); }
+      if (savedPix && savedPix !== "undefined") {
+        try { setPixInfo(JSON.parse(savedPix)); } catch(e) {}
+      }
+    } catch (e) { 
+      console.error("Erro ao carregar dados dos relatórios:", e);
+    }
   };
 
   useEffect(() => {
     loadData();
     window.addEventListener('order-placed', loadData);
-    return () => window.removeEventListener('order-placed', loadData);
+    window.addEventListener('storage', loadData);
+    return () => {
+      window.removeEventListener('order-placed', loadData);
+      window.removeEventListener('storage', loadData);
+    };
   }, []);
 
   const handleSavePix = () => {
@@ -69,21 +79,31 @@ const ReportsPage = () => {
   const financialStats = useMemo(() => {
     const safeRentals = Array.isArray(rentals) ? rentals : [];
     const safeOrders = Array.isArray(orders) ? orders : [];
-    const totalReceived = [...safeRentals, ...safeOrders].reduce((acc, item) => acc + (Number(item?.paidAmount) || 0), 0);
+    
+    const totalReceived = [...safeRentals, ...safeOrders].reduce((acc, item) => {
+      if (!item) return acc;
+      return acc + (Number(item.paidAmount) || 0);
+    }, 0);
+
     const totalToReceive = [...safeRentals, ...safeOrders].reduce((acc, item) => {
-      const balance = (Number(item?.total) || 0) - (Number(item?.paidAmount) || 0);
+      if (!item) return acc;
+      const balance = (Number(item.total) || 0) - (Number(item.paidAmount) || 0);
       return acc + Math.max(0, balance);
     }, 0);
+
     return { totalReceived, totalToReceive, grandTotal: totalReceived + totalToReceive };
   }, [rentals, orders]);
 
   const detailedList = useMemo(() => {
     if (!activeDetail) return [];
     
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    const safeRentals = Array.isArray(rentals) ? rentals : [];
+
     const all = [
-      ...orders.map(o => ({ ...o, type: 'Venda', displayIcon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' })),
-      ...rentals.map(r => ({ ...r, type: 'Aluguel', displayIcon: Receipt, color: 'text-orange-600', bg: 'bg-orange-50' }))
-    ];
+      ...safeOrders.map(o => ({ ...o, type: 'Venda', displayIcon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' })),
+      ...safeRentals.map(r => ({ ...r, type: 'Aluguel', displayIcon: Receipt, color: 'text-orange-600', bg: 'bg-orange-50' }))
+    ].filter(item => item && (item.id || item.item));
 
     if (activeDetail === 'received') {
       return all.filter(item => (Number(item.paidAmount) || 0) > 0);
@@ -95,10 +115,11 @@ const ReportsPage = () => {
   }, [activeDetail, orders, rentals]);
 
   const handleOpenPayment = (item: any) => {
+    if (!item) return;
     setSelectedItem({
       ...item,
       client: item.client || item.clientName || "Cliente",
-      description: item.type === 'Venda' ? `Pedido ${item.id}` : item.item
+      description: item.type === 'Venda' ? `Pedido ${item.id}` : (item.item || "Serviço")
     });
     setIsPaymentDialogOpen(true);
   };
@@ -108,15 +129,24 @@ const ReportsPage = () => {
     const key = selectedItem.type === 'Venda' ? 'app_orders' : 'app_rentals';
     const saved = localStorage.getItem(key);
     if (saved) {
-      const current = JSON.parse(saved);
-      const updated = current.map((o: any) => {
-        if (o.id === selectedItem.id) {
-          const nextPaid = Number(o.paidAmount || 0) + amountToPay;
-          return { ...o, paidAmount: nextPaid, status: nextPaid >= (Number(o.total) || 0) - 0.01 ? (key === 'app_orders' ? 'Pago' : 'completed') : o.status };
+      try {
+        const current = JSON.parse(saved);
+        if (Array.isArray(current)) {
+          const updated = current.map((o: any) => {
+            if (o && o.id === selectedItem.id) {
+              const nextPaid = (Number(o.paidAmount) || 0) + amountToPay;
+              const total = (Number(o.total) || 0);
+              return { 
+                ...o, 
+                paidAmount: nextPaid, 
+                status: nextPaid >= total - 0.01 ? (key === 'app_orders' ? 'Pago' : 'completed') : o.status 
+              };
+            }
+            return o;
+          });
+          localStorage.setItem(key, JSON.stringify(updated));
         }
-        return o;
-      });
-      localStorage.setItem(key, JSON.stringify(updated));
+      } catch(e) {}
     }
     showSuccess("Recebimento registrado!");
     setIsPaymentDialogOpen(false);
@@ -203,6 +233,7 @@ const ReportsPage = () => {
                     <div className="text-center py-10"><p className="text-slate-400 font-bold">Nenhum registro nesta categoria.</p></div>
                   ) : (
                     detailedList.map((item, idx) => {
+                      if (!item) return null;
                       const balance = (Number(item.total) || 0) - (Number(item.paidAmount) || 0);
                       return (
                         <div key={idx} className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all">
@@ -212,18 +243,18 @@ const ReportsPage = () => {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <p className="font-black text-slate-900">{item.id}</p>
+                                <p className="font-black text-slate-900">{item.id || "S/ID"}</p>
                                 <Badge variant="outline" className="text-[8px] font-black uppercase h-4 px-1.5 border-slate-200">{item.type}</Badge>
                               </div>
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {item.client || item.clientName} • {item.date || item.start}
+                                {item.client || item.clientName || "Cliente"} • {item.date || item.start || "Sem data"}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-6">
                             <div className="text-right">
                               <p className="text-[9px] font-black text-slate-400 uppercase">Valor Total</p>
-                              <p className="font-black text-slate-900">R$ {Number(item.total).toFixed(2)}</p>
+                              <p className="font-black text-slate-900">R$ {(Number(item.total) || 0).toFixed(2)}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-[9px] font-black text-slate-400 uppercase">Falta Receber</p>
@@ -310,7 +341,12 @@ const ReportsPage = () => {
         </Tabs>
       </div>
 
-      <PaymentActionDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} item={selectedItem} onConfirm={handleConfirmPayment} />
+      <PaymentActionDialog 
+        open={isPaymentDialogOpen} 
+        onOpenChange={setIsPaymentDialogOpen} 
+        item={selectedItem} 
+        onConfirm={handleConfirmPayment} 
+      />
     </AppLayout>
   );
 };
