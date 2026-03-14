@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserAccount } from './UserTable';
-import { ShoppingBag, Receipt, DollarSign, CheckCircle2, AlertCircle, History, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Receipt, DollarSign, CheckCircle2, AlertCircle, History, ArrowRight, FilterX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PaymentActionDialog from './PaymentActionDialog';
 
@@ -25,9 +25,10 @@ interface UserFinancialDialogProps {
 const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFinancialDialogProps) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'order' | 'rental'>('all');
 
   const financialData = useMemo(() => {
-    if (!user) return { pending: [], received: [], totals: { shop: 0, rental: 0 } };
+    if (!user) return { pending: [], received: [], stats: { shop: { p: 0, r: 0 }, rental: { p: 0, r: 0 } } };
 
     try {
       const savedOrders = localStorage.getItem('app_orders');
@@ -37,7 +38,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
       const rentals = savedRentals ? JSON.parse(savedRentals) : [];
 
       if (!Array.isArray(orders) || !Array.isArray(rentals)) {
-        return { pending: [], received: [], totals: { shop: 0, rental: 0 } };
+        return { pending: [], received: [], stats: { shop: { p: 0, r: 0 }, rental: { p: 0, r: 0 } } };
       }
 
       const userEmail = (user.email || "").toLowerCase();
@@ -51,25 +52,36 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
       const receivedOrders = userOrders.filter((o: any) => (Number(o.total) || 0) <= (Number(o.paidAmount) || 0) && Number(o.total) > 0);
       const receivedRentals = userRentals.filter((r: any) => (Number(r.total) || 0) <= (Number(r.paidAmount) || 0) && Number(r.total) > 0);
 
-      const totalShop = pendingOrders.reduce((acc: number, o: any) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0);
-      const totalRental = pendingRentals.reduce((acc: number, r: any) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
+      // Stats
+      const shopP = pendingOrders.reduce((acc: number, o: any) => acc + ((Number(o.total) || 0) - (Number(o.paidAmount) || 0)), 0);
+      const shopR = userOrders.reduce((acc: number, o: any) => acc + (Number(o.paidAmount) || 0), 0);
+      
+      const rentalP = pendingRentals.reduce((acc: number, r: any) => acc + ((Number(r.total) || 0) - (Number(r.paidAmount) || 0)), 0);
+      const rentalR = userRentals.reduce((acc: number, r: any) => acc + (Number(r.paidAmount) || 0), 0);
+
+      const allPending = [
+        ...pendingOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
+        ...pendingRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
+      ];
+
+      const allReceived = [
+        ...receivedOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
+        ...receivedRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
+      ];
 
       return {
-        pending: [
-          ...pendingOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
-          ...pendingRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
-        ],
-        received: [
-          ...receivedOrders.map((o: any) => ({ ...o, type: 'order', displayType: 'Compra' })),
-          ...receivedRentals.map((r: any) => ({ ...r, type: 'rental', displayType: 'Aluguel' }))
-        ],
-        totals: { shop: totalShop, rental: totalRental }
+        pending: categoryFilter === 'all' ? allPending : allPending.filter(i => i.type === categoryFilter),
+        received: categoryFilter === 'all' ? allReceived : allReceived.filter(i => i.type === categoryFilter),
+        stats: {
+          shop: { p: shopP, r: shopR },
+          rental: { p: rentalP, r: rentalR }
+        }
       };
     } catch (e) {
       console.error("Erro ao processar dados financeiros:", e);
-      return { pending: [], received: [], totals: { shop: 0, rental: 0 } };
+      return { pending: [], received: [], stats: { shop: { p: 0, r: 0 }, rental: { p: 0, r: 0 } } };
     }
-  }, [user, open]);
+  }, [user, open, categoryFilter]);
 
   const handleOpenPayment = (item: any) => {
     setSelectedItem({
@@ -92,9 +104,9 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[800px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+        <DialogContent className="sm:max-w-[850px] rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
           <div className="bg-slate-900 p-8 text-white">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
                   <DollarSign className="h-8 w-8 text-emerald-400" />
@@ -106,51 +118,102 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-black text-slate-400 uppercase">Dívida Total Acumulada</p>
-                <p className="text-3xl font-black text-red-500">R$ {(financialData.totals.shop + financialData.totals.rental).toFixed(2)}</p>
+                <p className="text-3xl font-black text-red-500">R$ {(financialData.stats.shop.p + financialData.stats.rental.p).toFixed(2)}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-8">
-              <div className="bg-blue-600/20 p-5 rounded-[2rem] border border-blue-500/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-6 w-6 rounded-lg bg-blue-500 flex items-center justify-center">
-                    <ShoppingBag className="h-3.5 w-3.5 text-white" />
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setCategoryFilter(categoryFilter === 'order' ? 'all' : 'order')}
+                className={cn(
+                  "p-6 rounded-[2.5rem] border transition-all text-left relative group",
+                  categoryFilter === 'order' 
+                    ? "bg-blue-600 border-blue-500 shadow-xl shadow-blue-900/40" 
+                    : "bg-blue-600/10 border-blue-500/20 hover:bg-blue-600/20"
+                )}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center transition-colors", categoryFilter === 'order' ? "bg-white text-blue-700" : "bg-blue-500 text-white")}>
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                    <span className={cn("text-xs font-black uppercase tracking-widest", categoryFilter === 'order' ? "text-white" : "text-blue-200")}>Histórico de Compras</span>
                   </div>
-                  <span className="text-[10px] font-black text-blue-200 uppercase tracking-widest">Dívida em Compras</span>
+                  {categoryFilter === 'order' && <FilterX className="h-4 w-4 text-white/60" />}
                 </div>
-                <p className="text-2xl font-black text-white">R$ {financialData.totals.shop.toFixed(2)}</p>
-              </div>
-              <div className="bg-orange-600/20 p-5 rounded-[2rem] border border-orange-500/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-6 w-6 rounded-lg bg-orange-500 flex items-center justify-center">
-                    <Receipt className="h-3.5 w-3.5 text-white" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className={cn("text-[10px] font-black uppercase", categoryFilter === 'order' ? "text-blue-100" : "text-blue-300/60")}>A Receber</p>
+                    <p className="text-xl font-black">R$ {financialData.stats.shop.p.toFixed(2)}</p>
                   </div>
-                  <span className="text-[10px] font-black text-orange-200 uppercase tracking-widest">Dívida em Aluguéis</span>
+                  <div>
+                    <p className={cn("text-[10px] font-black uppercase", categoryFilter === 'order' ? "text-blue-100" : "text-blue-300/60")}>Recebido</p>
+                    <p className="text-xl font-black text-emerald-400">R$ {financialData.stats.shop.r.toFixed(2)}</p>
+                  </div>
                 </div>
-                <p className="text-2xl font-black text-white">R$ {financialData.totals.rental.toFixed(2)}</p>
-              </div>
+              </button>
+
+              <button 
+                onClick={() => setCategoryFilter(categoryFilter === 'rental' ? 'all' : 'rental')}
+                className={cn(
+                  "p-6 rounded-[2.5rem] border transition-all text-left relative group",
+                  categoryFilter === 'rental' 
+                    ? "bg-orange-600 border-orange-500 shadow-xl shadow-orange-900/40" 
+                    : "bg-orange-600/10 border-orange-500/20 hover:bg-orange-600/20"
+                )}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center transition-colors", categoryFilter === 'rental' ? "bg-white text-orange-700" : "bg-orange-500 text-white")}>
+                      <Receipt className="h-4 w-4" />
+                    </div>
+                    <span className={cn("text-xs font-black uppercase tracking-widest", categoryFilter === 'rental' ? "text-white" : "text-orange-200")}>Histórico de Aluguéis</span>
+                  </div>
+                  {categoryFilter === 'rental' && <FilterX className="h-4 w-4 text-white/60" />}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className={cn("text-[10px] font-black uppercase", categoryFilter === 'rental' ? "text-orange-100" : "text-orange-300/60")}>A Receber</p>
+                    <p className="text-xl font-black">R$ {financialData.stats.rental.p.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className={cn("text-[10px] font-black uppercase", categoryFilter === 'rental' ? "text-orange-100" : "text-orange-300/60")}>Recebido</p>
+                    <p className="text-xl font-black text-emerald-400">R$ {financialData.stats.rental.r.toFixed(2)}</p>
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
 
           <div className="p-8">
             <Tabs defaultValue="pending" className="space-y-6">
-              <TabsList className="bg-slate-100 p-1 rounded-2xl h-12 w-fit">
-                <TabsTrigger value="pending" className="rounded-xl px-6 font-bold data-[state=active]:bg-white">
-                  Contas em Aberto ({financialData.pending.length})
-                </TabsTrigger>
-                <TabsTrigger value="history" className="rounded-xl px-6 font-bold data-[state=active]:bg-white">
-                  Histórico de Pagos
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex items-center justify-between">
+                <TabsList className="bg-slate-100 p-1 rounded-2xl h-12 w-fit">
+                  <TabsTrigger value="pending" className="rounded-xl px-6 font-bold data-[state=active]:bg-white">
+                    Contas em Aberto ({financialData.pending.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="rounded-xl px-6 font-bold data-[state=active]:bg-white">
+                    Histórico de Pagos ({financialData.received.length})
+                  </TabsTrigger>
+                </TabsList>
+                {categoryFilter !== 'all' && (
+                  <Badge variant="outline" className="h-10 rounded-xl px-4 border-slate-200 text-slate-400 font-bold gap-2">
+                    Filtrado: {categoryFilter === 'order' ? 'Compras' : 'Aluguéis'}
+                    <button onClick={() => setCategoryFilter('all')} className="hover:text-red-500 transition-colors">
+                      <FilterX className="h-3.5 w-3.5" />
+                    </button>
+                  </Badge>
+                )}
+              </div>
 
               <TabsContent value="pending" className="space-y-4">
                 {financialData.pending.length === 0 ? (
                   <div className="text-center py-12 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
                     <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-                    <p className="font-bold text-slate-500">Este cliente está totalmente em dia!</p>
+                    <p className="font-bold text-slate-500">Nenhuma conta em aberto nesta categoria.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                     {financialData.pending.map((item: any) => {
                       const remaining = item.total - (item.paidAmount || 0);
                       return (
@@ -196,11 +259,11 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
               </TabsContent>
 
               <TabsContent value="history" className="space-y-4">
-                <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                   {financialData.received.length === 0 ? (
                     <div className="text-center py-12">
                       <History className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                      <p className="font-bold text-slate-400">Nenhum pagamento registrado ainda.</p>
+                      <p className="font-bold text-slate-400">Nenhum pagamento registrado nesta categoria.</p>
                     </div>
                   ) : (
                     financialData.received.map((item: any) => (
@@ -210,8 +273,14 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
                             {item.type === 'order' ? <ShoppingBag className="h-5 w-5 text-slate-400" /> : <Receipt className="h-5 w-5 text-slate-400" />}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-700">{item.id}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">{item.displayType} • Pago integralmente</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-700">{item.id}</p>
+                              <Badge className={cn(
+                                "text-[9px] font-black uppercase rounded-lg px-2 h-4 border-none",
+                                item.type === 'order' ? "bg-blue-100/40 text-blue-700" : "bg-orange-100/40 text-orange-700"
+                              )}>{item.displayType}</Badge>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Pago integralmente em {item.date || item.end || '---'}</p>
                           </div>
                         </div>
                         <div className="text-right">
