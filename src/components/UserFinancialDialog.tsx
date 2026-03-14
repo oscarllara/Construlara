@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -26,6 +26,18 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'order' | 'rental'>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Escuta atualizações de pedidos e aluguéis para atualizar os valores em tempo real
+  useEffect(() => {
+    const handleRefresh = () => setRefreshKey(prev => prev + 1);
+    window.addEventListener('order-placed', handleRefresh);
+    window.addEventListener('storage', handleRefresh);
+    return () => {
+      window.removeEventListener('order-placed', handleRefresh);
+      window.removeEventListener('storage', handleRefresh);
+    };
+  }, []);
 
   const financialData = useMemo(() => {
     if (!user) return { pending: [], received: [], stats: { shop: { p: 0, r: 0 }, rental: { p: 0, r: 0 } } };
@@ -79,7 +91,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
     } catch (e) {
       return { pending: [], received: [], stats: { shop: { p: 0, r: 0 }, rental: { p: 0, r: 0 } } };
     }
-  }, [user, open, categoryFilter]);
+  }, [user, open, categoryFilter, refreshKey]);
 
   const handleOpenPayment = (item: any) => {
     setSelectedItem({
@@ -94,6 +106,7 @@ const UserFinancialDialog = ({ user, open, onOpenChange, onMarkAsPaid }: UserFin
     if (selectedItem) {
       onMarkAsPaid(selectedItem.type, selectedItem.id, amount);
       setIsPaymentDialogOpen(false);
+      setRefreshKey(prev => prev + 1); // Força atualização local imediata
     }
   };
 
