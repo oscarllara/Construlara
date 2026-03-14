@@ -29,60 +29,62 @@ const NotificationBell = () => {
   const navigate = useNavigate();
 
   const checkNotifications = useCallback(() => {
-    const newNotifications: Notification[] = [];
-    const today = new Date();
+    const list: Notification[] = [];
+    const now = new Date();
     
-    // Pegar dados do usuário com segurança
-    const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
-    const userRole = localStorage.getItem('userRole') || 'Visitante';
+    // 1. Obter dados do usuário de forma segura
+    const rawRole = localStorage.getItem('userRole');
+    const rawEmail = localStorage.getItem('userEmail');
+    const userRole = rawRole ? String(rawRole) : 'Visitante';
+    const userEmail = rawEmail ? String(rawEmail).toLowerCase().trim() : '';
     const isGestor = ['Gestor', 'Vendas'].includes(userRole);
 
     try {
-      // 1. Processar Aluguéis
-      const savedRentals = localStorage.getItem('app_rentals');
-      if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
-        const rentals = JSON.parse(savedRentals);
+      // 2. Processar Aluguéis (Rentals)
+      const rentalsData = localStorage.getItem('app_rentals');
+      if (rentalsData && rentalsData !== "undefined" && rentalsData !== "null") {
+        const rentals = JSON.parse(rentalsData);
         if (Array.isArray(rentals)) {
-          rentals.forEach((rental: any, idx: number) => {
-            // Pular se o item for inválido ou já finalizado
+          rentals.forEach((rental, idx) => {
             if (!rental || typeof rental !== 'object' || rental.status === 'completed') return;
             
-            const rentalEmail = String(rental.clientEmail || rental.userEmail || "").toLowerCase().trim();
-            const isMyRental = userEmail !== "" && rentalEmail === userEmail;
+            const clientEmail = String(rental.clientEmail || rental.userEmail || "").toLowerCase().trim();
+            const isMyRental = userEmail !== "" && clientEmail === userEmail;
             
             // Regra: Gestor vê tudo, Cliente vê só o dele
             if (!isGestor && !isMyRental) return;
 
-            // Tentar processar a data de devolução
             const endStr = rental.end ? String(rental.end) : null;
             if (endStr) {
               let endDate: Date | null = null;
-              if (endStr.includes('/')) {
-                endDate = parse(endStr, 'dd/MM/yyyy', new Date());
-              } else if (endStr.includes('-')) {
-                endDate = parseISO(endStr);
-              }
+              try {
+                if (endStr.includes('/')) {
+                  endDate = parse(endStr, 'dd/MM/yyyy', new Date());
+                } else if (endStr.includes('-')) {
+                  endDate = parseISO(endStr);
+                }
+              } catch (e) { endDate = null; }
 
               if (endDate && isValid(endDate)) {
-                const daysLeft = differenceInDays(endDate, today);
-                const safeId = rental.id || `notif-r-${idx}`;
-                const clientPrefix = isGestor ? `[${rental.client || 'Cliente'}] ` : "";
-                const itemName = rental.item || 'Equipamento';
+                const days = differenceInDays(endDate, now);
+                const clientLabel = isGestor ? `[${rental.client || 'Cliente'}] ` : "";
+                const itemLabel = rental.item || 'Equipamento';
+                const baseId = rental.id || `r-${idx}`;
 
-                if (daysLeft < 0) {
-                  newNotifications.push({
-                    id: `overdue-${safeId}`,
+                if (days < 0) {
+                  list.push({
+                    id: `overdue-${baseId}`,
                     title: "Locação Vencida!",
-                    description: `${clientPrefix}O item ${itemName} está com prazo de devolução expirado.`,
+                    description: `${clientLabel}O item ${itemLabel} está com prazo expirado.`,
                     type: 'danger',
                     date: endStr,
                     path: '/perfil?tab=rentals'
                   });
-                } else if (daysLeft <= 2) {
-                  newNotifications.push({
-                    id: `near-${safeId}`,
-                    title: "Prazo Vencendo",
-                    description: `${clientPrefix}A devolução do item ${itemName} está próxima.`,
+                } else if (days <= 2) {
+                  list.push({
+                    id: `near-${baseId}`,
+                    title: "Prazo Final",
+                    description: `${clientLabel}Devolução do item ${itemLabel} em breve.`,
                     type: 'warning',
                     date: endStr,
                     path: '/perfil?tab=rentals'
@@ -94,12 +96,12 @@ const NotificationBell = () => {
         }
       }
 
-      // 2. Processar Pedidos
-      const savedOrders = localStorage.getItem('app_orders');
-      if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
-        const orders = JSON.parse(savedOrders);
+      // 3. Processar Pedidos (Orders)
+      const ordersData = localStorage.getItem('app_orders');
+      if (ordersData && ordersData !== "undefined" && ordersData !== "null") {
+        const orders = JSON.parse(ordersData);
         if (Array.isArray(orders)) {
-          orders.forEach((order: any, idx: number) => {
+          orders.forEach((order, idx) => {
             if (!order || typeof order !== 'object' || order.status !== 'Pendente') return;
             
             const orderEmail = String(order.userEmail || "").toLowerCase().trim();
@@ -107,12 +109,12 @@ const NotificationBell = () => {
 
             if (!isGestor && !isMyOrder) return;
 
-            newNotifications.push({
+            list.push({
               id: `order-${order.id || idx}`,
               title: "Pagamento Pendente",
               description: isGestor 
-                ? `Pedido de ${order.clientName || 'Cliente'} aguarda confirmação de pagamento.`
-                : `Seu pedido ${order.id || ''} está aguardando o pagamento.`,
+                ? `Pedido de ${order.clientName || 'Cliente'} aguarda conferência.`
+                : `Seu pedido ${order.id || ''} aguarda o pagamento.`,
               type: 'info',
               date: order.date || "",
               path: '/perfil?tab=orders'
@@ -120,33 +122,34 @@ const NotificationBell = () => {
           });
         }
       }
-    } catch (e) { 
-      console.warn("Erro ao processar notificações:", e);
+    } catch (error) {
+      console.error("Erro Crítico nas Notificações:", error);
     }
 
-    setNotifications(newNotifications);
-  }, []); // Dependências vazias pois usamos localStorage diretamente
+    setNotifications(list);
+  }, []);
 
   useEffect(() => {
     checkNotifications();
-    const handleEvents = () => checkNotifications();
     
-    window.addEventListener('order-placed', handleEvents);
-    window.addEventListener('storage', handleEvents);
+    // Ouvinte para atualizações globais
+    const onUpdate = () => checkNotifications();
+    window.addEventListener('order-placed', onUpdate);
+    window.addEventListener('storage', onUpdate);
     
     return () => {
-      window.removeEventListener('order-placed', handleEvents);
-      window.removeEventListener('storage', handleEvents);
+      window.removeEventListener('order-placed', onUpdate);
+      window.removeEventListener('storage', onUpdate);
     };
   }, [checkNotifications]);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-50 relative h-10 w-10">
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-50 relative h-10 w-10 outline-none">
           <Bell className="h-5 w-5 text-slate-600" />
           {notifications.length > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+            <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm pointer-events-none">
               {notifications.length}
             </span>
           )}
@@ -159,12 +162,12 @@ const NotificationBell = () => {
           {notifications.length === 0 ? (
             <div className="py-10 text-center space-y-3">
               <CheckCircle2 className="h-10 w-10 text-slate-200 mx-auto" />
-              <p className="text-xs font-bold text-slate-400">Nenhum aviso no momento.</p>
+              <p className="text-xs font-bold text-slate-400">Tudo em ordem por aqui.</p>
             </div>
           ) : (
-            notifications.map((notif) => (
+            notifications.map((notif, idx) => (
               <DropdownMenuItem 
-                key={notif.id} 
+                key={`${notif.id}-${idx}`} 
                 onClick={() => { if (notif.path) navigate(notif.path); }}
                 className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent flex gap-4 transition-all"
               >
