@@ -15,7 +15,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Calculators from './Calculators';
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { useNavigate } from 'react-router-dom';
 
 export interface Product {
@@ -56,7 +56,9 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
   const currentPrice = hasPromo ? product.promoPrice! : product.price;
 
   const isPackaged = product.isFractional && product.packageSize && product.packageSize > 0;
-  const hasCalculator = product.category === "Pisos e revestimentos" || product.category === "Argamassa";
+  
+  // A calculadora aparece se estiver ativada no cadastro OU se for das categorias padrão
+  const hasCalculator = (product as any).hasCalculator || product.category === "Pisos e revestimentos" || product.category === "Argamassa";
   
   const currentQuantity = quantity === "" ? 0 : Number(quantity);
 
@@ -150,7 +152,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
           <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">/ {product.unitLabel || 'un'}</span>
         </div>
 
-        {isPackaged && (
+        {(isPackaged || hasCalculator) && (
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-3">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -172,7 +174,7 @@ const ProductCard = ({ product, onAddToCart, onEdit }: ProductCardProps) => {
                 className="h-10 rounded-xl border-blue-200 bg-white font-bold" 
               />
             </div>
-            {calculatedPacks > 0 && (
+            {isPackaged && calculatedPacks > 0 && (
               <p className="text-[10px] font-bold text-blue-800 leading-tight flex gap-2"><Info className="h-4 w-4 shrink-0" /> Serão necessárias {calculatedPacks} embalagens ({totalAmount.toFixed(2)}{product.unitLabel}).</p>
             )}
           </div>

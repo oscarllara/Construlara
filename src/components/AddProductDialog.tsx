@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Package, Plus, Layers } from 'lucide-react';
+import { Package, Plus, Layers, Calculator } from 'lucide-react';
 import { Product } from './ProductCard';
 import AddUnitDialog from './AddUnitDialog';
 import { showSuccess } from '@/utils/toast';
@@ -46,7 +46,8 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
     isFeatured: false,
     isFractional: false,
     packageSize: "",
-    unitLabel: "un"
+    unitLabel: "un",
+    hasCalculator: false
   });
 
   useEffect(() => {
@@ -70,7 +71,8 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         isFeatured: product.isFeatured,
         isFractional: product.isFractional || false,
         packageSize: product.packageSize?.toString() || "",
-        unitLabel: product.unitLabel || "un"
+        unitLabel: product.unitLabel || "un",
+        hasCalculator: (product as any).hasCalculator || false
       });
     } else {
       setFormData({
@@ -85,7 +87,8 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         isFeatured: false,
         isFractional: false,
         packageSize: "",
-        unitLabel: "un"
+        unitLabel: "un",
+        hasCalculator: false
       });
     }
   }, [product, open, defaultCategory, categories]);
@@ -253,19 +256,26 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <Label className="text-xs font-bold">Ativar Oferta</Label>
+                <Label className="text-[10px] font-black uppercase text-slate-400">Oferta</Label>
                 <Switch 
                   checked={formData.isPromo} 
                   onCheckedChange={(v) => setFormData({...formData, isPromo: v})}
                 />
               </div>
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <Label className="text-xs font-bold">Destaque</Label>
+                <Label className="text-[10px] font-black uppercase text-slate-400">Destaque</Label>
                 <Switch 
                   checked={formData.isFeatured} 
                   onCheckedChange={(v) => setFormData({...formData, isFeatured: v})}
+                />
+              </div>
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <Label className="text-[10px] font-black uppercase text-blue-600">Calculadora</Label>
+                <Switch 
+                  checked={formData.hasCalculator} 
+                  onCheckedChange={(v) => setFormData({...formData, hasCalculator: v})}
                 />
               </div>
             </div>
