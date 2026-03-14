@@ -46,6 +46,7 @@ const NotificationBell = () => {
             const isGestor = ['Gestor', 'Vendas'].includes(userRole);
             const isMyRental = rentalEmail === userEmail;
             
+            // Gestor vê tudo, Cliente vê só o dele
             if (!isGestor && !isMyRental) return;
 
             try {
@@ -60,12 +61,13 @@ const NotificationBell = () => {
               if (endDate && isValid(endDate)) {
                 const daysLeft = differenceInDays(endDate, today);
                 const safeId = rental.id || `notif-r-${idx}`;
+                const clientName = isGestor ? `[${rental.client || 'Cliente'}] ` : "";
 
                 if (daysLeft < 0) {
                   newNotifications.push({
                     id: `overdue-${safeId}`,
                     title: "Locação Vencida!",
-                    description: `O item ${rental.item || 'Equipamento'} deveria ter sido entregue.`,
+                    description: `${clientName}O item ${rental.item || 'Equipamento'} deveria ter sido entregue.`,
                     type: 'danger',
                     date: endStr,
                     path: '/perfil?tab=rentals'
@@ -74,7 +76,7 @@ const NotificationBell = () => {
                   newNotifications.push({
                     id: `near-${safeId}`,
                     title: "Vencimento Próximo",
-                    description: `O prazo do item ${rental.item || 'Equipamento'} encerra em breve.`,
+                    description: `${clientName}O prazo do item ${rental.item || 'Equipamento'} encerra em breve.`,
                     type: 'warning',
                     date: endStr,
                     path: '/perfil?tab=rentals'
@@ -90,20 +92,21 @@ const NotificationBell = () => {
       if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
-          const myPending = orders.filter((o: any) => {
-            if (!o || typeof o !== 'object') return false;
-            const email = String(o.userEmail || "").toLowerCase().trim();
-            const isGestor = ['Gestor', 'Vendas'].includes(userRole);
-            if (isGestor) return o.status === 'Pendente';
-            return email === userEmail && o.status === 'Pendente';
-          });
+          const isGestor = ['Gestor', 'Vendas'].includes(userRole);
           
-          myPending.slice(0, 5).forEach((order: any, idx: number) => {
+          orders.forEach((order: any, idx: number) => {
+            if (!order || typeof order !== 'object' || order.status !== 'Pendente') return;
+            
+            const email = String(order.userEmail || "").toLowerCase().trim();
+            const isMyOrder = email === userEmail;
+
+            if (!isGestor && !isMyOrder) return;
+
             newNotifications.push({
               id: `order-${order.id || idx}`,
               title: "Pagamento Pendente",
-              description: order.clientName && order.clientName !== 'Cliente' 
-                ? `Pedido de ${order.clientName} aguarda confirmação.`
+              description: isGestor 
+                ? `Pedido Nº ${order.id} de ${order.clientName || 'Cliente'} aguarda confirmação.`
                 : `Seu pedido ${order.id || 'Nº?'} aguarda confirmação.`,
               type: 'info',
               date: order.date || "",

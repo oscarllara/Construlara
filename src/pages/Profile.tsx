@@ -12,7 +12,6 @@ import { showSuccess, showError } from '@/utils/toast';
 import EditOrderDialog from '@/components/EditOrderDialog';
 import RentalDetailsDialog from '@/components/RentalDetailsDialog';
 import AddRentalDialog from '@/components/AddRentalDialog';
-import PaymentActionDialog from '@/components/PaymentActionDialog';
 import { UserAccount } from '@/components/UserTable';
 
 const ProfilePage = () => {
@@ -33,6 +32,8 @@ const ProfilePage = () => {
   const [isAddRentalOpen, setIsAddRentalOpen] = useState(false);
   
   const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
+  const userRole = localStorage.getItem('userRole') || 'Visitante';
+  const isGestor = ['Gestor', 'Vendas'].includes(userRole);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,10 +58,9 @@ const ProfilePage = () => {
       if (savedOrders && savedOrders !== "undefined") {
         const orders = JSON.parse(savedOrders);
         if (Array.isArray(orders)) {
-          const filtered = orders.filter(o => 
-            o && 
-            typeof o === 'object' && 
-            o.userEmail && 
+          // Se for gestor, vê todos os pedidos. Se não, vê só os seus.
+          const filtered = isGestor ? orders : orders.filter(o => 
+            o && typeof o === 'object' && o.userEmail && 
             String(o.userEmail).toLowerCase().trim() === userEmail
           );
           setUserOrders(filtered);
@@ -71,7 +71,8 @@ const ProfilePage = () => {
       if (savedRentals && savedRentals !== "undefined") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
-          const filtered = rentals.filter(r => {
+          // Se for gestor, vê todos os aluguéis. Se não, vê só os seus.
+          const filtered = isGestor ? rentals : rentals.filter(r => {
             if (!r || typeof r !== 'object') return false;
             const email = String(r.clientEmail || r.userEmail || "").toLowerCase().trim();
             return email === userEmail;
@@ -84,7 +85,7 @@ const ProfilePage = () => {
     }
   };
 
-  useEffect(() => { loadData(); }, [userEmail]);
+  useEffect(() => { loadData(); }, [userEmail, isGestor]);
 
   const financialSummary = useMemo(() => {
     const safeOrders = (Array.isArray(userOrders) ? userOrders : []).filter(o => o && typeof o === 'object');
@@ -99,14 +100,7 @@ const ProfilePage = () => {
     const totalPaid = allItems.reduce((acc, item) => acc + (Number(item?.paidAmount) || 0), 0);
     const totalDebt = Math.max(0, totalInvoiced - totalPaid);
 
-    const pendingList = allItems
-      .filter(item => (Number(item?.total || 0) - Number(item?.paidAmount || 0)) > 0.05)
-      .map(item => ({
-        ...item,
-        label: item.type === 'order' ? `Pedido ${item.id || 'N/A'}` : (item.item || 'Equipamento')
-      }));
-
-    return { totalInvoiced, totalPaid, totalDebt, pendingList };
+    return { totalInvoiced, totalPaid, totalDebt };
   }, [userOrders, userRentals]);
 
   const handleAction = (type: 'order' | 'rental', item: any) => {
@@ -190,8 +184,8 @@ const ProfilePage = () => {
           <TabsList className="bg-white p-1 rounded-[2.5rem] h-16 w-full shadow-sm flex overflow-hidden">
             <TabsTrigger value="data" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Dados</TabsTrigger>
             <TabsTrigger value="finance" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Financeiro</TabsTrigger>
-            <TabsTrigger value="orders" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Pedidos</TabsTrigger>
-            <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Aluguéis</TabsTrigger>
+            <TabsTrigger value="orders" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">{isGestor ? 'Todos os Pedidos' : 'Meus Pedidos'}</TabsTrigger>
+            <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">{isGestor ? 'Todos os Aluguéis' : 'Meus Aluguéis'}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="data">
@@ -235,30 +229,36 @@ const ProfilePage = () => {
             <div className="grid md:grid-cols-3 gap-6">
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-slate-900 text-white">
                 <p className="text-3xl font-black text-white">R$ {financialSummary.totalInvoiced.toFixed(2)}</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total Invoiced</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total {isGestor ? 'Geral' : 'Faturado'}</p>
               </Card>
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white">
                 <p className="text-3xl font-black text-emerald-600">R$ {financialSummary.totalPaid.toFixed(2)}</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Quitado</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total Recebido</p>
               </Card>
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white border-2 border-rose-100">
                 <p className="text-3xl font-black text-rose-600">R$ {financialSummary.totalDebt.toFixed(2)}</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Débito</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total a Receber</p>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-4">
             {userOrders.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum pedido.</p></div>
+              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum pedido registrado.</p></div>
             ) : (
               userOrders.map((order, idx) => (
                 <Card key={order?.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
-                    <div><h4 className="font-black text-slate-900">{order?.id}</h4><p className="text-[10px] font-bold text-slate-400">{order?.date}</p></div>
+                    <div>
+                      <h4 className="font-black text-slate-900">{order?.id} {isGestor && <span className="text-blue-600 text-xs ml-2">[{order.clientName}]</span>}</h4>
+                      <p className="text-[10px] font-bold text-slate-400">{order?.date} • R$ {Number(order.total).toFixed(2)}</p>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl text-blue-600"><Eye className="h-5 w-5"/></Button>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className={cn("rounded-lg font-black text-[9px] uppercase tracking-widest h-6", order.status === 'Pago' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100")}>{order.status}</Badge>
+                    <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl text-blue-600"><Eye className="h-5 w-5"/></Button>
+                  </div>
                 </Card>
               ))
             )}
@@ -266,15 +266,21 @@ const ProfilePage = () => {
 
           <TabsContent value="rentals" className="space-y-4">
             {userRentals.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum aluguel.</p></div>
+              <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum aluguel registrado.</p></div>
             ) : (
               userRentals.map((rental, idx) => (
                 <Card key={rental?.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
-                    <div><h4 className="font-black text-slate-900">{rental?.item}</h4><p className="text-[10px] font-bold text-slate-400">{rental?.start} - {rental?.end}</p></div>
+                    <div>
+                      <h4 className="font-black text-slate-900">{rental?.item} {isGestor && <span className="text-orange-600 text-xs ml-2">[{rental.client}]</span>}</h4>
+                      <p className="text-[10px] font-bold text-slate-400">{rental?.start} - {rental?.end} • R$ {Number(rental.total).toFixed(2)}</p>
+                    </div>
                   </div>
-                  <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 text-white rounded-xl px-6 font-bold shadow-lg shadow-blue-50">Ver</Button>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className={cn("rounded-lg font-black text-[9px] uppercase tracking-widest h-6", rental.status === 'completed' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-blue-50 text-blue-600 border-blue-100")}>{rental.status === 'completed' ? 'Finalizado' : 'Ativo'}</Badge>
+                    <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 text-white rounded-xl px-6 font-bold shadow-lg shadow-blue-50">Ver</Button>
+                  </div>
                 </Card>
               ))
             )}
