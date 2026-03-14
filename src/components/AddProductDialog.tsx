@@ -14,10 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Package, Plus, Layers, Calculator } from 'lucide-react';
+import { Package, Plus, Layers, Percent, DollarSign } from 'lucide-react';
 import { Product } from './ProductCard';
 import AddUnitDialog from './AddUnitDialog';
 import { showSuccess } from '@/utils/toast';
+import { cn } from '@/lib/utils';
 
 interface AddProductDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ const DEFAULT_UNITS = ["un", "m²", "m", "kg", "L", "cx", "saco"];
 const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, defaultCategory }: AddProductDialogProps) => {
   const [units, setUnits] = useState<string[]>(DEFAULT_UNITS);
   const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
+  const [promoMode, setPromoMode] = useState<'value' | 'percent'>('value');
   
   const [formData, setFormData] = useState({
     name: "",
@@ -41,6 +43,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
     category: "",
     price: "",
     promoPrice: "",
+    promoPercent: "",
     image: "",
     isPromo: false,
     isFeatured: false,
@@ -66,6 +69,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         category: product.category,
         price: product.price.toString(),
         promoPrice: product.promoPrice?.toString() || "",
+        promoPercent: "", // Reinicia ao editar
         image: product.image,
         isPromo: product.isPromo,
         isFeatured: product.isFeatured,
@@ -74,6 +78,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         unitLabel: product.unitLabel || "un",
         hasCalculator: (product as any).hasCalculator || false
       });
+      setPromoMode('value');
     } else {
       setFormData({
         name: "",
@@ -82,6 +87,7 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
         category: defaultCategory || (categories[0] !== "Todas" ? categories[0] : categories[1] || ""),
         price: "",
         promoPrice: "",
+        promoPercent: "",
         image: "",
         isPromo: false,
         isFeatured: false,
@@ -103,14 +109,31 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
     showSuccess(`Unidade "${newUnit}" adicionada.`);
   };
 
+  const calculateFinalPromoPrice = () => {
+    const basePrice = parseFloat(formData.price);
+    if (isNaN(basePrice)) return undefined;
+
+    if (promoMode === 'percent') {
+      const discount = parseFloat(formData.promoPercent);
+      if (isNaN(discount)) return undefined;
+      return basePrice * (1 - discount / 100);
+    } else {
+      const finalPrice = parseFloat(formData.promoPrice);
+      if (isNaN(finalPrice)) return undefined;
+      return finalPrice;
+    }
+  };
+
   const handleSubmit = () => {
     if (!formData.name || !formData.price || !formData.category) return;
+    
+    const finalPromo = calculateFinalPromoPrice();
     
     onSave({
       id: product?.id,
       ...formData,
       price: parseFloat(formData.price),
-      promoPrice: formData.promoPrice ? parseFloat(formData.promoPrice) : undefined,
+      promoPrice: finalPromo,
       packageSize: formData.packageSize ? parseFloat(formData.packageSize) : undefined
     });
   };
@@ -235,14 +258,53 @@ const AddProductDialog = ({ open, onOpenChange, onSave, product, categories, def
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700 font-bold text-sm">Preço Oferta (Opcional)</Label>
-                <Input 
-                  type="number"
-                  placeholder="0.00" 
-                  value={formData.promoPrice}
-                  onChange={(e) => setFormData({...formData, promoPrice: e.target.value})}
-                  className="rounded-2xl border-slate-200 h-12"
-                />
+                <div className="flex items-center justify-between">
+                  <Label className="text-slate-700 font-bold text-sm">Preço Oferta (Opcional)</Label>
+                  <div className="flex bg-slate-100 p-0.5 rounded-lg">
+                    <button 
+                      onClick={() => setPromoMode('value')}
+                      className={cn("px-2 py-0.5 rounded-md text-[9px] font-black transition-all", promoMode === 'value' ? "bg-white text-blue-700 shadow-sm" : "text-slate-400")}
+                    >
+                      R$
+                    </button>
+                    <button 
+                      onClick={() => setPromoMode('percent')}
+                      className={cn("px-2 py-0.5 rounded-md text-[9px] font-black transition-all", promoMode === 'percent' ? "bg-white text-blue-700 shadow-sm" : "text-slate-400")}
+                    >
+                      %
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  {promoMode === 'value' ? (
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input 
+                        type="number"
+                        placeholder="0.00" 
+                        value={formData.promoPrice}
+                        onChange={(e) => setFormData({...formData, promoPrice: e.target.value})}
+                        className="rounded-2xl border-slate-200 h-12 pl-9"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input 
+                        type="number"
+                        placeholder="Ex: 10" 
+                        value={formData.promoPercent}
+                        onChange={(e) => setFormData({...formData, promoPercent: e.target.value})}
+                        className="rounded-2xl border-slate-200 h-12 pl-9"
+                      />
+                      {formData.promoPercent && formData.price && (
+                        <p className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-600">
+                          R$ {calculateFinalPromoPrice()?.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
