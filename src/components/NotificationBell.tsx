@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, AlertCircle, Clock, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { Bell, AlertCircle, Clock, CheckCircle2, ShoppingBag } from 'lucide-center';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -32,7 +32,6 @@ const NotificationBell = () => {
     const list: Notification[] = [];
     const now = new Date();
     
-    // Obter dados do usuário com segurança total
     const userRole = localStorage.getItem('userRole') || 'Visitante';
     const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
     const isGestor = ['Gestor', 'Vendas'].includes(userRole);
@@ -124,7 +123,7 @@ const NotificationBell = () => {
             <div className="py-10 text-center"><p className="text-xs font-bold text-slate-400">Sem avisos.</p></div>
           ) : (
             notifications.map((notif, idx) => (
-              <DropdownMenuItem key={`${notif.id}-${idx}`} onClick={() => navigate(notif.path)} className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent flex gap-4 transition-all">
+              <DropdownMenuItem key={`${notif.id}-${idx}`} onClick={() => { if (notif.path) navigate(notif.path); }} className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent flex gap-4 transition-all">
                 <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", 
                   notif.type === 'danger' ? "bg-red-50 text-red-600" : 
                   notif.type === 'warning' ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600")}>
@@ -132,8 +131,8 @@ const NotificationBell = () => {
                    notif.type === 'info' ? <ShoppingBag className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                 </div>
                 <div className="space-y-0.5 overflow-hidden">
-                  <p className="text-sm font-black text-slate-900 leading-tight truncate">{notif.title}</p>
-                  <p className="text-[11px] font-medium text-slate-500 leading-snug line-clamp-2">{notif.description}</p>
+                  <p className="text-sm font-black text-slate-900 leading-tight truncate">{notif?.title || "Aviso"}</p>
+                  <p className="text-[11px] font-medium text-slate-500 leading-snug line-clamp-2">{notif?.description || ""}</p>
                 </div>
               </DropdownMenuItem>
             ))

@@ -31,7 +31,8 @@ const ProfilePage = () => {
   const [isRentalOpen, setIsRentalOpen] = useState(false);
   const [isAddRentalOpen, setIsAddRentalOpen] = useState(false);
   
-  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
+  const rawEmail = localStorage.getItem('userEmail');
+  const userEmail = rawEmail ? String(rawEmail).toLowerCase().trim() : '';
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isGestor = ['Gestor', 'Vendas'].includes(userRole);
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const ProfilePage = () => {
 
   const loadData = () => {
     try {
-      // Carregar Usuário Atual
+      // 1. Carregar Usuário
       const savedUsers = localStorage.getItem('app_users');
       if (savedUsers && savedUsers !== "undefined" && savedUsers !== "null") {
         const users = JSON.parse(savedUsers);
@@ -55,7 +56,7 @@ const ProfilePage = () => {
         }
       }
 
-      // Carregar Pedidos com proteção
+      // 2. Carregar Pedidos
       const savedOrders = localStorage.getItem('app_orders');
       if (savedOrders && savedOrders !== "undefined" && savedOrders !== "null") {
         const orders = JSON.parse(savedOrders);
@@ -68,23 +69,21 @@ const ProfilePage = () => {
         }
       }
       
-      // Carregar Aluguéis com proteção
+      // 3. Carregar Aluguéis
       const savedRentals = localStorage.getItem('app_rentals');
       if (savedRentals && savedRentals !== "undefined" && savedRentals !== "null") {
         const rentals = JSON.parse(savedRentals);
         if (Array.isArray(rentals)) {
           const validRentals = rentals.filter(r => r && typeof r === 'object');
           const filtered = isGestor ? validRentals : validRentals.filter(r => {
-            const email = String(r.clientEmail || r.userEmail || "").toLowerCase().trim();
-            return email === userEmail;
+            const clientEmail = String(r.clientEmail || r.userEmail || "").toLowerCase().trim();
+            return clientEmail === userEmail;
           });
           setUserRentals(filtered);
         }
       }
     } catch (e) {
-      console.error("Erro ao carregar dados do perfil:", e);
-      setUserOrders([]);
-      setUserRentals([]);
+      console.warn("Erro ao carregar dados do perfil:", e);
     }
   };
 
@@ -92,14 +91,10 @@ const ProfilePage = () => {
 
   const financialSummary = useMemo(() => {
     try {
-      const safeOrders = Array.isArray(userOrders) ? userOrders : [];
-      const safeRentals = Array.isArray(userRentals) ? userRentals : [];
-
-      const totalInvoiced = [...safeOrders, ...safeRentals].reduce((acc, item) => 
-        acc + (Number(item?.total) || 0), 0);
+      const allItems = [...(userOrders || []), ...(userRentals || [])].filter(i => i && typeof i === 'object');
       
-      const totalPaid = [...safeOrders, ...safeRentals].reduce((acc, item) => 
-        acc + (Number(item?.paidAmount) || 0), 0);
+      const totalInvoiced = allItems.reduce((acc, item) => acc + (Number(item?.total) || 0), 0);
+      const totalPaid = allItems.reduce((acc, item) => acc + (Number(item?.paidAmount) || 0), 0);
 
       return { totalInvoiced, totalPaid, totalDebt: Math.max(0, totalInvoiced - totalPaid) };
     } catch (e) {
@@ -129,7 +124,6 @@ const ProfilePage = () => {
         showSuccess("Pedido removido.");
         setIsOrderOpen(false);
         loadData();
-        window.dispatchEvent(new Event('order-placed'));
       }
     } catch (e) { showError("Erro ao cancelar."); }
   };
@@ -144,7 +138,6 @@ const ProfilePage = () => {
         showSuccess("Pedido atualizado.");
         setIsOrderOpen(false);
         loadData();
-        window.dispatchEvent(new Event('order-placed'));
       }
     } catch (e) { showError("Erro ao atualizar."); }
   };
@@ -155,29 +148,6 @@ const ProfilePage = () => {
     setIsAddRentalOpen(true);
   };
 
-  const handleAddRental = (data: any) => {
-    try {
-      const savedRentals = localStorage.getItem('app_rentals');
-      const currentRentals = (savedRentals && savedRentals !== "undefined") ? JSON.parse(savedRentals) : [];
-      const newRental = { id: `r-${Date.now()}`, ...data, status: 'active' };
-      localStorage.setItem('app_rentals', JSON.stringify([newRental, ...currentRentals]));
-      
-      const savedEquip = localStorage.getItem('app_equipments');
-      if (savedEquip) {
-        const allEquip = JSON.parse(savedEquip);
-        if (Array.isArray(allEquip)) {
-          const updatedEquip = allEquip.map((e: any) => 
-            (e && e.id === data.equipmentId) ? { ...e, status: 'rented', lastClient: data.clientName } : e
-          );
-          localStorage.setItem('app_equipments', JSON.stringify(updatedEquip));
-        }
-      }
-      loadData();
-      setIsAddRentalOpen(false);
-      showSuccess("Contrato gerado!");
-    } catch(e) { showError("Erro ao gerar aluguel."); }
-  };
-
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-8">
@@ -185,8 +155,8 @@ const ProfilePage = () => {
           <TabsList className="bg-white p-1 rounded-[2.5rem] h-16 w-full shadow-sm flex overflow-hidden">
             <TabsTrigger value="data" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Meus Dados</TabsTrigger>
             <TabsTrigger value="finance" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">Financeiro</TabsTrigger>
-            <TabsTrigger value="orders" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">{isGestor ? 'Pedidos' : 'Meus Pedidos'}</TabsTrigger>
-            <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">{isGestor ? 'Aluguéis' : 'Meus Aluguéis'}</TabsTrigger>
+            <TabsTrigger value="orders" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">{isGestor ? 'Todos Pedidos' : 'Meus Pedidos'}</TabsTrigger>
+            <TabsTrigger value="rentals" className="flex-1 rounded-[2rem] font-bold text-xs sm:text-sm">{isGestor ? 'Todos Aluguéis' : 'Meus Aluguéis'}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="data" className="animate-in fade-in slide-in-from-bottom-2">
@@ -209,7 +179,7 @@ const ProfilePage = () => {
                     <div className="space-y-4">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center"><Mail className="h-5 w-5" /></div>
-                        <div><p className="text-[10px] font-black text-slate-400 uppercase">E-mail</p><p className="font-bold text-slate-900">{currentUser?.email || userEmail}</p></div>
+                        <div><p className="text-[10px] font-black text-slate-400 uppercase">E-mail</p><p className="font-bold text-slate-900">{currentUser?.email || userEmail || "---"}</p></div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Phone className="h-5 w-5" /></div>
@@ -232,35 +202,35 @@ const ProfilePage = () => {
           <TabsContent value="finance" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
             <div className="grid md:grid-cols-3 gap-6">
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-slate-900 text-white">
-                <p className="text-3xl font-black">R$ {financialSummary.totalInvoiced.toFixed(2)}</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total {isGestor ? 'Global' : 'Meus Pedidos'}</p>
+                <p className="text-3xl font-black">R$ {(financialSummary?.totalInvoiced || 0).toFixed(2)}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total {isGestor ? 'Acumulado' : 'Faturado'}</p>
               </Card>
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white">
-                <p className="text-3xl font-black text-emerald-600">R$ {financialSummary.totalPaid.toFixed(2)}</p>
+                <p className="text-3xl font-black text-emerald-600">R$ {(financialSummary?.totalPaid || 0).toFixed(2)}</p>
                 <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Total Recebido</p>
               </Card>
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white border-2 border-rose-100">
-                <p className="text-3xl font-black text-rose-600">R$ {financialSummary.totalDebt.toFixed(2)}</p>
+                <p className="text-3xl font-black text-rose-600">R$ {(financialSummary?.totalDebt || 0).toFixed(2)}</p>
                 <p className="text-[10px] font-black text-slate-400 uppercase mt-1">Saldo Devedor</p>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            {userOrders.length === 0 ? (
+            {(!userOrders || userOrders.length === 0) ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum pedido encontrado.</p></div>
             ) : (
               userOrders.map((order, idx) => (
-                <Card key={order?.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                <Card key={order?.id || `order-${idx}`} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><ShoppingBag className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{order?.id || "Nº ?"} {isGestor && <span className="text-blue-600 text-xs ml-2">[{order.clientName || "S/N"}]</span>}</h4>
-                      <p className="text-[10px] font-bold text-slate-400">{order?.date || "---"} • R$ {(Number(order.total) || 0).toFixed(2)}</p>
+                      <h4 className="font-black text-slate-900">{order?.id || "Nº ?"} {isGestor && <span className="text-blue-600 text-xs ml-2">[{order?.clientName || "S/N"}]</span>}</h4>
+                      <p className="text-[10px] font-bold text-slate-400">{order?.date || "---"} • R$ {(Number(order?.total) || 0).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge className={cn("rounded-lg font-black text-[9px] uppercase tracking-widest h-6 border-none", order.status === 'Pago' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700")}>{order.status || "Pendente"}</Badge>
+                    <Badge className={cn("rounded-lg font-black text-[9px] uppercase tracking-widest h-6 border-none", (order?.status === 'Pago' || order?.status === 'Finalizado') ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700")}>{order?.status || "Pendente"}</Badge>
                     <Button variant="ghost" size="icon" onClick={() => handleAction('order', order)} className="rounded-xl text-blue-600"><Eye className="h-5 w-5"/></Button>
                   </div>
                 </Card>
@@ -269,20 +239,20 @@ const ProfilePage = () => {
           </TabsContent>
 
           <TabsContent value="rentals" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            {userRentals.length === 0 ? (
+            {(!userRentals || userRentals.length === 0) ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200"><SearchX className="h-12 w-12 text-slate-200 mx-auto mb-4"/><p className="text-slate-500 font-bold">Nenhum contrato encontrado.</p></div>
             ) : (
               userRentals.map((rental, idx) => (
-                <Card key={rental?.id || idx} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
+                <Card key={rental?.id || `rental-${idx}`} className="p-6 rounded-[2.5rem] bg-white border-none shadow-sm flex justify-between items-center hover:shadow-md transition-all">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600"><Calendar className="h-6 w-6" /></div>
                     <div>
-                      <h4 className="font-black text-slate-900">{rental?.item || "Equipamento"} {isGestor && <span className="text-orange-600 text-xs ml-2">[{rental.client || "S/N"}]</span>}</h4>
-                      <p className="text-[10px] font-bold text-slate-400">{rental?.start} - {rental?.end} • R$ {(Number(rental.total) || 0).toFixed(2)}</p>
+                      <h4 className="font-black text-slate-900">{rental?.item || "Equipamento"} {isGestor && <span className="text-orange-600 text-xs ml-2">[{rental?.client || "S/N"}]</span>}</h4>
+                      <p className="text-[10px] font-bold text-slate-400">{rental?.start || "--"} - {rental?.end || "--"} • R$ {(Number(rental?.total) || 0).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge className={cn("rounded-lg font-black text-[9px] uppercase tracking-widest h-6 border-none", rental.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")}>{rental.status === 'completed' ? 'Finalizado' : 'Ativo'}</Badge>
+                    <Badge className={cn("rounded-lg font-black text-[9px] uppercase tracking-widest h-6 border-none", rental?.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")}>{rental?.status === 'completed' ? 'Finalizado' : 'Ativo'}</Badge>
                     <Button onClick={() => handleAction('rental', rental)} className="bg-blue-600 text-white rounded-xl px-6 font-bold shadow-lg shadow-blue-50">Visualizar</Button>
                   </div>
                 </Card>
@@ -299,7 +269,7 @@ const ProfilePage = () => {
         <RentalDetailsDialog rental={selectedRental} open={isRentalOpen} onOpenChange={setIsRentalOpen} onUpdate={loadData} onRentAgain={handleRentAgain} />
       )}
       {isAddRentalOpen && (
-        <AddRentalDialog open={isAddRentalOpen} onOpenChange={setIsAddRentalOpen} onAdd={handleAddRental} initialEquipmentId={selectedEquipId} />
+        <AddRentalDialog open={isAddRentalOpen} onOpenChange={setIsAddRentalOpen} onAdd={loadData} initialEquipmentId={selectedEquipId} />
       )}
     </AppLayout>
   );
