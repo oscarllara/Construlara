@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, AlertCircle, Clock, CheckCircle2, ShoppingBag } from 'lucide-center';
+import { Bell, AlertCircle, Clock, CheckCircle2, ShoppingBag } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
