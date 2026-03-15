@@ -32,63 +32,40 @@ const NotificationBell = () => {
     const list: Notification[] = [];
     const now = new Date();
     
-    // 1. Obter dados do usuário de forma segura
-    const rawRole = localStorage.getItem('userRole');
-    const rawEmail = localStorage.getItem('userEmail');
-    const userRole = rawRole ? String(rawRole) : 'Visitante';
-    const userEmail = rawEmail ? String(rawEmail).toLowerCase().trim() : '';
+    // Obter dados do usuário com segurança total
+    const userRole = localStorage.getItem('userRole') || 'Visitante';
+    const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
     const isGestor = ['Gestor', 'Vendas'].includes(userRole);
 
     try {
-      // 2. Processar Aluguéis (Rentals)
-      const rentalsData = localStorage.getItem('app_rentals');
-      if (rentalsData && rentalsData !== "undefined" && rentalsData !== "null") {
-        const rentals = JSON.parse(rentalsData);
+      // 1. Aluguéis
+      const rentalsRaw = localStorage.getItem('app_rentals');
+      if (rentalsRaw && rentalsRaw !== "undefined") {
+        const rentals = JSON.parse(rentalsRaw);
         if (Array.isArray(rentals)) {
           rentals.forEach((rental, idx) => {
             if (!rental || typeof rental !== 'object' || rental.status === 'completed') return;
             
-            const clientEmail = String(rental.clientEmail || rental.userEmail || "").toLowerCase().trim();
-            const isMyRental = userEmail !== "" && clientEmail === userEmail;
-            
-            // Regra: Gestor vê tudo, Cliente vê só o dele
-            if (!isGestor && !isMyRental) return;
+            const clientEmail = (rental.clientEmail || rental.userEmail || "").toLowerCase().trim();
+            if (!isGestor && clientEmail !== userEmail) return;
 
             const endStr = rental.end ? String(rental.end) : null;
             if (endStr) {
               let endDate: Date | null = null;
               try {
-                if (endStr.includes('/')) {
-                  endDate = parse(endStr, 'dd/MM/yyyy', new Date());
-                } else if (endStr.includes('-')) {
-                  endDate = parseISO(endStr);
-                }
+                if (endStr.includes('/')) endDate = parse(endStr, 'dd/MM/yyyy', new Date());
+                else if (endStr.includes('-')) endDate = parseISO(endStr);
               } catch (e) { endDate = null; }
 
               if (endDate && isValid(endDate)) {
                 const days = differenceInDays(endDate, now);
-                const clientLabel = isGestor ? `[${rental.client || 'Cliente'}] ` : "";
-                const itemLabel = rental.item || 'Equipamento';
-                const baseId = rental.id || `r-${idx}`;
+                const safeId = rental.id || `notif-r-${idx}`;
+                const prefix = isGestor ? `[${rental.client || 'Cliente'}] ` : "";
 
                 if (days < 0) {
-                  list.push({
-                    id: `overdue-${baseId}`,
-                    title: "Locação Vencida!",
-                    description: `${clientLabel}O item ${itemLabel} está com prazo expirado.`,
-                    type: 'danger',
-                    date: endStr,
-                    path: '/perfil?tab=rentals'
-                  });
+                  list.push({ id: `o-${safeId}`, title: "Atraso!", description: `${prefix}${rental.item || 'Item'} vencido.`, type: 'danger', date: endStr, path: '/perfil?tab=rentals' });
                 } else if (days <= 2) {
-                  list.push({
-                    id: `near-${baseId}`,
-                    title: "Prazo Final",
-                    description: `${clientLabel}Devolução do item ${itemLabel} em breve.`,
-                    type: 'warning',
-                    date: endStr,
-                    path: '/perfil?tab=rentals'
-                  });
+                  list.push({ id: `n-${safeId}`, title: "Vencendo", description: `${prefix}${rental.item || 'Item'} em breve.`, type: 'warning', date: endStr, path: '/perfil?tab=rentals' });
                 }
               }
             }
@@ -96,60 +73,44 @@ const NotificationBell = () => {
         }
       }
 
-      // 3. Processar Pedidos (Orders)
-      const ordersData = localStorage.getItem('app_orders');
-      if (ordersData && ordersData !== "undefined" && ordersData !== "null") {
-        const orders = JSON.parse(ordersData);
+      // 2. Pedidos
+      const ordersRaw = localStorage.getItem('app_orders');
+      if (ordersRaw && ordersRaw !== "undefined") {
+        const orders = JSON.parse(ordersRaw);
         if (Array.isArray(orders)) {
           orders.forEach((order, idx) => {
             if (!order || typeof order !== 'object' || order.status !== 'Pendente') return;
             
-            const orderEmail = String(order.userEmail || "").toLowerCase().trim();
-            const isMyOrder = userEmail !== "" && orderEmail === userEmail;
+            const orderEmail = (order.userEmail || "").toLowerCase().trim();
+            if (!isGestor && orderEmail !== userEmail) return;
 
-            if (!isGestor && !isMyOrder) return;
-
-            list.push({
-              id: `order-${order.id || idx}`,
-              title: "Pagamento Pendente",
-              description: isGestor 
-                ? `Pedido de ${order.clientName || 'Cliente'} aguarda conferência.`
-                : `Seu pedido ${order.id || ''} aguarda o pagamento.`,
-              type: 'info',
-              date: order.date || "",
-              path: '/perfil?tab=orders'
-            });
+            list.push({ id: `ord-${order.id || idx}`, title: "Pedido Pendente", description: isGestor ? `Pedido de ${order.clientName || 'Cliente'} aguarda pagamento.` : `Seu pedido ${order.id || ''} aguarda pagamento.`, type: 'info', date: order.date || "", path: '/perfil?tab=orders' });
           });
         }
       }
-    } catch (error) {
-      console.error("Erro Crítico nas Notificações:", error);
-    }
+    } catch (e) { console.warn("Erro ao processar notificações."); }
 
     setNotifications(list);
   }, []);
 
   useEffect(() => {
     checkNotifications();
-    
-    // Ouvinte para atualizações globais
-    const onUpdate = () => checkNotifications();
-    window.addEventListener('order-placed', onUpdate);
-    window.addEventListener('storage', onUpdate);
-    
+    const update = () => checkNotifications();
+    window.addEventListener('order-placed', update);
+    window.addEventListener('storage', update);
     return () => {
-      window.removeEventListener('order-placed', onUpdate);
-      window.removeEventListener('storage', onUpdate);
+      window.removeEventListener('order-placed', update);
+      window.removeEventListener('storage', update);
     };
   }, [checkNotifications]);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-50 relative h-10 w-10 outline-none">
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-50 relative h-10 w-10 focus-visible:ring-0">
           <Bell className="h-5 w-5 text-slate-600" />
           {notifications.length > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm pointer-events-none">
+            <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">
               {notifications.length}
             </span>
           )}
@@ -160,24 +121,15 @@ const NotificationBell = () => {
         <DropdownMenuSeparator className="bg-slate-100 my-2" />
         <div className="max-h-[350px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
           {notifications.length === 0 ? (
-            <div className="py-10 text-center space-y-3">
-              <CheckCircle2 className="h-10 w-10 text-slate-200 mx-auto" />
-              <p className="text-xs font-bold text-slate-400">Tudo em ordem por aqui.</p>
-            </div>
+            <div className="py-10 text-center"><p className="text-xs font-bold text-slate-400">Sem avisos.</p></div>
           ) : (
             notifications.map((notif, idx) => (
-              <DropdownMenuItem 
-                key={`${notif.id}-${idx}`} 
-                onClick={() => { if (notif.path) navigate(notif.path); }}
-                className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent flex gap-4 transition-all"
-              >
+              <DropdownMenuItem key={`${notif.id}-${idx}`} onClick={() => navigate(notif.path)} className="rounded-2xl p-4 cursor-pointer focus:bg-slate-50 border border-transparent flex gap-4 transition-all">
                 <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", 
                   notif.type === 'danger' ? "bg-red-50 text-red-600" : 
-                  notif.type === 'warning' ? "bg-amber-50 text-amber-600" : 
-                  "bg-blue-50 text-blue-600")}>
+                  notif.type === 'warning' ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600")}>
                   {notif.type === 'danger' ? <AlertCircle className="h-5 w-5" /> : 
-                   notif.type === 'info' ? <ShoppingBag className="h-5 w-5" /> :
-                   <Clock className="h-5 w-5" />}
+                   notif.type === 'info' ? <ShoppingBag className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                 </div>
                 <div className="space-y-0.5 overflow-hidden">
                   <p className="text-sm font-black text-slate-900 leading-tight truncate">{notif.title}</p>
