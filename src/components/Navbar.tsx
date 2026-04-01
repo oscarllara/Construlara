@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn, RefreshCw } from 'lucide-react';
+import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn, RefreshCw, Crown } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -107,6 +107,10 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          <Link to="/pro" className="hidden md:flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest border border-amber-200 hover:bg-amber-100 transition-all">
+            <Crown className="h-3 w-3" /> Seja Pro
+          </Link>
+
           <Button onClick={() => navigate('/carrinho')} className="rounded-2xl bg-blue-700 hover:bg-blue-800 text-white relative h-14 px-6 flex items-center gap-3 shadow-xl shadow-blue-100">
             <div className="relative">
               <ShoppingCart className="h-6 w-6" />
@@ -149,6 +153,10 @@ const Navbar = () => {
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                    <DropdownMenuItem onClick={() => navigate('/pro')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-amber-50 group">
+                      <Crown className="mr-3 h-5 w-5 text-amber-500 group-hover:text-amber-600" />
+                      <span className="font-bold text-slate-600 group-hover:text-amber-700">Benefícios Pro</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
                       <RefreshCw className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Trocar Usuário</span>

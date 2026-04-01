@@ -20,6 +20,7 @@ import Products from "./pages/Products";
 import Cart from "./pages/Cart";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/contato" element={<Contact />} />
           <Route path="/termos" element={<Terms />} />
           <Route path="/privacidade" element={<Privacy />} />
+          <Route path="/pro" element={<Subscription />} />
 
           {/* Rotas Privadas (Dashboard Construlara) */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
