@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, CheckCircle2, UserCheck, Info, UserRoundSearch } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard, ArrowLeft, UserCheck, Info, UserRoundSearch, AlertCircle } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,6 @@ const CartPage = () => {
   });
 
   const navigate = useNavigate();
-
   const userRole = localStorage.getItem('userRole') || 'Visitante';
   const isInternal = ['Gestor', 'Vendas'].includes(userRole);
   const currentUserEmail = localStorage.getItem('userEmail') || '';
@@ -33,7 +32,10 @@ const CartPage = () => {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('app_cart');
-      if (saved) setCart(JSON.parse(saved));
+      if (saved && saved !== "undefined") {
+        const parsed = JSON.parse(saved);
+        setCart(Array.isArray(parsed) ? parsed : []);
+      }
       
       const savedPix = localStorage.getItem('app_pix_info');
       if (savedPix) setPixInfo(JSON.parse(savedPix));
@@ -46,7 +48,8 @@ const CartPage = () => {
         }
       }
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao carregar carrinho:", e);
+      setCart([]);
     }
   }, [isInternal]);
 
@@ -58,9 +61,10 @@ const CartPage = () => {
 
   const total = useMemo(() => {
     return cart.reduce((acc, item) => {
+      if (!item) return acc;
       const price = item.isPromo ? (item.promoPrice || item.price) : item.price;
-      const amount = item.isFractional ? item.totalAmount : item.quantity;
-      return acc + (price * amount);
+      const amount = item.isFractional ? (item.totalAmount || 0) : (item.quantity || 0);
+      return acc + (Number(price) * Number(amount));
     }, 0);
   }, [cart]);
 
@@ -72,14 +76,8 @@ const CartPage = () => {
           const currentAmount = Number(item.totalAmount) || step;
           const currentPacks = Math.round(currentAmount / step);
           const nextPacks = Math.max(1, currentPacks + delta);
-          
-          return { 
-            ...item, 
-            quantity: nextPacks, 
-            totalAmount: nextPacks * step 
-          };
+          return { ...item, quantity: nextPacks, totalAmount: nextPacks * step };
         }
-        
         return { ...item, quantity: Math.max(1, (Number(item.quantity) || 1) + delta) };
       }
       return item;
@@ -89,12 +87,17 @@ const CartPage = () => {
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
+    
+    if (isInternal && !selectedClientId) {
+      showError("Atenção: Você deve selecionar um cliente para este pedido.");
+      return;
+    }
+
     try {
       let finalEmail = currentUserEmail;
       let finalName = "Cliente";
 
       if (isInternal) {
-        if (!selectedClientId) return showError("Selecione o cliente.");
         const c = allClients.find(client => client.id === selectedClientId);
         if (c) { 
           finalEmail = c.email || ""; 
@@ -131,12 +134,11 @@ const CartPage = () => {
       
       window.open(`https://wa.me/5532999625979?text=${whatsappMsg}`, '_blank');
       localStorage.removeItem('app_cart');
-      showSuccess("Pedido realizado!");
+      showSuccess("Pedido realizado com sucesso!");
       window.dispatchEvent(new Event('order-placed'));
       navigate(isInternal ? '/relatorios' : '/perfil?tab=orders');
     } catch (e) {
       showError("Erro ao finalizar pedido.");
-      console.error(e);
     }
   };
 
@@ -153,24 +155,18 @@ const CartPage = () => {
         <div className="grid lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-8">
             {isInternal && (
-              <div className="bg-blue-50 p-8 rounded-[3rem] border-2 border-blue-100 space-y-4">
+              <div className={cn(
+                "p-8 rounded-[3rem] border-2 transition-all space-y-4",
+                !selectedClientId ? "bg-orange-50 border-orange-200" : "bg-blue-50 border-blue-100"
+              )}>
                 <div className="flex items-center justify-between">
-                  <Label className="font-black text-blue-900 flex items-center gap-2 uppercase text-xs tracking-widest">
-                    <UserCheck className="h-4 w-4" /> Cliente Responsável
+                  <Label className={cn("font-black flex items-center gap-2 uppercase text-xs tracking-widest", !selectedClientId ? "text-orange-700" : "text-blue-900")}>
+                    <UserCheck className="h-4 w-4" /> {selectedClientId ? "Cliente Selecionado" : "Selecione o Cliente (Obrigatório)"}
                   </Label>
-                  {selectedClientId && (
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => setSelectedClientId("")}
-                      className="h-6 text-[10px] font-black uppercase text-blue-600 hover:bg-blue-100 rounded-lg gap-1"
-                    >
-                      <UserRoundSearch className="h-3 w-3" /> Trocar Usuário
-                    </Button>
-                  )}
                 </div>
                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                   <SelectTrigger className="h-14 bg-white rounded-2xl border-none shadow-sm text-lg font-bold">
-                    <SelectValue placeholder="Selecione o cliente para esta venda..." />
+                    <SelectValue placeholder="Escolha o cliente para este pedido..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-none shadow-2xl max-h-[300px]">
                     {allClients.map(c => (
@@ -180,6 +176,11 @@ const CartPage = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {!selectedClientId && (
+                  <p className="text-[10px] font-bold text-orange-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> Você não pode finalizar o pedido sem atribuir um cliente.
+                  </p>
+                )}
               </div>
             )}
 
@@ -195,13 +196,6 @@ const CartPage = () => {
                     <div className="flex-1">
                       <h4 className="font-black text-slate-900 text-lg">{item.name}</h4>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.category}</p>
-                      {item.isFractional && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Badge variant="outline" className="text-[9px] font-bold h-5 rounded-lg bg-blue-50/50 border-blue-100 text-blue-600">
-                            Cx {item.packageSize}{item.unitLabel}
-                          </Badge>
-                        </div>
-                      )}
                     </div>
                     <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                       <Button variant="ghost" size="icon" onClick={() => handleUpdateQty(item.id, -1)} className="h-9 w-9 rounded-xl hover:bg-white"><Minus className="h-3 w-3" /></Button>
@@ -264,25 +258,12 @@ const CartPage = () => {
                 </div>
               </div>
 
-              {paymentMethod === 'Pix' && (
-                <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 space-y-3 animate-in fade-in slide-in-from-top-2">
-                  <h4 className="text-xs font-black text-emerald-800 uppercase tracking-widest flex items-center gap-2">
-                    <Info className="h-4 w-4" /> Dados para Pagamento
-                  </h4>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-emerald-700">Chave: <span className="text-slate-900 font-black">{pixInfo.key}</span></p>
-                    <p className="text-xs font-bold text-emerald-700">{pixInfo.name}</p>
-                    <p className="text-xs font-bold text-emerald-700">{pixInfo.bank}</p>
-                  </div>
-                </div>
-              )}
-
               <Button 
                 onClick={handleCheckout} 
-                disabled={cart.length === 0}
-                className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-100 transition-all hover:-translate-y-1 active:scale-95"
+                disabled={cart.length === 0 || (isInternal && !selectedClientId)}
+                className="w-full bg-blue-700 hover:bg-blue-800 h-16 rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-100 transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0"
               >
-                Finalizar via WhatsApp
+                Finalizar Pedido
               </Button>
             </Card>
           </div>

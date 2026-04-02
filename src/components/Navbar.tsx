@@ -72,7 +72,9 @@ const Navbar = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
-    showSuccess("Sessão encerrada.");
+    localStorage.removeItem('app_cart'); // Limpa o carrinho ao sair
+    window.dispatchEvent(new Event('cart-updated'));
+    showSuccess("Sessão encerrada com sucesso.");
     navigate('/login');
   };
 
@@ -153,14 +155,6 @@ const Navbar = () => {
                       <span className="font-bold text-slate-600 group-hover:text-blue-700">Meus Contratos</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-slate-100 my-2" />
-                    <DropdownMenuItem onClick={() => navigate('/pro')} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-amber-50 group">
-                      <Crown className="mr-3 h-5 w-5 text-amber-500 group-hover:text-amber-600" />
-                      <span className="font-bold text-slate-600 group-hover:text-amber-700">Benefícios Pro</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-blue-50 group">
-                      <RefreshCw className="mr-3 h-5 w-5 text-slate-400 group-hover:text-blue-600" />
-                      <span className="font-bold text-slate-600 group-hover:text-blue-700">Trocar Usuário</span>
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-3 px-4 cursor-pointer hover:bg-red-50 group">
                       <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-red-600" />
                       <span className="font-bold text-slate-600 group-hover:text-red-700">Sair do Sistema</span>
