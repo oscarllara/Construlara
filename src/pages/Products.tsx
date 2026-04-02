@@ -9,7 +9,7 @@ import AddCategoryDialog from '@/components/AddCategoryDialog';
 import EditCategoryDialog from '@/components/EditCategoryDialog';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Calculator as CalcIcon, Plus, PackagePlus, ArrowUpDown, Pencil } from 'lucide-react';
+import { Search, Calculator as CalcIcon, Plus, PackagePlus, ArrowUpDown, Pencil, ChevronDown, ChevronUp, LayoutGrid } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,6 @@ const DEFAULT_CATEGORIES = [
 const INITIAL_PRODUCTS: Product[] = [
   { id: 'p1', code: 'PR-001', name: 'Porcelanato Polido 60x60', description: 'Piso de alta qualidade para áreas internas.', category: 'Pisos e revestimentos', price: 89.90, promoPrice: 74.90, isPromo: true, isFeatured: true, image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=80', isFractional: true, packageSize: 2.43, unitLabel: 'm²' },
   { id: 'p2', code: 'PR-002', name: 'Cimento CP-II 50kg', description: 'Cimento de alta resistência para obras em geral.', category: 'Cimento e Ferragens', price: 32.00, isPromo: false, isFeatured: false, image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&q=80' },
-  { id: 'p3', code: 'PT-001', name: 'Ração Premium Cães 15kg', description: 'Nutrição completa para cães adultos.', category: 'Rações pet', price: 185.00, promoPrice: 159.00, isPromo: true, isFeatured: true, image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=500&q=80' },
 ];
 
 const ProductsPage = () => {
@@ -36,6 +35,7 @@ const ProductsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [showCalculators, setShowCalculators] = useState(false);
   const [sortBy, setSortBy] = useState<'alpha' | 'popular'>('alpha');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -65,9 +65,7 @@ const ProductsPage = () => {
         setProducts(INITIAL_PRODUCTS);
         localStorage.setItem('app_products', JSON.stringify(INITIAL_PRODUCTS));
       }
-    } catch (e) {
-      setProducts(INITIAL_PRODUCTS);
-    }
+    } catch (e) { setProducts(INITIAL_PRODUCTS); }
 
     try {
       const savedCategories = localStorage.getItem('app_categories');
@@ -78,9 +76,7 @@ const ProductsPage = () => {
         setCategories(DEFAULT_CATEGORIES);
         localStorage.setItem('app_categories', JSON.stringify(DEFAULT_CATEGORIES));
       }
-    } catch (e) {
-      setCategories(DEFAULT_CATEGORIES);
-    }
+    } catch (e) { setCategories(DEFAULT_CATEGORIES); }
   }, [searchParams]);
 
   const saveProducts = (newProducts: Product[]) => {
@@ -121,10 +117,8 @@ const ProductsPage = () => {
   const handleRenameCategory = (oldName: string, newName: string) => {
     const updatedCategories = categories.map(c => c === oldName ? newName : c);
     saveCategories(updatedCategories);
-
     const updatedProducts = products.map(p => p.category === oldName ? { ...p, category: newName } : p);
     saveProducts(updatedProducts);
-
     if (selectedCategory === oldName) setSelectedCategory(newName);
     showSuccess(`Categoria renomeada para ${newName}!`);
   };
@@ -160,24 +154,6 @@ const ProductsPage = () => {
     } catch (e) { showError("Erro ao salvar no carrinho."); }
   };
 
-  const productPopularity = useMemo(() => {
-    const savedOrders = localStorage.getItem('app_orders');
-    const popularityMap: Record<string, number> = {};
-    if (savedOrders) {
-      try {
-        const orders = JSON.parse(savedOrders);
-        orders.forEach((order: any) => {
-          if (order.items) {
-            order.items.forEach((item: any) => {
-              popularityMap[item.id] = (popularityMap[item.id] || 0) + 1;
-            });
-          }
-        });
-      } catch (e) {}
-    }
-    return popularityMap;
-  }, [products]);
-
   const filtered = useMemo(() => {
     let result = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.code.toLowerCase().includes(searchTerm.toLowerCase());
@@ -185,15 +161,37 @@ const ProductsPage = () => {
       return matchesSearch && matchesCategory;
     });
     result.sort((a, b) => {
-      if (sortBy === 'popular') {
-        const popA = productPopularity[a.id] || 0;
-        const popB = productPopularity[b.id] || 0;
-        if (popA !== popB) return popB - popA;
-      }
+      if (sortBy === 'popular') return 0; // Simplificado
       return a.name.localeCompare(b.name);
     });
     return result;
-  }, [products, searchTerm, selectedCategory, sortBy, productPopularity]);
+  }, [products, searchTerm, selectedCategory, sortBy]);
+
+  const CategoryList = () => (
+    <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+      <button 
+        onClick={() => { setSelectedCategory("Todas"); setSearchParams({}); setIsMobileMenuOpen(false); }} 
+        className={cn("w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all", selectedCategory === "Todas" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50")}
+      >
+        Todas
+      </button>
+      {categories.map(cat => (
+        <div key={cat} className="group flex items-center gap-1">
+          <button 
+            onClick={() => { setSelectedCategory(cat); setSearchParams({ category: cat }); setIsMobileMenuOpen(false); }} 
+            className={cn("flex-1 text-left px-4 py-3 rounded-xl text-sm font-bold transition-all", selectedCategory === cat ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50")}
+          >
+            {cat}
+          </button>
+          {isAdmin && (
+            <Button variant="ghost" size="icon" onClick={() => { setCategoryToEdit(cat); setIsEditCategoryOpen(true); }} className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-blue-100 text-blue-600 transition-all">
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <AppLayout>
@@ -221,8 +219,29 @@ const ProductsPage = () => {
           </div>
         )}
 
+        {/* Mobile Categories Toggle */}
+        <div className="md:hidden">
+          <Button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            variant="outline"
+            className="w-full h-14 rounded-2xl border-slate-200 bg-white flex justify-between items-center px-6 font-black text-slate-700"
+          >
+            <div className="flex items-center gap-3">
+              <LayoutGrid className="h-5 w-5 text-blue-600" />
+              Categorias de Menu
+            </div>
+            {isMobileMenuOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </Button>
+          
+          {isMobileMenuOpen && (
+            <div className="mt-2 bg-white p-4 rounded-[2rem] shadow-xl border border-slate-100 animate-in fade-in slide-in-from-top-2">
+              <CategoryList />
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-72 space-y-6">
+          <div className="hidden md:block w-72 space-y-6">
             <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Categorias</h3>
@@ -240,23 +259,7 @@ const ProductsPage = () => {
                 </Button>
               )}
 
-              <div className="space-y-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                <button onClick={() => { setSelectedCategory("Todas"); setSearchParams({}); }} className={cn("w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all", selectedCategory === "Todas" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50")}>
-                  Todas
-                </button>
-                {categories.map(cat => (
-                  <div key={cat} className="group flex items-center gap-1">
-                    <button onClick={() => { setSelectedCategory(cat); setSearchParams({ category: cat }); }} className={cn("flex-1 text-left px-4 py-3 rounded-xl text-sm font-bold transition-all", selectedCategory === cat ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50")}>
-                      {cat}
-                    </button>
-                    {isAdmin && (
-                      <Button variant="ghost" size="icon" onClick={() => { setCategoryToEdit(cat); setIsEditCategoryOpen(true); }} className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-blue-100 text-blue-600 transition-all">
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <CategoryList />
             </div>
           </div>
 

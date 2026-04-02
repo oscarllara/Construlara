@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn, RefreshCw, Crown } from 'lucide-react';
+import { LayoutGrid, User, Hammer, Receipt, Users, LogOut, BarChart3, PhoneCall, UserCircle, FileText, ShoppingBag, ShoppingCart, LogIn, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -72,7 +72,7 @@ const Navbar = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
-    localStorage.removeItem('app_cart'); // Limpa o carrinho ao sair
+    localStorage.removeItem('app_cart');
     window.dispatchEvent(new Event('cart-updated'));
     showSuccess("Sessão encerrada com sucesso.");
     navigate('/login');
@@ -109,10 +109,6 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          <Link to="/pro" className="hidden md:flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest border border-amber-200 hover:bg-amber-100 transition-all">
-            <Crown className="h-3 w-3" /> Seja Pro
-          </Link>
-
           <Button onClick={() => navigate('/carrinho')} className="rounded-2xl bg-blue-700 hover:bg-blue-800 text-white relative h-14 px-6 flex items-center gap-3 shadow-xl shadow-blue-100">
             <div className="relative">
               <ShoppingCart className="h-6 w-6" />

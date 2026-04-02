@@ -20,12 +20,11 @@ import Products from "./pages/Products";
 import Cart from "./pages/Cart";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
-import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Proteção de Rotas: Se não logado, vai para a Loja pública
+// Proteção de Rotas
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userRole = localStorage.getItem('userRole') || '';
@@ -51,7 +50,6 @@ const App = () => (
           <Route path="/contato" element={<Contact />} />
           <Route path="/termos" element={<Terms />} />
           <Route path="/privacidade" element={<Privacy />} />
-          <Route path="/pro" element={<Subscription />} />
 
           {/* Rotas Privadas (Dashboard Construlara) */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

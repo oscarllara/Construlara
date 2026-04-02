@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import PromoBanner from './PromoBanner';
 import { getRandomTip } from '@/utils/betoTips';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +20,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   useEffect(() => {
     setTip(getRandomTip());
     
-    // Inicializa contadores com segurança
     try {
       const ordersRaw = localStorage.getItem('app_orders');
       const rentalsRaw = localStorage.getItem('app_rentals');
@@ -32,7 +32,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       prevRentalCount.current = 0;
     }
 
-    // Configura o som de forma segura
     audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audioRef.current.volume = 0.5;
   }, []);
@@ -51,12 +50,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         const currentOrderCount = Array.isArray(orders) ? orders.length : 0;
         const currentRentalCount = Array.isArray(rentals) ? rentals.length : 0;
 
-        // Se for Gestor/Vendas e o número de itens aumentou, toca o som
         if (isInternal) {
           if (currentOrderCount > prevOrderCount.current || currentRentalCount > prevRentalCount.current) {
-            audioRef.current?.play().catch(() => {
-              // Silenciosamente ignorar erro de autoplay do navegador
-            });
+            audioRef.current?.play().catch(() => {});
           }
         }
 
@@ -80,6 +76,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-slate-50/50">
+      <PromoBanner />
       <Navbar />
       <main className="flex-1 container py-8 pb-32 relative">
         {children}
